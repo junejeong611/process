@@ -1,0 +1,29 @@
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Login from '../components/auth/Login';
+import Register from '../components/auth/Register';
+import Dashboard from '../components/dashboard/Dashboard';
+import ChatInterface from '../components/chat/ChatInterface';
+import UserProfile from '../components/profile/UserProfile';
+
+// Dummy authentication check (replace with real logic)
+const isAuthenticated = () => {
+  return !!localStorage.getItem('token');
+};
+
+const ProtectedRoute = ({ children }) => {
+  return isAuthenticated() ? children : <Navigate to="/login" />;
+};
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/login" element={<Login />} />
+    <Route path="/register" element={<Register />} />
+    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+    <Route path="/chat" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
+    <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+    <Route path="*" element={<Navigate to="/dashboard" />} />
+  </Routes>
+);
+
+export default AppRoutes; 
