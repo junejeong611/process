@@ -14,13 +14,12 @@ const compression = require('compression'); // Add compression for better perfor
 
 // Import routes
 const authRoutes = require('./routes/auth');
-// const userRoutes = require('./routes/users');
 const chatRoutes = require('./routes/chat');
-const voiceRoutes = require('./routes/voice'); // For ElevenLabs integration
+const voiceRoutes = require('./routes/voice');
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Enable compression for all responses
 app.use(compression());
@@ -59,20 +58,19 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use('/api/', apiLimiter);
 
 // MongoDB connection with improved error handling and options
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/emotionalsupportapp';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/emotionalsupportapp';
 const mongooseOptions = {
   // These options are no longer needed with Mongoose 6+ but including for clarity
-  // autoIndex: process.env.NODE_ENV !== 'production', // Don't build indexes in production
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
 };
 
 mongoose.connect(MONGODB_URI, mongooseOptions)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => {
-    console.error('MongoDB connection error:', err);
-    // Exit process with failure in development
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
+    console.error('⚠️ MongoDB connection error:', err.message);
+    console.log('⚠️ Server will continue running, but database features will not work');
+    // Don't exit in production or development
+    // Just continue running with limited functionality
   });
 
 // Check API keys on startup with more detailed messaging
@@ -103,13 +101,11 @@ checkRequiredEnvVars();
 // API routes with version prefix for future-proofing
 const API_PREFIX = '/api/v1';
 app.use(`${API_PREFIX}/auth`, authRoutes);
-app.use(`${API_PREFIX}/users`, userRoutes);
 app.use(`${API_PREFIX}/chat`, chatRoutes);
 app.use(`${API_PREFIX}/voice`, voiceRoutes);
 
 // Maintain backward compatibility with original routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/voice', voiceRoutes);
 

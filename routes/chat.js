@@ -1,58 +1,65 @@
 const express = require('express');
-const axios = require('axios');
+const router = express.Router();
+const Anthropic = require('@anthropic-ai/sdk');
 const Message = require('../models/Message');
 const auth = require('../middleware/auth');
 
-const router = express.Router();
+// Initialize Claude API client
+const anthropic = new Anthropic({
+  apiKey: process.env.CLAUDE_API_KEY
+});
 
 // @route   GET /api/chat/messages
 // @desc    Get all messages for the authenticated user
 // @access  Private
 router.get('/messages', auth, async (req, res) => {
   try {
-    const messages = await Message.find({ user: req.userId }).sort({ createdAt: 1 });
+    const messages = await Message.find({ user: req.user._id })
+      .sort({ createdAt: 1 })
+      .limit(50);
     res.json(messages);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch messages' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// @route   POST /api/chat/message
+// @route   POST /api/chat/send
 // @desc    Send a message, get Claude reply, store both
 // @access  Private
-router.post('/message', auth, async (req, res) => {
-  const { text } = req.body;
-  if (!text || typeof text !== 'string' || !text.trim()) {
-    return res.status(400).json({ error: 'Message text is required' });
-  }
+router.post('/send', auth, async (req, res) => {
   try {
-    // Store user message
-    const userMsg = await Message.create({ user: req.userId, text });
+    const { content } = req.body;
 
-    // Call Claude API (Anthropic)
-    // NOTE: Replace with your actual Claude API integration as needed
-    const claudeRes = await axios.post(
-      process.env.CLAUDE_API_URL,
-      {
-        model: process.env.CLAUDE_API_MODEL,
-        max_tokens: 256,
-        messages: [
-          { role: 'user', content: text }
-        ]
-      },
-      {
-        headers: {
-          'x-api-key': process.env.CLAUDE_API_KEY,
-          'content-type': 'application/json',
-        }
-      }
-    );
-    const replyText = claudeRes.data?.content || 'Sorry, I could not process your message.';
-    // Store Claude reply
-    const aiMsg = await Message.create({ user: req.userId, text: replyText });
-    res.json({ user: userMsg, ai: aiMsg });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to send message or get reply' });
+    // Save user message
+    const userMessage = new Message({
+      user: req.user._id,
+      content,
+      role: 'user'
+    });
+    await userMessage.save();
+
+    // Get Claude's response
+    const completion = await anthropic.messages.create({
+      model: 'claude-3-opus-20240229',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content }]
+    });
+
+    const assistantResponse = completion.content[0].text;
+
+    // Save assistant's response
+    const assistantMessage = new Message({
+      user: req.user._id,
+      content: assistantResponse,
+      role: 'assistant'
+    });
+    await assistantMessage.save();
+
+    res.json({
+      message: assistantMessage
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
