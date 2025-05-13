@@ -6,31 +6,7 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-<<<<<<< HEAD
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  content: {
-    type: String,
-    required: true
-  },
-  role: {
-    type: String,
-    enum: ['user', 'assistant'],
-    required: true
-  },
-  audioUrl: {
-    type: String,
-    default: null
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-=======
-  content: {
+    content: {
     type: String,
     required: [true, 'Message content cannot be empty'],
     minlength: [1, 'Message cannot be empty'],
@@ -78,7 +54,6 @@ const messageSchema = new mongoose.Schema({
 }, {
   timestamps: { createdAt: 'timestamp', updatedAt: false },
   collection: 'messages'
->>>>>>> 5414e2bfe6f078d6d3096ec133c18c2bbd1dae65
 });
 
 // Indexes for efficient querying
