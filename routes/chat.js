@@ -3,6 +3,7 @@ const router = express.Router();
 const Anthropic = require('@anthropic-ai/sdk');
 const Message = require('../models/Message');
 const auth = require('../middleware/auth');
+const claudeService = require('../services/claudeService');
 
 // Initialize Claude API client
 const anthropic = new Anthropic({
@@ -34,24 +35,20 @@ router.post('/send', auth, async (req, res) => {
     const userMessage = new Message({
       user: req.user._id,
       content,
-      role: 'user'
+      sender: 'user',
+      conversationId: req.body.conversationId
     });
     await userMessage.save();
 
-    // Get Claude's response
-    const completion = await anthropic.messages.create({
-      model: 'claude-3-opus-20240229',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content }]
-    });
-
-    const assistantResponse = completion.content[0].text;
+    // Get Claude's response using claudeService
+    const claudeResponse = await claudeService.sendMessage(content);
 
     // Save assistant's response
     const assistantMessage = new Message({
       user: req.user._id,
-      content: assistantResponse,
-      role: 'assistant'
+      content: claudeResponse.content,
+      sender: 'ai',
+      conversationId: req.body.conversationId
     });
     await assistantMessage.save();
 
