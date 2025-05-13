@@ -24,3 +24,6 @@ yarn-error.log
 # OS files
 .DS_Store
 Thumbs.db
+client/node_modules/
+mongodb-macos-aarch64-8.0.9/
+mongodb-macos-arm64-8.0.9.tgz
