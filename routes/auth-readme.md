@@ -1,4 +1,4 @@
-# Auth.js
+# [auth.js] Auth.js
 
 ## Purpose of the file/module:
 This file (auth.js) creates API endpoints for user authentication, including registration and login. It handles user creation, password hashing, and JWT token generation for secure access.
@@ -48,4 +48,20 @@ This file (auth.js) creates API endpoints for user authentication, including reg
 - **Login errors (401):**
   - Verify that the email and password are correct.
 - **Database errors:**
-  - Ensure that MONGODB_URI is correct and the database is accessible. 
+  - Ensure that MONGODB_URI is correct and the database is accessible.
+
+## Usage Examples
+```javascript
+// Register a new user
+const response = fetch('/api/auth/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: 'user@example.com', password: 'password123', name: 'User Name' })
+});
+
+// Login a user
+const response = fetch('/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: 'user@example.com', password: 'password123' })
+}); 
