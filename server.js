@@ -19,7 +19,7 @@ const voiceRoutes = require('./routes/voice');
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // Enable compression for all responses
 app.use(compression());

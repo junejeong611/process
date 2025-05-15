@@ -15,7 +15,7 @@ router.post('/register', async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
     // Create new user
@@ -27,9 +27,9 @@ router.post('/register', async (req, res) => {
       expiresIn: '7d'
     });
 
-    res.status(201).json({ token, user: { id: user._id, email: user.email, name: user.name } });
+    res.status(201).json({ success: true, token, user: { id: user._id, email: user.email, name: user.name } });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
@@ -43,13 +43,13 @@ router.post('/login', async (req, res) => {
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     // Generate token
@@ -57,9 +57,9 @@ router.post('/login', async (req, res) => {
       expiresIn: '7d'
     });
 
-    res.json({ token, user: { id: user._id, email: user.email, name: user.name } });
+    res.json({ success: true, token, user: { id: user._id, email: user.email, name: user.name } });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
