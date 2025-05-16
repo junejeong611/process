@@ -44,6 +44,7 @@ const Register = () => {
     }
     setIsLoading(true);
     try {
+      // makes request to /api/auth/register
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,7 +155,7 @@ const Register = () => {
         </form>
         <div className="register-footer">
           <p>Already have an account? <Link to="/login">Log in</Link></p>
-        </div>
+        </div>s
       </div>
     </div>
   );
