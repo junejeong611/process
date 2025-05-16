@@ -19,7 +19,7 @@ const voiceRoutes = require('./routes/voice');
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Enable compression for all responses
 app.use(compression());
@@ -65,10 +65,10 @@ const mongooseOptions = {
 };
 
 mongoose.connect(MONGODB_URI, mongooseOptions)
-  .then(() => console.log('✅ Connected to MongoDB'))
+  .then(() => console.log('Connected to MongoDB'))
   .catch(err => {
-    console.error('⚠️ MongoDB connection error:', err.message);
-    console.log('⚠️ Server will continue running, but database features will not work');
+    console.error('MongoDB connection error:', err.message);
+    console.log('Server will continue running, but database features will not work');
     // Don't exit in production or development
     // Just continue running with limited functionality
   });
