@@ -4,11 +4,14 @@ const Anthropic = require('@anthropic-ai/sdk');
 const Message = require('../models/Message');
 const auth = require('../middleware/auth');
 const claudeService = require('../services/claudeService');
+const Conversation = require('../models/Conversation');
 
 // Initialize Claude API client
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY
 });
+
+console.log('chatRoutes loaded');
 
 // @route   GET /api/chat/messages
 // @desc    Get all messages for the authenticated user
@@ -55,6 +58,25 @@ router.post('/send', auth, async (req, res) => {
     res.json({
       message: assistantMessage
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @route   POST /api/chat/conversations
+// @desc    Create a new conversation and return its ID
+// @access  Private
+router.post('/conversations', auth, async (req, res) => {
+  console.log('POST /conversations hit');
+  try {
+    const conversation = new Conversation({
+      userId: req.user._id,
+      title: req.body.title || 'New Conversation',
+      summary: req.body.summary || '',
+      tags: req.body.tags || []
+    });
+    await conversation.save();
+    res.json({ conversationId: conversation._id });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

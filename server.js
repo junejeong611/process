@@ -19,6 +19,7 @@ const voiceRoutes = require('./routes/voice');
 
 // Initialize Express app
 const app = express();
+app.set('trust proxy', 1); // trust first proxy for correct rate limiting behind proxy
 const PORT = process.env.PORT || 5001;
 
 // Enable compression for all responses

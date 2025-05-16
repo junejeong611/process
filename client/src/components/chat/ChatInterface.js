@@ -6,6 +6,7 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
   const messagesEndRef = useRef(null);
   
   // Auto-scroll to bottom of messages
@@ -31,15 +32,23 @@ const ChatInterface = () => {
     setIsLoading(true);
     
     try {
-      // Call your backend API that interfaces with Claude
-      const response = await axios.post('/api/chat', {
-        message: newMessage
+      let currentConversationId = conversationId;
+      if (!currentConversationId) {
+        // Create a new conversation first
+        const convRes = await axios.post('/api/chat/conversations', {});
+        currentConversationId = convRes.data.conversationId;
+        setConversationId(currentConversationId);
+      }
+      // Send the message with conversationId
+      const response = await axios.post('/api/chat/send', {
+        content: newMessage,
+        conversationId: currentConversationId
       });
       
       // Add Claude's response to chat
       const claudeResponse = {
         id: Date.now() + 1,
-        text: response.data.message,
+        text: response.data.message.content || response.data.message,
         sender: 'claude',
         timestamp: new Date()
       };
