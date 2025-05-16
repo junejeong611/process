@@ -9,6 +9,63 @@ const ChatInterface = () => {
   const [conversationId, setConversationId] = useState(null);
   const messagesEndRef = useRef(null);
   
+  // Create a new conversation when component mounts
+  useEffect(() => {
+    const createNewConversation = async () => {
+      try {
+        console.log('Creating new conversation...');
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No authentication token found');
+          return;
+        }
+
+        const response = await axios.post('/api/chat/conversations', {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        console.log('Conversation created:', response.data);
+        setConversationId(response.data._id);
+      } catch (error) {
+        console.error('Error creating conversation:', error.response?.data || error.message);
+      }
+    };
+
+    createNewConversation();
+  }, []);
+
+  // Load messages when conversationId changes
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!conversationId) {
+        console.log('No conversation ID available');
+        return;
+      }
+
+      try {
+        console.log('Loading messages for conversation:', conversationId);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No authentication token found');
+          return;
+        }
+
+        const response = await axios.get(`/api/chat/messages/${conversationId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        console.log('Messages loaded:', response.data);
+        setMessages(response.data);
+      } catch (error) {
+        console.error('Error loading messages:', error.response?.data || error.message);
+      }
+    };
+
+    loadMessages();
+  }, [conversationId]);
+  
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -17,7 +74,13 @@ const ChatInterface = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !conversationId) {
+      console.log('Cannot send message:', { 
+        hasMessage: !!newMessage.trim(), 
+        hasConversationId: !!conversationId 
+      });
+      return;
+    }
     
     // Add user message to chat
     const userMessage = {
@@ -32,30 +95,38 @@ const ChatInterface = () => {
     setIsLoading(true);
     
     try {
-      let currentConversationId = conversationId;
-      if (!currentConversationId) {
-        // Create a new conversation first
-        const convRes = await axios.post('/api/chat/conversations', {});
-        currentConversationId = convRes.data.conversationId;
-        setConversationId(currentConversationId);
+      console.log('Sending message:', { 
+        content: newMessage, 
+        conversationId: conversationId 
+      });
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
-      // Send the message with conversationId
+
       const response = await axios.post('/api/chat/send', {
         content: newMessage,
-        conversationId: currentConversationId
+        conversationId: conversationId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
+      
+      console.log('Message sent successfully:', response.data);
       
       // Add Claude's response to chat
       const claudeResponse = {
         id: Date.now() + 1,
-        text: response.data.message.content || response.data.message,
+        text: response.data.message.content,
         sender: 'claude',
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, claudeResponse]);
     } catch (error) {
-      console.error('Error sending message to Claude:', error);
+      console.error('Error sending message:', error.response?.data || error.message);
       
       // Add error message
       const errorMessage = {
@@ -113,11 +184,11 @@ const ChatInterface = () => {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type your message..."
-          disabled={isLoading}
+          disabled={isLoading || !conversationId}
         />
         <button 
           type="submit" 
-          disabled={isLoading || !newMessage.trim()}
+          disabled={isLoading || !newMessage.trim() || !conversationId}
         >
           Send
         </button>

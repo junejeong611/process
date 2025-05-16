@@ -2,25 +2,55 @@ const express = require('express');
 const router = express.Router();
 const Anthropic = require('@anthropic-ai/sdk');
 const Message = require('../models/Message');
+const Conversation = require('../models/Conversation');
 const auth = require('../middleware/auth');
 const claudeService = require('../services/claudeService');
-const Conversation = require('../models/Conversation');
 
 // Initialize Claude API client
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY
 });
 
-console.log('chatRoutes loaded');
-
-// @route   GET /api/chat/messages
-// @desc    Get all messages for the authenticated user
+// @route   POST /api/chat/conversations
+// @desc    Create a new conversation
 // @access  Private
-router.get('/messages', auth, async (req, res) => {
+router.post('/conversations', auth, async (req, res) => {
   try {
-    const messages = await Message.find({ user: req.user._id })
-      .sort({ createdAt: 1 })
-      .limit(50);
+    const conversation = new Conversation({
+      userId: req.user._id,
+      title: 'New Conversation'
+    });
+    
+    await conversation.save();
+    res.status(201).json(conversation);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @route   GET /api/chat/conversations
+// @desc    Get all conversations for the authenticated user
+// @access  Private
+router.get('/conversations', auth, async (req, res) => {
+  try {
+    const conversations = await Conversation.find({ userId: req.user._id })
+      .sort({ updatedAt: -1 });
+    res.json(conversations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @route   GET /api/chat/messages/:conversationId
+// @desc    Get all messages for a specific conversation
+// @access  Private
+router.get('/messages/:conversationId', auth, async (req, res) => {
+  try {
+    const messages = await Message.find({ 
+      userId: req.user._id,
+      conversationId: req.params.conversationId 
+    })
+      .sort({ createdAt: 1 });
     res.json(messages);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -32,15 +62,30 @@ router.get('/messages', auth, async (req, res) => {
 // @access  Private
 router.post('/send', auth, async (req, res) => {
   try {
-    const { content } = req.body;
+    const { content, conversationId } = req.body;
+
+    if (!content || !conversationId) {
+      return res.status(400).json({ error: 'Message content and conversation ID are required' });
+    }
+
+    // Verify conversation exists and belongs to user
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      userId: req.user._id
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
 
     // Save user message
     const userMessage = new Message({
-      user: req.user._id,
+      userId: req.user._id,
       content,
       sender: 'user',
-      conversationId: req.body.conversationId
+      conversationId
     });
+    
     await userMessage.save();
 
     // Get Claude's response using claudeService
@@ -48,12 +93,16 @@ router.post('/send', auth, async (req, res) => {
 
     // Save assistant's response
     const assistantMessage = new Message({
-      user: req.user._id,
+      userId: req.user._id,
       content: claudeResponse.content,
       sender: 'ai',
-      conversationId: req.body.conversationId
+      conversationId
     });
     await assistantMessage.save();
+
+    // Update conversation's last message timestamp
+    conversation.updatedAt = new Date();
+    await conversation.save();
 
     res.json({
       message: assistantMessage
@@ -63,23 +112,4 @@ router.post('/send', auth, async (req, res) => {
   }
 });
 
-// @route   POST /api/chat/conversations
-// @desc    Create a new conversation and return its ID
-// @access  Private
-router.post('/conversations', auth, async (req, res) => {
-  console.log('POST /conversations hit');
-  try {
-    const conversation = new Conversation({
-      userId: req.user._id,
-      title: req.body.title || 'New Conversation',
-      summary: req.body.summary || '',
-      tags: req.body.tags || []
-    });
-    await conversation.save();
-    res.json({ conversationId: conversation._id });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-module.exports = router; 
+module.exports = router;
