@@ -155,7 +155,7 @@ const Register = () => {
         </form>
         <div className="register-footer">
           <p>Already have an account? <Link to="/login">Log in</Link></p>
-        </div>s
+        </div>
       </div>
     </div>
   );
