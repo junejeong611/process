@@ -110,25 +110,23 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/voice', voiceRoutes);
 
-// Health check route with enhanced diagnostics
+let serverReady = false;
+
+// Basic health check that works even during initialization
+app.get('/api/health/basic', (req, res) => {
+  res.status(200).json({
+    status: 'starting',
+    ready: serverReady
+  });
+});
+
+// Full health check - only returns 200 when fully ready
 app.get('/api/health', (req, res) => {
-  const healthInfo = {
-    status: 'Server is running',
-    timestamp: new Date(),
-    uptime: `${Math.floor(process.uptime())} seconds`,
-    environment: process.env.NODE_ENV || 'development',
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    apis: {
-      claude: !!process.env.CLAUDE_API_KEY ? 'configured' : 'missing',
-      elevenLabs: !!process.env.ELEVENLABS_API_KEY ? 'configured' : 'missing'
-    },
-    memory: {
-      rss: `${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`,
-      heapTotal: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)} MB`,
-      heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB`
-    }
-  };
-  res.json(healthInfo);
+  if (serverReady) {
+    res.status(200).json({ status: 'ok' });
+  } else {
+    res.status(503).json({ status: 'starting' });
+  }
 });
 
 // 404 handler - must come before error handler
@@ -178,6 +176,12 @@ const server = app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`API URL: http://localhost:${PORT}${API_PREFIX}`);
+});
+
+// Set serverReady = true only after database connection and server start
+mongoose.connection.on('connected', () => {
+  serverReady = true;
+  console.log('serverReady set to true');
 });
 
 // Graceful shutdown with timeout

@@ -2,67 +2,86 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './ChatInterface.css';
 
+// Helper: Wait for backend to be ready
+const waitForBackend = async (retries = 10, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await axios.get('/api/health'); // You may need to implement this endpoint in your backend
+      return true;
+    } catch (err) {
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+  return false;
+};
+
+// Helper: Retry wrapper for axios requests
+const axiosWithRetry = async (axiosCall, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await axiosCall();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+};
+
 const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const messagesEndRef = useRef(null);
+  const [backendReady, setBackendReady] = useState(true);
+  const [backendError, setBackendError] = useState('');
   
   // Create a new conversation when component mounts
   useEffect(() => {
-    const createNewConversation = async () => {
+    const init = async () => {
+      setBackendReady(false);
+      setBackendError('');
+      const ready = await waitForBackend();
+      setBackendReady(ready);
+      if (!ready) {
+        setBackendError('Unable to connect to the backend server. Please try again later.');
+        return;
+      }
       try {
-        console.log('Creating new conversation...');
         const token = localStorage.getItem('token');
         if (!token) {
-          console.error('No authentication token found');
+          setBackendError('No authentication token found');
           return;
         }
-
-        const response = await axios.post('/api/chat/conversations', {}, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        console.log('Conversation created:', response.data);
+        const response = await axiosWithRetry(() => axios.post('/api/chat/conversations', {}, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }));
         setConversationId(response.data._id);
       } catch (error) {
-        console.error('Error creating conversation:', error.response?.data || error.message);
+        setBackendError('Error creating conversation: ' + (error.response?.data?.message || error.message));
       }
     };
-
-    createNewConversation();
+    init();
   }, []);
 
   // Load messages when conversationId changes
   useEffect(() => {
     const loadMessages = async () => {
-      if (!conversationId) {
-        console.log('No conversation ID available');
-        return;
-      }
-
+      if (!conversationId) return;
       try {
-        console.log('Loading messages for conversation:', conversationId);
         const token = localStorage.getItem('token');
         if (!token) {
-          console.error('No authentication token found');
+          setBackendError('No authentication token found');
           return;
         }
-
-        const response = await axios.get(`/api/chat/messages/${conversationId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        console.log('Messages loaded:', response.data);
+        const response = await axiosWithRetry(() => axios.get(`/api/chat/messages/${conversationId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }));
         setMessages(response.data);
       } catch (error) {
-        console.error('Error loading messages:', error.response?.data || error.message);
+        setBackendError('Error loading messages: ' + (error.response?.data?.message || error.message));
       }
     };
-
     loadMessages();
   }, [conversationId]);
   
@@ -73,62 +92,35 @@ const ChatInterface = () => {
   
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
-    if (!newMessage.trim() || !conversationId) {
-      console.log('Cannot send message:', { 
-        hasMessage: !!newMessage.trim(), 
-        hasConversationId: !!conversationId 
-      });
-      return;
-    }
-    
-    // Add user message to chat
+    if (!newMessage.trim() || !conversationId) return;
     const userMessage = {
       id: Date.now(),
       text: newMessage,
       sender: 'user',
       timestamp: new Date()
     };
-    
     setMessages(prev => [...prev, userMessage]);
     setNewMessage('');
     setIsLoading(true);
-    
+    setBackendError('');
     try {
-      console.log('Sending message:', { 
-        content: newMessage, 
-        conversationId: conversationId 
-      });
-      
       const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await axios.post('/api/chat/send', {
+      if (!token) throw new Error('No authentication token found');
+      const response = await axiosWithRetry(() => axios.post('/api/chat/send', {
         content: newMessage,
         conversationId: conversationId
       }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('Message sent successfully:', response.data);
-      
-      // Add Claude's response to chat
+        headers: { 'Authorization': `Bearer ${token}` }
+      }));
       const claudeResponse = {
         id: Date.now() + 1,
         text: response.data.message.content,
         sender: 'claude',
         timestamp: new Date()
       };
-      
       setMessages(prev => [...prev, claudeResponse]);
     } catch (error) {
-      console.error('Error sending message:', error.response?.data || error.message);
-      
-      // Add error message
+      setBackendError('Error sending message: ' + (error.response?.data?.message || error.message));
       const errorMessage = {
         id: Date.now() + 1,
         text: 'Sorry, I encountered an error processing your message. Please try again.',
@@ -136,7 +128,6 @@ const ChatInterface = () => {
         error: true,
         timestamp: new Date()
       };
-      
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -145,6 +136,12 @@ const ChatInterface = () => {
   
   return (
     <div className="chat-interface">
+      {!backendReady && (
+        <div className="backend-status error">{backendError || 'Connecting to backend...'}</div>
+      )}
+      {backendError && backendReady && (
+        <div className="backend-status error">{backendError}</div>
+      )}
       <div className="messages-container">
         {messages.length === 0 ? (
           <div className="empty-chat">

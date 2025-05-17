@@ -8,7 +8,7 @@
         "start:client": "cd client && npm start",
         "dev:server": "nodemon server.js",
         "install:all": "npm install && cd client && npm install",
-        "start": "concurrently \"npm run start:server\" \"npm run start:client\""
+        "start": "node scripts/start-services.js"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.41.0",
