@@ -1,14 +1,12 @@
 import React from 'react';
 import ChatInterface from '../chat/ChatInterface';
+import Navbar from '../navigation/Navbar';
 import './Dashboard.css';
 
 const Dashboard = () => {
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1>Emotional Support Chat</h1>
-      </header>
-      
+      <Navbar />
       <div className="chat-container">
         <ChatInterface />
       </div>
