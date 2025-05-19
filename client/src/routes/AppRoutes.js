@@ -5,6 +5,8 @@ import Register from '../components/auth/Register';
 import Dashboard from '../components/dashboard/Dashboard';
 import ChatInterface from '../components/chat/ChatInterface';
 import UserProfile from '../components/profile/UserProfile';
+import ForgotPassword from '../components/auth/ForgotPassword';
+import ResetPassword from '../components/auth/ResetPassword';
 
 // Dummy authentication check (replace with real logic)
 const isAuthenticated = () => {
@@ -19,10 +21,12 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/reset-password/:token" element={<ResetPassword />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/chat" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-    <Route path="*" element={<Navigate to="/dashboard" />} />
+    <Route path="*" element={<Navigate to="/login" />} />
   </Routes>
 );
 
