@@ -53,7 +53,8 @@ const userSchema = new mongoose.Schema({
     default: true
   },
   resetPasswordToken: {
-    type: String
+    type: String,
+    select: false // Do not return by default for security
   },
   resetPasswordExpires: {
     type: Date
@@ -100,6 +101,19 @@ userSchema.statics.findByEmail = function(email) {
 // Instance method to compare password (using async/await)
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Instance method to set a password reset token (hashes the token)
+userSchema.methods.setPasswordResetToken = async function(rawToken) {
+  const bcrypt = require('bcrypt');
+  this.resetPasswordToken = await bcrypt.hash(rawToken, 10);
+  this.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+};
+
+// Instance method to clear the password reset token
+userSchema.methods.clearPasswordResetToken = function() {
+  this.resetPasswordToken = undefined;
+  this.resetPasswordExpires = undefined;
 };
 
 // Create a model from the schema
