@@ -84,13 +84,12 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
     // Do not reveal if email exists
     return res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
   }
-  // Generate token
-  const token = crypto.randomBytes(32).toString('hex');
-  user.resetPasswordToken = token;
-  user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+  // Generate raw token
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  await user.setPasswordResetToken(rawToken);
   await user.save();
-  // Send email
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${token}`;
+  // Send email with raw token
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${rawToken}`;
   await sendEmail({
     to: user.email,
     subject: 'Password Reset',
@@ -121,16 +120,18 @@ router.get('/reset-password/:token', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) return res.status(400).json({ success: false, message: 'Token and new password are required.' });
-  const user = await User.findOne({
-    resetPasswordToken: token,
-    resetPasswordExpires: { $gt: Date.now() }
-  });
+  // Find user with unexpired token
+  const user = await User.findOne({ resetPasswordExpires: { $gt: Date.now() } }).select('+resetPasswordToken');
   if (!user) {
     return res.status(400).json({ success: false, message: 'Invalid or expired token.' });
   }
+  // Compare provided token with hashed token
+  const isMatch = await bcrypt.compare(token, user.resetPasswordToken);
+  if (!isMatch) {
+    return res.status(400).json({ success: false, message: 'Invalid or expired token.' });
+  }
   user.password = password;
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpires = undefined;
+  user.clearPasswordResetToken();
   await user.save();
   res.json({ success: true, message: 'Password has been reset.' });
 });
