@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 // import './Login.css'; // Uncomment if you have a CSS file for styling
 
 const Login = () => {
@@ -88,7 +88,7 @@ const Login = () => {
               </label>
             </div>
             <div className="forgot-password">
-              <a href="/forgot-password">Forgot password?</a>
+              <Link to="/forgot-password">Forgot password?</Link>
             </div>
           </div>
           <button 
