@@ -36,6 +36,11 @@ const ChatInterface = () => {
   const [backendReady, setBackendReady] = useState(true);
   const [backendError, setBackendError] = useState('');
   
+  // Helper function to get token from either storage
+  const getToken = () => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token');
+  };
+  
   // Create a new conversation when component mounts
   useEffect(() => {
     const init = async () => {
@@ -48,7 +53,7 @@ const ChatInterface = () => {
         return;
       }
       try {
-        const token = localStorage.getItem('token');
+        const token = getToken();
         if (!token) {
           setBackendError('No authentication token found');
           return;
@@ -69,7 +74,7 @@ const ChatInterface = () => {
     const loadMessages = async () => {
       if (!conversationId) return;
       try {
-        const token = localStorage.getItem('token');
+        const token = getToken();
         if (!token) {
           setBackendError('No authentication token found');
           return;
@@ -104,7 +109,7 @@ const ChatInterface = () => {
     setIsLoading(true);
     setBackendError('');
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       if (!token) throw new Error('No authentication token found');
       const response = await axiosWithRetry(() => axios.post('/api/chat/send', {
         content: newMessage,
@@ -124,7 +129,7 @@ const ChatInterface = () => {
       const errorMessage = {
         id: Date.now() + 1,
         text: 'Sorry, I encountered an error processing your message. Please try again.',
-        sender: 'claude',
+        sender: 'system',
         error: true,
         timestamp: new Date()
       };
@@ -135,7 +140,7 @@ const ChatInterface = () => {
   };
   
   return (
-    <div className="chat-interface">
+    <div className="chat-container">
       {!backendReady && (
         <div className="backend-status error">{backendError || 'Connecting to backend...'}</div>
       )}
@@ -154,11 +159,8 @@ const ChatInterface = () => {
               className={`message ${message.sender} ${message.error ? 'error' : ''}`}
             >
               <div className="message-content">{message.text}</div>
-              <div className="message-time">
-                {new Date(message.timestamp).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+              <div className="message-timestamp">
+                {new Date(message.timestamp).toLocaleTimeString()}
               </div>
             </div>
           ))
@@ -175,19 +177,21 @@ const ChatInterface = () => {
         <div ref={messagesEndRef} />
       </div>
       
-      <form className="message-form" onSubmit={handleSendMessage}>
+      <form onSubmit={handleSendMessage} className="message-input-form">
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type your message..."
-          disabled={isLoading || !conversationId}
+          disabled={isLoading || !backendReady}
+          className="message-input"
         />
         <button 
           type="submit" 
-          disabled={isLoading || !newMessage.trim() || !conversationId}
+          disabled={isLoading || !backendReady || !newMessage.trim()}
+          className="send-button"
         >
-          Send
+          {isLoading ? 'Sending...' : 'Send'}
         </button>
       </form>
     </div>

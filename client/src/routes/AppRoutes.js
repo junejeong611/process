@@ -10,7 +10,7 @@ import ResetPassword from '../components/auth/ResetPassword';
 
 // Dummy authentication check (replace with real logic)
 const isAuthenticated = () => {
-  return !!localStorage.getItem('token');
+  return !!(localStorage.getItem('token') || sessionStorage.getItem('token'));
 };
 
 const ProtectedRoute = ({ children }) => {
