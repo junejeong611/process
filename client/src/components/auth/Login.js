@@ -1,6 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// import './Login.css'; // Uncomment if you have a CSS file for styling
+import './Login.css';
+
+// Form validation helper functions
+const validateEmail = (email) => {
+  if (!email.trim()) return 'Email is required.';
+  if (!/^\S+@\S+\.\S+$/.test(email)) return 'Please enter a valid email address.';
+  return '';
+};
+
+const validatePassword = (password) => {
+  if (!password) return 'Password is required.';
+  if (password.length < 6) return 'Password must be at least 6 characters.';
+  return '';
+};
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -8,99 +21,204 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
   const navigate = useNavigate();
+
+  // Clear any stale errors when component mounts
+  useEffect(() => {
+    setError('');
+    setEmailError('');
+    setPasswordError('');
+    
+    // Focus the email input for better UX
+    const emailInput = document.getElementById('email');
+    if (emailInput) emailInput.focus();
+  }, []);
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    if (emailError) setEmailError('');
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    if (passwordError) setPasswordError('');
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    
+    // Client-side validation
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    setEmailError(emailErr);
+    setPasswordError(passwordErr);
+    
+    if (emailErr || passwordErr) return;
+    
+    setIsLoading(true);
+    
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, rememberMe }),
       });
+      
       const data = await response.json();
+      
       if (data.success) {
-        // Optionally store token in localStorage/sessionStorage based on rememberMe
+        // Set login success state for animation
+        setLoginSuccess(true);
+        
+        // Store token based on remember me preference
         if (rememberMe) {
           localStorage.setItem('token', data.token);
         } else {
           sessionStorage.setItem('token', data.token);
         }
-        navigate('/dashboard');
+        
+        // Add a slight delay for the success animation
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1200);
       } else {
-        setError(data.message || 'Failed to log in. Please try again.');
+        setError(data.message || 'Invalid email or password. Please try again.');
       }
     } catch (err) {
-      setError('Failed to log in. Please try again.');
+      console.error('Login error:', err);
+      setError('Connection error. Please check your internet and try again.');
     } finally {
-      setIsLoading(false);
+      if (!loginSuccess) setIsLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 id="login-heading" className="login-title">Welcome Back</h2>
-        <p className="login-subtitle">Login to your emotional support account</p>
-        {error && <div className="error-message" role="alert">{error}</div>}
-        <form onSubmit={handleSubmit} aria-labelledby="login-heading" className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              aria-required="true"
-              placeholder="Enter your email"
-              disabled={isLoading}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              className="form-control"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              aria-required="true"
-              placeholder="Enter your password"
-              disabled={isLoading}
-            />
-          </div>
-          <div className="form-options">
-            <div className="remember-me">
-              <label className="checkbox-label">
+    <div className="login-container" role="main">
+      <div className="site-logo-container">
+        <img src="logo.svg" alt="Company Logo" className="site-logo" />
+      </div>
+      
+      <div className="login-content">
+        <div 
+          className={`login-card ${isLoading ? 'is-loading' : ''} ${loginSuccess ? 'success' : ''}`} 
+          tabIndex={0} 
+          aria-labelledby="login-heading"
+        >
+          <header className="login-header" aria-live="polite">
+            <h1 id="login-heading" className="login-title">welcome back</h1>
+            <p className="login-subtitle">
+              a safe place for you to process your emotions
+            </p>
+          </header>
+          
+          {error && (
+            <div className="error-message" role="alert">
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">email address</label>
+              <div className="input-wrapper">
                 <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  id="email"
+                  type="email"
+                  className={`form-control ${emailError ? 'is-invalid' : ''}`}
+                  value={email}
+                  onChange={handleEmailChange}
+                  required
+                  aria-required="true"
+                  aria-invalid={!!emailError}
+                  aria-describedby={emailError ? 'email-error' : undefined}
+                  placeholder="email address"
                   disabled={isLoading}
+                  autoComplete="username"
                 />
-                <span className="checkbox-text">Remember me</span>
-              </label>
+                {emailError && (
+                  <div className="invalid-feedback" id="email-error">{emailError}</div>
+                )}
+              </div>
             </div>
-            <div className="forgot-password">
-              <Link to="/forgot-password">Forgot password?</Link>
+            
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">password</label>
+              <div className="input-wrapper">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  className={`form-control ${passwordError ? 'is-invalid' : ''}`}
+                  value={password}
+                  onChange={handlePasswordChange}
+                  required
+                  aria-required="true"
+                  aria-invalid={!!passwordError}
+                  aria-describedby={passwordError ? 'password-error' : undefined}
+                  placeholder="password"
+                  disabled={isLoading}
+                  autoComplete="current-password"
+                />
+                <button 
+                  type="button"
+                  className="toggle-password"
+                  onClick={togglePasswordVisibility}
+                  aria-label={showPassword ? "hide password" : "show password"}
+                  tabIndex="0"
+                >
+                  {showPassword ? "hide" : "show"}
+                </button>
+                {passwordError && (
+                  <div className="invalid-feedback" id="password-error">{passwordError}</div>
+                )}
+              </div>
             </div>
-          </div>
-          <button 
-            type="submit" 
-            className="login-button" 
-            disabled={isLoading}
-          >
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        <div className="login-footer">
-          <p>Don't have an account? <a href="/register">Sign up</a></p>
+            
+            <div className="form-options">
+              <div className="remember-me">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    disabled={isLoading}
+                    aria-checked={rememberMe}
+                  />
+                  <span className="checkbox-text">remember me</span>
+                </label>
+              </div>
+              <div className="forgot-password">
+                <Link to="/forgot-password">forgot password?</Link>
+              </div>
+            </div>
+            
+            <button
+              type="submit"
+              className={`login-button ${isLoading ? 'loading' : ''} ${loginSuccess ? 'success' : ''}`}
+              disabled={isLoading || loginSuccess}
+              aria-busy={isLoading}
+            >
+              <span className="button-text">
+                {loginSuccess ? 'success!' : isLoading ? 'signing in...' : 'sign in'}
+              </span>
+            </button>
+          </form>
+          
+          <footer className="login-footer">
+            <p>don't have an account? <Link to="/register">sign up</Link></p>
+            <p className="support-text">we're here to help whenever you need us.</p>
+          </footer>
+          
+          {/* Login progress and success animations are controlled via CSS */}
         </div>
       </div>
     </div>
