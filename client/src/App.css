@@ -36,3 +36,30 @@
     transform: rotate(360deg);
   }
 }
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+}
+
+.main-content {
+  flex: 1;
+  padding-top: 1rem;
+}
+
+/* Override chat container height to account for navbar */
+.chat-container {
+  height: calc(100vh - 80px) !important;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: 0.5rem;
+  }
+
+  .chat-container {
+    height: calc(100vh - 70px) !important;
+  }
+}

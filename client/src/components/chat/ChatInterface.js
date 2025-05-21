@@ -6,7 +6,7 @@ import './ChatInterface.css';
 const waitForBackend = async (retries = 10, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
     try {
-      await axios.get('/api/health'); // You may need to implement this endpoint in your backend
+      await axios.get('/api/health');
       return true;
     } catch (err) {
       await new Promise(res => setTimeout(res, delay));
@@ -29,7 +29,7 @@ const axiosWithRetry = async (axiosCall, retries = 3, delay = 1000) => {
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const messagesEndRef = useRef(null);
@@ -58,10 +58,19 @@ const ChatInterface = () => {
           setBackendError('No authentication token found');
           return;
         }
+        // Create new conversation and get initial AI message
         const response = await axiosWithRetry(() => axios.post('/api/chat/conversations', {}, {
           headers: { 'Authorization': `Bearer ${token}` }
         }));
+        
         setConversationId(response.data._id);
+        // Add the initial AI message to the chat
+        setMessages([{
+          id: Date.now(),
+          text: 'Hello! How can I help you today?',
+          sender: 'bot',
+          timestamp: new Date().toISOString()
+        }]);
       } catch (error) {
         setBackendError('Error creating conversation: ' + (error.response?.data?.message || error.message));
       }
@@ -82,7 +91,10 @@ const ChatInterface = () => {
         const response = await axiosWithRetry(() => axios.get(`/api/chat/messages/${conversationId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }));
-        setMessages(response.data);
+        // Only set messages if we don't already have any (to preserve initial message)
+        if (messages.length === 0) {
+          setMessages(response.data);
+        }
       } catch (error) {
         setBackendError('Error loading messages: ' + (error.response?.data?.message || error.message));
       }
@@ -97,33 +109,36 @@ const ChatInterface = () => {
   
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !conversationId) return;
+    if (!inputMessage.trim() || !conversationId) return;
+    
     const userMessage = {
       id: Date.now(),
-      text: newMessage,
+      text: inputMessage,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, userMessage]);
-    setNewMessage('');
+    setInputMessage('');
     setIsLoading(true);
     setBackendError('');
+    
     try {
       const token = getToken();
       if (!token) throw new Error('No authentication token found');
       const response = await axiosWithRetry(() => axios.post('/api/chat/send', {
-        content: newMessage,
+        content: inputMessage,
         conversationId: conversationId
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       }));
-      const claudeResponse = {
+      
+      const botMessage = {
         id: Date.now() + 1,
         text: response.data.message.content,
-        sender: 'claude',
-        timestamp: new Date()
+        sender: 'bot',
+        timestamp: new Date().toISOString()
       };
-      setMessages(prev => [...prev, claudeResponse]);
+      setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       setBackendError('Error sending message: ' + (error.response?.data?.message || error.message));
       const errorMessage = {
@@ -131,7 +146,7 @@ const ChatInterface = () => {
         text: 'Sorry, I encountered an error processing your message. Please try again.',
         sender: 'system',
         error: true,
-        timestamp: new Date()
+        timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -150,7 +165,7 @@ const ChatInterface = () => {
       <div className="messages-container">
         {messages.length === 0 ? (
           <div className="empty-chat">
-            <p>Start a conversation with Claude. How are you feeling today?</p>
+            <p>Starting a new conversation...</p>
           </div>
         ) : (
           messages.map(message => (
@@ -166,7 +181,7 @@ const ChatInterface = () => {
           ))
         )}
         {isLoading && (
-          <div className="message claude loading">
+          <div className="message bot loading">
             <div className="typing-indicator">
               <span></span>
               <span></span>
@@ -180,15 +195,15 @@ const ChatInterface = () => {
       <form onSubmit={handleSendMessage} className="message-input-form">
         <input
           type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
           placeholder="Type your message..."
           disabled={isLoading || !backendReady}
           className="message-input"
         />
         <button 
           type="submit" 
-          disabled={isLoading || !backendReady || !newMessage.trim()}
+          disabled={isLoading || !backendReady || !inputMessage.trim()}
           className="send-button"
         >
           {isLoading ? 'Sending...' : 'Send'}

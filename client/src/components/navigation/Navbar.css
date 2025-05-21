@@ -7,16 +7,35 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.navbar-brand h1 {
-  margin: 0;
-  font-size: 1.5rem;
+.navbar-brand a {
   color: #333;
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
-.navbar-menu {
+.navbar-links {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  gap: 2rem;
+}
+
+.navbar-links a {
+  color: #666;
+  text-decoration: none;
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.navbar-links a:hover {
+  color: #007bff;
+  background-color: #f8f9fa;
+}
+
+.navbar-links a.active {
+  color: #007bff;
+  background-color: #e9ecef;
 }
 
 .logout-button {
@@ -44,7 +63,16 @@
     padding: 1rem;
   }
 
-  .navbar-brand h1 {
+  .navbar-brand a {
     font-size: 1.2rem;
+  }
+
+  .navbar-links {
+    gap: 1rem;
+  }
+
+  .navbar-links a {
+    font-size: 1rem;
+    padding: 0.4rem 0.8rem;
   }
 } 
