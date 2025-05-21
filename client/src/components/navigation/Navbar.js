@@ -1,8 +1,9 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = () => {
+  const location = useLocation();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -16,13 +17,22 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <h1>Emotional Support Chat</h1>
+        <Link to="/">Emotional Support Chat</Link>
       </div>
-      <div className="navbar-menu">
-        <button 
-          onClick={handleLogout}
-          className="logout-button"
+      <div className="navbar-links">
+        <Link 
+          to="/chat" 
+          className={location.pathname === '/chat' ? 'active' : ''}
         >
+          Chat
+        </Link>
+        <Link 
+          to="/history" 
+          className={location.pathname === '/history' ? 'active' : ''}
+        >
+          History
+        </Link>
+        <button onClick={handleLogout} className="logout-button">
           Logout
         </button>
       </div>
