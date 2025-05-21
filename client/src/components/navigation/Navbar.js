@@ -16,7 +16,8 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <h1>Emotional Support Chat</h1>
+        <img src="/logo.svg" alt="Company Logo" className="navbar-logo" />
+        <span className="sr-only">Emotional Support Chat</span>
       </div>
       <div className="navbar-menu">
         <button 
