@@ -316,7 +316,7 @@
 
 .error-message {
   background: #fff6f6;
-  color: #e57373;
+  color: #8b0000;
   border: 1px solid #f3bcbc;
   border-radius: 8px;
   padding: 0.7rem 1rem;
@@ -664,17 +664,6 @@
   background: #f0fbe7;
   color: #388e3c;
   border: 1px solid #b6e6a0;
-  border-radius: 8px;
-  padding: 0.7rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-  text-align: center;
-  animation: fadeIn 0.5s;
-}
-.error-message {
-  background: #fff6f6;
-  color: #e57373;
-  border: 1px solid #f3bcbc;
   border-radius: 8px;
   padding: 0.7rem 1rem;
   margin-bottom: 1rem;
