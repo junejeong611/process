@@ -1,11 +1,16 @@
 .navbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   padding: 1rem 2rem;
   background-color: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-height: 240px;
+  min-height: 56px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
 }
 
 .navbar-brand a {
@@ -59,10 +64,10 @@
 }
 
 .navbar-logo {
-  height: 220px;
+  height: 48px;
   width: auto;
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
   max-width: none;
   max-height: none;
 }
