@@ -7,6 +7,7 @@ import ChatInterface from '../components/chat/ChatInterface';
 import UserProfile from '../components/profile/UserProfile';
 import ForgotPassword from '../components/auth/ForgotPassword';
 import ResetPassword from '../components/auth/ResetPassword';
+import './AppRoutes.css';
 
 // Dummy authentication check (replace with real logic)
 const isAuthenticated = () => {
@@ -17,6 +18,14 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated() ? children : <Navigate to="/login" />;
 };
 
+const ChatLayout = () => (
+  <div className="dashboard-container">
+    <div className="chat-container">
+      <ChatInterface />
+    </div>
+  </div>
+);
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
@@ -24,7 +33,7 @@ const AppRoutes = () => (
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password/:token" element={<ResetPassword />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-    <Route path="/chat" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
+    <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/login" />} />
   </Routes>
