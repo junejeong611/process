@@ -26,8 +26,17 @@ const voiceRoutes = require('./routes/voice');
 
     // Set them as environment variables
     process.env.MONGODB_URI = secrets.MONGODB_URI;
-    process.env.ELEVENLABS_API_KEY = secrets.ELEVENLABS_API_KEY;
+    // process.env.ELEVENLABS_API_KEY = secrets.ELEVENLABS_API_KEY;
     process.env.CLAUDE_API_KEY = secrets.CLAUDE_API_KEY;
+    process.env.JWT_SECRET = secrets.JWT_SECRET;
+    process.env.COOKIE_SECRET = secrets.COOKIE_SECRET;
+    process.env.EMAIL_USER = secrets.EMAIL_USER;
+    process.env.EMAIL_PASS = secrets.EMAIL_PASS;
+    process.env.EMAIL_FROM = secrets.EMAIL_FROM;
+
+    console.warn("HELLO!")
+    console.warn(process.env.JWT_SECRET)
+    console.warn(process.env.COOKIE_SECRET)
 
     // Start server after secrets are loaded
     startServer();
