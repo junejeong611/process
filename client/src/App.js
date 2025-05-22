@@ -1,40 +1,26 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import Navbar from './components/navigation/Navbar';
-import ChatInterface from './components/chat/ChatInterface';
-import ChatHistory from './components/chat/ChatHistory';
-import Login from './components/auth/Login';
-import ProtectedRoute from './components/auth/ProtectedRoute';
 import './App.css';
+import AppRoutes from './routes/AppRoutes';
+
+function AppContent() {
+  const location = useLocation();
+  const hideNavbar = location.pathname === '/login' || location.pathname === '/register';
+  return (
+    <div className="app">
+      {!hideNavbar && <Navbar />}
+      <main className="main-content">
+        <AppRoutes />
+      </main>
+    </div>
+  );
+}
 
 function App() {
   return (
     <Router>
-      <div className="app">
-        <Navbar />
-        <main className="main-content">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/chat"
-              element={
-                <ProtectedRoute>
-                  <ChatInterface />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/history"
-              element={
-                <ProtectedRoute>
-                  <ChatHistory />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/chat" replace />} />
-          </Routes>
-        </main>
-      </div>
+      <AppContent />
     </Router>
   );
 }

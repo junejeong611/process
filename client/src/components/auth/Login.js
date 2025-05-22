@@ -104,10 +104,6 @@ const Login = () => {
 
   return (
     <div className="login-container" role="main">
-      <div className="site-logo-container">
-        <img src="logo.svg" alt="Company Logo" className="site-logo" />
-      </div>
-      
       <div className="login-content">
         <div 
           className={`login-card ${isLoading ? 'is-loading' : ''} ${loginSuccess ? 'success' : ''}`} 

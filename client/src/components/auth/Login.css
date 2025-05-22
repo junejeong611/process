@@ -51,13 +51,13 @@
 /* Site logo styles */
 .site-logo-container {
   position: absolute;
-  top: 30px;
-  left: 30px;
+  top: 18px;
+  left: 18px;
   z-index: 10;
 }
 
 .site-logo {
-  height: 40px;
+  height: 28px;
   width: auto;
 }
 
@@ -150,7 +150,7 @@
 /* Password toggle button */
 .toggle-password {
   position: absolute;
-  right: 10px;
+  right: 18px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -448,4 +448,333 @@
   .forgot-password {
     align-self: flex-end;
   }
+}
+
+/* --- Registration Multi-Step Styles --- */
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
+  padding: 2rem 1rem;
+  position: relative;
+}
+
+.register-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(60, 90, 130, 0.08), 0 1.5px 6px rgba(60, 90, 130, 0.04);
+  padding: 2.5rem 2rem 2rem 2rem;
+  max-width: 370px;
+  width: 100%;
+  transition: box-shadow 0.3s cubic-bezier(.4,0,.2,1), background 0.3s;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  text-transform: lowercase !important;
+}
+
+.register-card.is-loading {
+  box-shadow: 0 8px 30px rgba(60, 90, 130, 0.12);
+}
+
+.register-card.success {
+  box-shadow: 0 8px 30px rgba(43, 155, 115, 0.15);
+  animation: success-pulse 1.2s ease;
+}
+
+@keyframes success-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.register-title {
+  color: #3a5a8c;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.register-subtitle {
+  color: #6b7a90;
+  font-size: 1rem;
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  margin-bottom: 1.2rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+
+.register-button, .back-button {
+  background: linear-gradient(90deg, #7bb6fa 0%, #5a8fd6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(90, 143, 214, 0.08);
+}
+
+.register-button:disabled, .back-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.back-button {
+  background: #e3edf7;
+  color: #3a5a8c;
+  border: 1.5px solid #b3d4fc;
+}
+
+/* Stepper */
+.stepper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.2rem;
+}
+.step-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #dbe6f3;
+  transition: background 0.3s, box-shadow 0.3s;
+  box-shadow: 0 1px 3px rgba(90, 143, 214, 0.08);
+}
+.step-dot.active {
+  background: #7bb6fa;
+  box-shadow: 0 0 0 3px #b3d4fc;
+}
+.step-dot.completed {
+  background: #81c784;
+}
+
+/* Step transitions */
+.step-content {
+  transition: all 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+/* Tooltip */
+.tooltip-icon {
+  display: inline-block;
+  margin-left: 7px;
+  background: #e3edf7;
+  color: #5a8fd6;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 18px;
+  border: 1px solid #b3d4fc;
+  transition: background 0.2s, color 0.2s;
+}
+.tooltip-icon:focus, .tooltip-icon:hover {
+  background: #b3d4fc;
+  color: #3a5a8c;
+  outline: none;
+}
+.tooltip {
+  position: absolute;
+  left: 110%;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  color: #3a5a8c;
+  border: 1px solid #b3d4fc;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(90, 143, 214, 0.08);
+  min-width: 220px;
+  max-width: 260px;
+  animation: fadeIn 0.3s;
+}
+
+/* Password strength */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.3rem;
+}
+.strength-bar {
+  height: 7px;
+  border-radius: 4px;
+  background: #e57373;
+  width: 0;
+  min-width: 40px;
+  max-width: 90px;
+  transition: width 0.4s, background 0.4s;
+}
+.strength-label {
+  font-size: 0.92rem;
+  font-weight: 500;
+  min-width: 70px;
+  text-align: left;
+}
+
+/* Validation */
+.is-invalid {
+  border-color: #e57373;
+  background: #fff6f6;
+}
+.invalid-feedback {
+  color: #e57373;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  animation: fadeIn 0.3s;
+}
+
+/* Success and error messages */
+.success-message {
+  background: #f0fbe7;
+  color: #388e3c;
+  border: 1px solid #b6e6a0;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  text-align: center;
+  animation: fadeIn 0.5s;
+}
+.error-message {
+  background: #fff6f6;
+  color: #e57373;
+  border: 1px solid #f3bcbc;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  text-align: center;
+  animation: fadeIn 0.5s;
+}
+
+/* Footer */
+.register-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #6b7a90;
+  font-size: 0.92rem;
+}
+.register-footer a {
+  color: #5a8fd6;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.register-footer a:hover, 
+.register-footer a:focus {
+  color: #3a5a8c;
+  text-decoration: underline;
+  background: #f0f6fd;
+}
+
+/* Checkbox */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.92rem;
+  color: #6b7a90;
+  gap: 0.5rem;
+}
+.checkbox-label input[type="checkbox"] {
+  accent-color: #7bb6fa;
+  margin-right: 0.5em;
+  width: 1.1em;
+  height: 1.1em;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .register-card {
+    padding: 1.2rem 0.5rem 1rem 0.5rem;
+    max-width: 98vw;
+  }
+  .tooltip {
+    left: 0;
+    top: 110%;
+    min-width: 180px;
+    max-width: 98vw;
+  }
+}
+
+/* Capitalize 'I' in the privacy policy agreement */
+.checkbox-label .checkbox-text {
+  text-transform: lowercase;
+}
+.checkbox-label .checkbox-text span.capital-i {
+  text-transform: uppercase;
+}
+
+/* Left-align only the relevant input fields */
+.register-card #name,
+.register-card #email,
+.register-card #confirmPassword {
+  width: 100%;
+  max-width: 320px;
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
+}
+
+.register-card input[type="text"],
+.register-card input[type="email"],
+.register-card input[type="password"] {
+  text-transform: lowercase;
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
+}
+
+.register-card .form-control {
+  width: 100%;
+  max-width: 320px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.register-card .form-label {
+  margin-left: 0;
+}
+
+.register-card .input-wrapper {
+  align-items: flex-start;
 }
