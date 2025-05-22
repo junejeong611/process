@@ -20,8 +20,24 @@ router.post('/conversations', auth, async (req, res) => {
       userId: req.user._id,
       title: 'New Conversation'
     });
-    
     await conversation.save();
+
+    // AI's first message
+    const aiFirstMessage = "Hello! How can I help you today?";
+
+    const aiMessage = new Message({
+      userId: req.user._id,
+      content: aiFirstMessage,
+      sender: 'ai',
+      conversationId: conversation._id
+    });
+    await aiMessage.save();
+
+    // Update conversation's lastMessageTime and messageCount
+    conversation.lastMessageTime = new Date();
+    conversation.messageCount = 1;
+    await conversation.save();
+
     res.status(201).json(conversation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -35,9 +51,31 @@ router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await Conversation.find({ userId: req.user._id })
       .sort({ updatedAt: -1 });
-    res.json(conversations);
+
+    // Get the last message for each conversation
+    const conversationsWithLastMessage = await Promise.all(conversations.map(async (conversation) => {
+      const lastMessage = await Message.findOne({ 
+        conversationId: conversation._id 
+      }).sort({ createdAt: -1 });
+
+      return {
+        ...conversation.toObject(),
+        lastMessage: lastMessage ? lastMessage.content : null,
+        lastMessageTime: lastMessage ? lastMessage.createdAt : conversation.updatedAt
+      };
+    }));
+
+    res.json({
+      success: true,
+      conversations: conversationsWithLastMessage
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching conversations:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to load conversations',
+      error: error.message 
+    });
   }
 });
 
@@ -100,8 +138,9 @@ router.post('/send', auth, async (req, res) => {
     });
     await assistantMessage.save();
 
-    // Update conversation's last message timestamp
-    conversation.updatedAt = new Date();
+    // Update conversation's last message timestamp and increment message count
+    conversation.lastMessageTime = new Date();
+    conversation.messageCount = (conversation.messageCount || 0) + 2; // Increment by 2 for both user and AI messages
     await conversation.save();
 
     res.json({
