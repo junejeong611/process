@@ -7,6 +7,8 @@ import ChatInterface from '../components/chat/ChatInterface';
 import UserProfile from '../components/profile/UserProfile';
 import ForgotPassword from '../components/auth/ForgotPassword';
 import ResetPassword from '../components/auth/ResetPassword';
+import ChatHistoryPage from '../components/history/ChatHistoryPage';
+import ConversationDetailPage from '../components/history/ConversationDetailPage';
 import './AppRoutes.css';
 
 // Dummy authentication check (replace with real logic)
@@ -34,6 +36,8 @@ const AppRoutes = () => (
     <Route path="/reset-password/:token" element={<ResetPassword />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>} />
+    <Route path="/chat-history" element={<ProtectedRoute><ChatHistoryPage /></ProtectedRoute>} />
+    <Route path="/chat-history/:id" element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/login" />} />
   </Routes>

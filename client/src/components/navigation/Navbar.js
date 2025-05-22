@@ -27,6 +27,12 @@ const Navbar = () => {
         >
           Chat
         </Link>
+        <Link 
+          to="/chat-history" 
+          className={location.pathname === '/chat-history' ? 'active' : ''}
+        >
+          History
+        </Link>
         <button onClick={handleLogout} className="logout-button">
           Logout
         </button>
