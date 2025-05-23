@@ -1,0 +1,138 @@
+/* OptionsPage.css - refined for perfect login page match */
+
+.options-main {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
+  padding: 2rem 1rem;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+.options-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 350px;
+  margin: 48px auto 0 auto;
+}
+
+.options-heart {
+  margin-bottom: 1.7rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #e3edf7;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(123, 182, 250, 0.10);
+  width: 56px;
+  height: 56px;
+}
+.options-heart svg {
+  display: block;
+  margin: auto;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 2px 8px #b3d4fc33);
+}
+
+.options-title {
+  color: #3a5a8c;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2.3rem;
+  text-align: center;
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+}
+
+.options-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+  width: 100%;
+}
+
+.options-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(60, 90, 130, 0.08), 0 1.5px 6px rgba(60, 90, 130, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.5rem 1.2rem 1.2rem;
+  cursor: pointer;
+  transition: box-shadow 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1), background 0.18s;
+  outline: none;
+  border: 1.5px solid transparent;
+  min-height: 72px;
+}
+
+.options-card:focus {
+  border: 1.5px solid #7bb6fa;
+  box-shadow: 0 0 0 3px #b3d4fc;
+  background: #f0f6fd;
+}
+
+.options-card:hover {
+  background: #f0f6fd;
+  box-shadow: 0 8px 30px rgba(60, 90, 130, 0.12);
+  transform: translateY(-2px) scale(1.012);
+}
+
+.options-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.options-card-title {
+  color: #3a5a8c;
+  font-size: 1.08rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+
+.options-card-subtitle {
+  color: #6b7a90;
+  font-size: 0.97rem;
+  font-weight: 400;
+  margin-top: 0.1rem;
+  text-transform: none;
+}
+
+.options-card-chevron {
+  display: flex;
+  align-items: center;
+  margin-left: 1.2rem;
+}
+
+.options-card svg {
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .options-center {
+    max-width: 98vw;
+    padding: 0 0.2rem;
+    margin-top: 24px;
+  }
+  .options-card {
+    padding: 1rem 0.7rem 1rem 1rem;
+    min-height: 60px;
+  }
+  .options-title {
+    font-size: 1.15rem;
+  }
+  .options-heart {
+    width: 44px;
+    height: 44px;
+  }
+  .options-heart svg {
+    width: 32px;
+    height: 32px;
+  }
+} 
