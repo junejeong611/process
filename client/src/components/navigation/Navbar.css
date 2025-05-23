@@ -39,6 +39,7 @@
   flex-direction: column;
   gap: 1rem;
   width: 100%;
+  flex-grow: 1;
 }
 
 .navbar-links a {
@@ -108,17 +109,17 @@
   .navbar {
     padding: 1rem;
   }
-
+  
   .navbar-brand a {
     font-size: 1.2rem;
   }
-
+  
   .navbar-links {
     gap: 1rem;
   }
-
+  
   .navbar-links a {
     font-size: 1rem;
     padding: 0.4rem 0.8rem;
   }
-} 
+}
