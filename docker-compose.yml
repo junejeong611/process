@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: processnode
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    volumes:
+      - C:/Users/vinee/.aws:/root/.aws  # Windows path for AWS config
+    networks:
+      - processnet
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: processreact
+    ports:
+      - "3000:3000"
+    networks:
+      - processnet
+
+networks:
+  processnet:
+    driver: bridge

@@ -483,7 +483,7 @@
   position: relative;
   overflow: hidden;
   margin: 0 auto;
-  text-transform: lowercase !important;
+  text-transform: none;
 }
 
 .register-card.is-loading {
@@ -757,7 +757,7 @@
 .register-card input[type="text"],
 .register-card input[type="email"],
 .register-card input[type="password"] {
-  text-transform: lowercase;
+  text-transform: none;
   margin-left: 0;
   margin-right: 0;
   text-align: left;
