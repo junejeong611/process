@@ -3,6 +3,10 @@ import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import Navbar from './components/navigation/Navbar';
 import './App.css';
 import AppRoutes from './routes/AppRoutes';
+import OptionsPage from './components/OptionsPage';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function AppContent() {
   const location = useLocation();

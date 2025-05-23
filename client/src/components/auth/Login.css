@@ -315,6 +315,7 @@
 }
 
 .error-message {
+<<<<<<< HEAD
   background: #fff6f6;
   color: #8b0000;
   border: 1px solid #f3bcbc;
@@ -324,6 +325,27 @@
   font-size: 0.95rem;
   text-align: center;
   animation: fadeIn 0.5s;
+=======
+  background: #fff6f6 !important;
+  color: #e57373 !important;
+  border: 1px solid #f3bcbc !important;
+  border-radius: 8px !important;
+  padding: 0.4rem 0.7rem !important;
+  margin-bottom: 0.7rem !important;
+  font-size: 0.88rem !important;
+  text-align: center !important;
+  animation: fadeIn 0.5s !important;
+  max-width: 260px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.error-title {
+  font-weight: bold;
+  font-size: 1.08rem;
+  margin-bottom: 0.2rem;
+  color: #d32f2f;
+>>>>>>> df6553046d6343747c3d45cc31736019935aac07
 }
 
 .login-footer {

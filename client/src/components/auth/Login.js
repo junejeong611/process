@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './Login.css';
+import { toast } from 'react-toastify';
 
 // Form validation helper functions
 const validateEmail = (email) => {
@@ -33,10 +34,12 @@ const Login = () => {
     setError('');
     setEmailError('');
     setPasswordError('');
-    
-    // Focus the email input for better UX
-    const emailInput = document.getElementById('email');
-    if (emailInput) emailInput.focus();
+    document.title = 'Login - Process';
+    const meta = document.createElement('meta');
+    meta.name = 'description';
+    meta.content = 'Login to Process, your emotional support app.';
+    document.head.appendChild(meta);
+    return () => { document.head.removeChild(meta); };
   }, []);
 
   const handleEmailChange = (e) => {
@@ -87,12 +90,15 @@ const Login = () => {
           sessionStorage.setItem('token', data.token);
         }
         
+        toast.success('Login successful!');
+        
         // Add a slight delay for the success animation
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/options');
         }, 1200);
       } else {
         setError(data.message || 'Invalid email or password. Please try again.');
+        toast.error(data.message || 'Invalid email or password. Please try again.');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -119,6 +125,9 @@ const Login = () => {
           
           {error && (
             <div className="error-message" role="alert">
+              {error.toLowerCase().includes('password') && (
+                <div className="error-title">Incorrect Password</div>
+              )}
               {error}
             </div>
           )}
