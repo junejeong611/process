@@ -33,6 +33,12 @@ const Navbar = () => {
         >
           History
         </Link>
+        <Link 
+          to="/insights" 
+          className={location.pathname === '/insights' ? 'active' : ''}
+        >
+          Insights
+        </Link>
         <button onClick={handleLogout} className="logout-button">
           Logout
         </button>

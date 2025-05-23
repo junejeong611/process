@@ -11,6 +11,7 @@ import ChatHistoryPage from '../components/history/ChatHistoryPage';
 import ConversationDetailPage from '../components/history/ConversationDetailPage';
 import OptionsPage from '../components/OptionsPage';
 import ComingSoonPage from '../components/ComingSoonPage';
+import InsightsPage from '../components/InsightsPage';
 import './AppRoutes.css';
 
 // Dummy authentication check (replace with real logic)
@@ -43,6 +44,7 @@ const AppRoutes = () => (
     <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
     <Route path="/options" element={<ProtectedRoute><OptionsPage /></ProtectedRoute>} />
     <Route path="/coming-soon" element={<ProtectedRoute><ComingSoonPage /></ProtectedRoute>} />
+    <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
     <Route path="/conversation" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/login" />} />
   </Routes>
