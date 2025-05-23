@@ -26,7 +26,10 @@ const voiceRoutes = require('./routes/voice');
 
     // Set them as environment variables
     process.env.MONGODB_URI = secrets.MONGODB_URI;
+<<<<<<< HEAD
     console.warn(process.env.MONGODB_URI)
+=======
+>>>>>>> 779b8c812287794b8c150ab633420f8223eb0c37
     process.env.ELEVENLABS_API_KEY = secrets.ELEVENLABS_API_KEY;
     process.env.CLAUDE_API_KEY = secrets.CLAUDE_API_KEY;
     process.env.JWT_SECRET = secrets.JWT_SECRET;
