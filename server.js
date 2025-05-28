@@ -17,6 +17,7 @@ const getSecrets = require('./load');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const voiceRoutes = require('./routes/voice');
+const insightsRoutes = require('./routes/insights');
 
 //collect secrets from secrets manager
 (async () => {
@@ -26,10 +27,7 @@ const voiceRoutes = require('./routes/voice');
 
     // Set them as environment variables
     process.env.MONGODB_URI = secrets.MONGODB_URI;
-<<<<<<< HEAD
     console.warn(process.env.MONGODB_URI)
-=======
->>>>>>> 779b8c812287794b8c150ab633420f8223eb0c37
     process.env.ELEVENLABS_API_KEY = secrets.ELEVENLABS_API_KEY;
     process.env.CLAUDE_API_KEY = secrets.CLAUDE_API_KEY;
     process.env.JWT_SECRET = secrets.JWT_SECRET;
@@ -138,11 +136,13 @@ function startServer() {
   app.use(`${API_PREFIX}/auth`, authRoutes);
   app.use(`${API_PREFIX}/chat`, chatRoutes);
   app.use(`${API_PREFIX}/voice`, voiceRoutes);
+  app.use(`${API_PREFIX}/insights`, insightsRoutes);
 
   // Maintain backward compatibility with original routes
   app.use('/api/auth', authRoutes);
   app.use('/api/chat', chatRoutes);
   app.use('/api/voice', voiceRoutes);
+  app.use('/api/insights', insightsRoutes);
 
   let serverReady = false;
 
