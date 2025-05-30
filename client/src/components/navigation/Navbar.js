@@ -14,19 +14,25 @@ const Navbar = () => {
     navigate('/login');
   };
 
+  const isOptionsPage = location.pathname === '/options';
+
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <img src="/logo.svg" alt="Company Logo" className="navbar-logo" />
-        <span className="sr-only">Emotional Support Chat</span>
+        <Link to="/options">
+          <img src="/logo.svg" alt="Company Logo" className="navbar-logo" />
+          <span className="sr-only">Emotional Support Chat</span>
+        </Link>
       </div>
       <div className="navbar-links">
-        <Link 
-          to="/chat" 
-          className={location.pathname === '/chat' ? 'active' : ''}
-        >
-          Chat
-        </Link>
+        {!isOptionsPage && (
+          <Link 
+            to="/options"
+            className={location.pathname === '/chat' ? 'active' : ''}
+          >
+            Chat
+          </Link>
+        )}
         <Link 
           to="/chat-history" 
           className={location.pathname === '/chat-history' ? 'active' : ''}
@@ -39,10 +45,10 @@ const Navbar = () => {
         >
           Insights
         </Link>
-        <button onClick={handleLogout} className="logout-button">
-          Logout
-        </button>
       </div>
+      <button onClick={handleLogout} className="logout-button">
+        Logout
+      </button>
     </nav>
   );
 };

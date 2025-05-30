@@ -10,8 +10,10 @@ import ResetPassword from '../components/auth/ResetPassword';
 import ChatHistoryPage from '../components/history/ChatHistoryPage';
 import ConversationDetailPage from '../components/history/ConversationDetailPage';
 import OptionsPage from '../components/OptionsPage';
-import ComingSoonPage from '../components/ComingSoonPage';
 import InsightsPage from '../components/InsightsPage';
+import VoicePage from '../components/VoicePage';
+import ExitThankYouPage from '../components/ExitThankYouPage';
+import DashboardLayout from '../components/dashboard/DashboardLayout';
 import './AppRoutes.css';
 
 // Dummy authentication check (replace with real logic)
@@ -37,15 +39,16 @@ const AppRoutes = () => (
     <Route path="/register" element={<Register />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password/:token" element={<ResetPassword />} />
-    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-    <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>} />
-    <Route path="/chat-history" element={<ProtectedRoute><ChatHistoryPage /></ProtectedRoute>} />
-    <Route path="/chat-history/:id" element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>} />
-    <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-    <Route path="/options" element={<ProtectedRoute><OptionsPage /></ProtectedRoute>} />
-    <Route path="/coming-soon" element={<ProtectedRoute><ComingSoonPage /></ProtectedRoute>} />
-    <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
-    <Route path="/conversation" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
+    <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/chat" element={<ProtectedRoute><DashboardLayout><ChatLayout /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/chat-history" element={<ProtectedRoute><DashboardLayout><ChatHistoryPage /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/chat-history/:id" element={<ProtectedRoute><DashboardLayout><ConversationDetailPage /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/profile" element={<ProtectedRoute><DashboardLayout><UserProfile /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/options" element={<ProtectedRoute><DashboardLayout><OptionsPage /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/insights" element={<ProtectedRoute><DashboardLayout><InsightsPage /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/conversation" element={<ProtectedRoute><DashboardLayout><ChatInterface /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/voice" element={<ProtectedRoute><DashboardLayout><VoicePage /></DashboardLayout></ProtectedRoute>} />
+    <Route path="/exit-thanks" element={<ProtectedRoute><ExitThankYouPage /></ProtectedRoute>} />
     <Route path="*" element={<Navigate to="/login" />} />
   </Routes>
 );

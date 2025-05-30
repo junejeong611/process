@@ -2,6 +2,9 @@
 // Express server entry point for the Emotional Support App backend
 // Integrates MongoDB, Claude API, and ElevenLabs API
 
+console.log('UNIQUE LOG: If you see this, the code is up to date!');
+console.log('server.js loaded');
+
 require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
@@ -15,7 +18,7 @@ const getSecrets = require('./load');
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const chatRoutes = require('./routes/chat');
+const chatRoutes = require('./server/routes/chat');
 const voiceRoutes = require('./routes/voice');
 const insightsRoutes = require('./routes/insights');
 
@@ -134,6 +137,7 @@ function startServer() {
   // API routes with version prefix for future-proofing
   const API_PREFIX = '/api/v1';
   app.use(`${API_PREFIX}/auth`, authRoutes);
+  console.log('Registering chat routes');
   app.use(`${API_PREFIX}/chat`, chatRoutes);
   app.use(`${API_PREFIX}/voice`, voiceRoutes);
   app.use(`${API_PREFIX}/insights`, insightsRoutes);
@@ -156,10 +160,16 @@ function startServer() {
 
   // Full health check - only returns 200 when fully ready
   app.get('/api/health', (req, res) => {
-    if (serverReady) {
-      res.status(200).json({ status: 'ok' });
-    } else {
-      res.status(503).json({ status: 'starting' });
+    console.log('Health check called. serverReady:', serverReady);
+    try {
+      if (serverReady) {
+        res.status(200).json({ status: 'ok' });
+      } else {
+        res.status(503).json({ status: 'starting' });
+      }
+    } catch (err) {
+      console.error('Health check error:', err);
+      res.status(500).json({ status: 'error', error: err.message });
     }
   });
 
@@ -206,8 +216,8 @@ function startServer() {
   }
 
   // Start the server
-  const server = app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on 0.0.0.0:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`API URL: http://localhost:${PORT}${API_PREFIX}`);
   });
@@ -230,10 +240,11 @@ function startServer() {
     
     server.close(() => {
       console.log('Server closed');
-      mongoose.connection.close(false, () => {
-        console.log('MongoDB connection closed');
-        process.exit(0);
-      });
+      mongoose.connection.close(false)
+        .then(() => {
+          console.log('MongoDB connection closed');
+          process.exit(0);
+        });
     });
   });
 
