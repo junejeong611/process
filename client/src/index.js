@@ -4,13 +4,16 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import BackendConnectionCheck from './components/BackendConnectionCheck';
+import { BrowserRouter } from 'react-router-dom';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BackendConnectionCheck>
-      <App />
-    </BackendConnectionCheck>
+    <BrowserRouter>
+      <BackendConnectionCheck>
+        <App />
+      </BackendConnectionCheck>
+    </BrowserRouter>
   </React.StrictMode>
 );
 

@@ -14,7 +14,7 @@ const options = [
     key: 'voice',
     title: 'voice mode',
     subtitle: "let it all out, i'm here to listen",
-    to: '/coming-soon',
+    to: '/voice',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4zm6 9a1 1 0 1 1 2 0 8 8 0 0 1-16 0 1 1 0 1 1 2 0 6 6 0 0 0 12 0zm-6 7a7.97 7.97 0 0 0 6.32-3H5.68A7.97 7.97 0 0 0 12 19zm-1 2h2v2h-2v-2z" fill="#6b7a90"/></svg>
     ),
