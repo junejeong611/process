@@ -5,11 +5,17 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const auth = require('../middleware/auth');
 const claudeService = require('../services/claudeService');
+const axios = require('axios');
+const { ElevenLabsClient, play } = require('@elevenlabs/elevenlabs-js');
+require("dotenv").config();
+
 
 // Initialize Claude API client
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY
 });
+
+
 
 // @route   POST /api/chat/conversations
 // @desc    Create a new conversation
@@ -153,5 +159,50 @@ router.post('/send', auth, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+// @route   POST /api/chat/elevenlabs
+// @desc    get a audio file from elevenlabs
+// @access  Private
+router.post('/elevenlabs', auth, async (req, res) => {
+  try {
+    const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
+    const { text } = req.body;
+
+    console.log(process.env.ELEVENLABS_API_KEY)
+
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+
+    const voiceId = 'JBFqnCBsd6RMkjVDRZzb'; // Replace with your actual voice ID
+
+    const audio = await elevenlabs.textToSpeech.convert(voiceId, {
+      text,
+      voiceId,
+      modelId: 'eleven_multilingual_v2',
+      outputFormat: 'mp3_44100_128',
+    });
+
+
+
+    const chunks = [];
+    for await (const chunk of audio) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    console.log("Final audio buffer size:", buffer.length); // Should be > 1000
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.send(buffer);
+
+  } catch (err) {
+    console.error('ElevenLabs error:', err.message);
+    res.status(500).json({ error: 'Failed to generate audio' });
+  }
+});
+
+
 
 module.exports = router;

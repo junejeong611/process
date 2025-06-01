@@ -177,11 +177,11 @@ const VoicePage = () => {
             headers: { 'Content-Type': 'application/json' , 'Authorization': `Bearer ${token}` },
           })
         );
-        console.log(response)
-        dispatch(actions.setAiResponse(response.data.response)); // adjust if key is different
+        dispatch(actions.setAiResponse(response.data.message.content)); // adjust if key is different
         dispatch(actions.setStatus(VOICE_STATUSES.SPEAKING));
         setSpokenIndex(0);
         setIsTransitioning(false);
+        setSpeechResult(null);
       } catch (error) {
         console.error('Request failed:', {
           message: error.message,
@@ -191,12 +191,14 @@ const VoicePage = () => {
 
         dispatch(actions.setError(error.message, 'API_ERROR', true));
         setIsTransitioning(false);
+        setSpeechResult(null);
       }
     };
   
     if (status === VOICE_STATUSES.PROCESSING && currentTranscript) {
       setIsTransitioning(true);
       callClaude();
+      
     }
   
     if (status === VOICE_STATUSES.IDLE) {
@@ -207,28 +209,55 @@ const VoicePage = () => {
   }, [status, currentTranscript, dispatch, actions]);
   
 
-  // Handle TTS word-by-word highlighting
+  // CallElevenLabs
   useEffect(() => {
-    if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
-      const words = aiResponse.split(' ');
-      if (spokenIndex < words.length) {
-        const timer = setTimeout(() => {
-          setSpokenIndex(spokenIndex + 1);
-          
-          // When finished speaking, return to idle
-          if (spokenIndex + 1 >= words.length) {
-            const finishTimer = setTimeout(() => {
-              dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
-            }, 1000);
-            timersRef.current.push(finishTimer);
-          }
-        }, 350);
-        
-        timersRef.current.push(timer);
-        return () => clearTimeout(timer);
+    const speakWithElevenLabs = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.warn("No token available");
+          return;
+        }
+  
+        const response = await axiosWithRetry(() =>
+          axios.post(
+            '/api/chat/elevenlabs',
+            { text: aiResponse },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              responseType: 'blob', // Important to get audio data
+            }
+          )
+        );
+       
+        const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+      
+        await audio.play();
+  
+        audio.onended = () => {
+          dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+        };
+        dispatch(actions.setAiResponse(''));
+        dispatch(actions.setTranscript(''));
+      } catch (err) {
+        console.error("TTS playback failed", err);
+        dispatch(actions.setError(err.message || 'TTS failed', 'AUDIO_ERROR', true));
+        dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+        dispatch(actions.setAiResponse(''));
+        dispatch(actions.setTranscript(''));
       }
+    };
+  
+    if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
+      speakWithElevenLabs();
     }
-  }, [status, aiResponse, spokenIndex, dispatch, actions]);
+  }, [status, aiResponse, dispatch, actions]);
+  
 
   // Update live region for accessibility
   useEffect(() => {
@@ -260,7 +289,6 @@ const VoicePage = () => {
           // const result = await mockSpeechToText(audioBlob);
           
           const formData = new FormData();
-          console.log(audioBlob)
           formData.append('audio', audioBlob, 'recording.wav');
 
           const response = await fetch('/api/v1/voicerecord', {
@@ -273,8 +301,6 @@ const VoicePage = () => {
           }
 
           const result = await response.json();
-          console.log("Hello")
-          console.log(result)
           setSpeechResult(result)
 
 
@@ -366,34 +392,34 @@ const VoicePage = () => {
   };
 
   // Render AI response with word highlighting
-  const renderAiText = () => {
-    if (loading || status === VOICE_STATUSES.PROCESSING) {
-      return <span className="ai-loading">...</span>;
-    }
+  // const renderAiText = () => {
+  //   if (loading || status === VOICE_STATUSES.PROCESSING) {
+  //     return <span className="ai-loading">...</span>;
+  //   }
     
-    if (error) {
-      return <span className="ai-error">{error.message}</span>;
-    }
+  //   if (error) {
+  //     return <span className="ai-error">{error.message}</span>;
+  //   }
     
-    if (!aiResponse) return null;
+  //   if (!aiResponse) return null;
     
-    const words = aiResponse.split(' ');
-    return words.map((word, i) => (
-      <span
-        key={i}
-        className={
-          i < spokenIndex 
-            ? 'spoken' 
-            : i === spokenIndex 
-            ? 'speaking' 
-            : ''
-        }
-        aria-current={i === spokenIndex ? 'true' : undefined}
-      >
-        {word + ' '}
-      </span>
-    ));
-  };
+  //   const words = aiResponse.split(' ');
+  //   return words.map((word, i) => (
+  //     <span
+  //       key={i}
+  //       className={
+  //         i < spokenIndex 
+  //           ? 'spoken' 
+  //           : i === spokenIndex 
+  //           ? 'speaking' 
+  //           : ''
+  //       }
+  //       aria-current={i === spokenIndex ? 'true' : undefined}
+  //     >
+  //       {word + ' '}
+  //     </span>
+  //   ));
+  // };
 
   // Status messages
   const getStatusMessage = () => {
@@ -419,18 +445,25 @@ const VoicePage = () => {
         <Navbar />
         <main className="voice-main" role="main">
           <section className="voice-center" aria-label="Voice interaction area">
+            {/* Status Message */}
             <div className="voice-status" id="voice-status" aria-live="polite">
               {getStatusMessage()}
             </div>
+  
+            {/* Pulsing Heart */}
             <PulsingHeart
+              key={status} // force remount on state change
               state={status}
               onClick={handleMicToggle}
-              size={window.innerWidth < 600 ? 150 : 200}
+              size={typeof window !== 'undefined' && window.innerWidth < 600 ? 150 : 200}
               disabled={isTransitioning}
               className="voice-heart"
             />
-            {/* Blue glow connector between heart and mic button */}
+  
+            {/* Glow line */}
             <div className="heart-mic-glow" aria-hidden="true"></div>
+  
+            {/* AI Response */}
             <div
               className="voice-ai-text"
               aria-live="polite"
@@ -438,9 +471,10 @@ const VoicePage = () => {
               ref={liveRegionRef}
               tabIndex={0}
             >
-              {renderAiText()}
+              {/* {renderAiText()} */}
             </div>
-            {/* Bottom Microphone Button */}
+  
+            {/* Bottom Mic Button */}
             <div style={{ position: 'relative', width: 'fit-content', margin: '0 auto' }}>
               <button
                 className={`bottom-mic-button${status === VOICE_STATUSES.LISTENING ? ' active' : ''}`}
@@ -464,7 +498,8 @@ const VoicePage = () => {
               )}
             </div>
           </section>
-          
+  
+          {/* Toolbar */}
           <aside className="voice-toolbar" aria-label="Toolbar">
             <button
               className="toolbar-btn"
@@ -476,7 +511,7 @@ const VoicePage = () => {
             >
               <MicIcon active={isRecording} />
             </button>
-            
+  
             <button
               className="toolbar-btn"
               aria-label="Attach file"
@@ -485,7 +520,7 @@ const VoicePage = () => {
             >
               <AttachIcon />
             </button>
-            
+  
             <div className="toolbar-window-controls">
               <button
                 className="toolbar-btn"
@@ -495,7 +530,7 @@ const VoicePage = () => {
               >
                 <MinimizeIcon />
               </button>
-              
+  
               <button
                 className="toolbar-btn"
                 aria-label="Close window"
@@ -507,6 +542,7 @@ const VoicePage = () => {
             </div>
           </aside>
         </main>
+  
         {/* Bottom Right Exit Button */}
         <button
           className="exit-button"
@@ -517,6 +553,8 @@ const VoicePage = () => {
         >
           <CloseIcon />
         </button>
+  
+        {/* Exit Confirmation Modal */}
         <BlueConfirmModal
           open={showExitModal}
           onConfirm={confirmExit}
@@ -526,6 +564,7 @@ const VoicePage = () => {
       </div>
     </VoiceErrorBoundary>
   );
+  
 };
 
 export default VoicePage;
