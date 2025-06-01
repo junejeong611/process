@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.41.0",
+        "@elevenlabs/elevenlabs-js": "^2.1.0",
         "@google-cloud/speech": "^7.1.0",
         "@speechmatics/real-time-client": "^6.0.0",
         "aws-sdk": "^2.1692.0",
