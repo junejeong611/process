@@ -58,6 +58,27 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordExpires: {
     type: Date
+  },
+  // Stripe & Subscription fields
+  trialStart: {
+    type: Date
+  },
+  trialEnd: {
+    type: Date
+  },
+  subscriptionStatus: {
+    type: String,
+    enum: ['trial', 'active', 'canceled', 'past_due'],
+    default: 'trial'
+  },
+  stripeCustomerId: {
+    type: String
+  },
+  stripeSubscriptionId: {
+    type: String
+  },
+  currentPlan: {
+    type: String
   }
 }, {
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
