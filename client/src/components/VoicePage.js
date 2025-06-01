@@ -5,6 +5,7 @@ import { useVoice, VOICE_STATUSES } from '../contexts/VoiceContext';
 import VoiceErrorBoundary from './VoiceErrorBoundary';
 import './VoicePage.css';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 // Toolbar icons (simple SVGs for demo)
 const MicIcon = ({ active }) => (
@@ -36,6 +37,18 @@ const CloseIcon = () => (
     <path d="M6 6l12 12M6 18L18 6" stroke="#dc3545" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
+
+// Helper: Retry wrapper for axios requests
+const axiosWithRetry = async (axiosCall, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await axiosCall();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+};
 
 // Mock API functions
 const mockSpeechToText = (audioBlob) =>
@@ -106,8 +119,38 @@ const VoicePage = () => {
   const [showExitModal, setShowExitModal] = useState(false);
   const [pendingExit, setPendingExit] = useState(false);
   const [showMicTooltip, setShowMicTooltip] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
+  const [speechResult, setSpeechResult] = useState(null);
 
   const navigate = useNavigate();
+
+  const getToken = () => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token');
+  };
+  // Create Conversation
+  useEffect(() => {
+    const createConversation = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.log("not logged in")
+          return;
+        }
+        const res = await fetch('/api/chat/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`} ,
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        setConversationId(data.id);
+        console.log('Created conversation:', data.id);
+      } catch (err) {
+        console.error('Failed to create conversation:', err);
+      }
+    };
+  
+    createConversation();
+  }, []);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -122,29 +165,41 @@ const VoicePage = () => {
 
   // Handle status changes and simulate API workflow
   useEffect(() => {
+    const callClaude = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.log("not logged in")
+          return;
+        }
+        const response = await axiosWithRetry(() =>
+          axios.post('/api/chat/send', { content: speechResult, conversationId: conversationId }, {
+            headers: { 'Content-Type': 'application/json' , 'Authorization': `Bearer ${token}` },
+          })
+        );
+        console.log(response.data.response)
+        dispatch(actions.setAiResponse(response.data.response)); // adjust if key is different
+        dispatch(actions.setStatus(VOICE_STATUSES.SPEAKING));
+        setSpokenIndex(0);
+        setIsTransitioning(false);
+      } catch (error) {
+        dispatch(actions.setError(error.message, 'API_ERROR', true));
+        setIsTransitioning(false);
+      }
+    };
+  
     if (status === VOICE_STATUSES.PROCESSING && currentTranscript) {
       setIsTransitioning(true);
-      
-      // Simulate Claude AI processing
-      mockClaudeResponse(currentTranscript)
-        .then(response => {
-          dispatch(actions.setAiResponse(response));
-          dispatch(actions.setStatus(VOICE_STATUSES.SPEAKING));
-          setSpokenIndex(0);
-          setIsTransitioning(false);
-        })
-        .catch(error => {
-          dispatch(actions.setError(error.message, 'API_ERROR', true));
-          setIsTransitioning(false);
-        });
+      callClaude();
     }
-    
+  
     if (status === VOICE_STATUSES.IDLE) {
       dispatch(actions.setAiResponse(''));
       dispatch(actions.setTranscript(''));
       setSpokenIndex(0);
     }
   }, [status, currentTranscript, dispatch, actions]);
+  
 
   // Handle TTS word-by-word highlighting
   useEffect(() => {
@@ -196,7 +251,27 @@ const VoicePage = () => {
         // Process the audio
         try {
           dispatch(actions.setStatus(VOICE_STATUSES.PROCESSING));
-          const result = await mockSpeechToText(audioBlob);
+          // const result = await mockSpeechToText(audioBlob);
+          
+          const formData = new FormData();
+          console.log(audioBlob)
+          formData.append('audio', audioBlob, 'recording.wav');
+
+          const response = await fetch('/api/v1/voicerecord', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error('Server returned an error while transcribing.');
+          }
+
+          const result = await response.json();
+          console.log("Hello")
+          console.log(result)
+          setSpeechResult(result)
+
+
           dispatch(actions.setTranscript(result.transcript));
         } catch (error) {
           dispatch(actions.setError(error.message, 'API_ERROR', true));
