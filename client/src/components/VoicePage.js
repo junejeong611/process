@@ -173,16 +173,22 @@ const VoicePage = () => {
           return;
         }
         const response = await axiosWithRetry(() =>
-          axios.post('/api/chat/send', { content: speechResult, conversationId: conversationId }, {
+          axios.post('/api/chat/send', { content: speechResult.transcript, conversationId: conversationId }, {
             headers: { 'Content-Type': 'application/json' , 'Authorization': `Bearer ${token}` },
           })
         );
-        console.log(response.data.response)
+        console.log(response)
         dispatch(actions.setAiResponse(response.data.response)); // adjust if key is different
         dispatch(actions.setStatus(VOICE_STATUSES.SPEAKING));
         setSpokenIndex(0);
         setIsTransitioning(false);
       } catch (error) {
+        console.error('Request failed:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+
         dispatch(actions.setError(error.message, 'API_ERROR', true));
         setIsTransitioning(false);
       }

@@ -143,10 +143,13 @@ router.post('/send', auth, async (req, res) => {
     conversation.messageCount = (conversation.messageCount || 0) + 2; // Increment by 2 for both user and AI messages
     await conversation.save();
 
+    console.log(assistantMessage)
+
     res.json({
       message: assistantMessage
     });
   } catch (error) {
+    console.error('[/api/chat/send] uncaught error:', error);
     res.status(500).json({ error: error.message });
   }
 });
