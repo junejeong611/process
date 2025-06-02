@@ -8,7 +8,6 @@
   outline: none;
   cursor: pointer;
   transition: box-shadow 0.2s ease, transform 0.2s ease, filter 0.2s ease;
-  box-shadow: 0 0 0 0 #7bb6fa;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -29,7 +28,6 @@
 .pulsing-heart-root:hover:not(:disabled):not([aria-disabled="true"]) {
   transform: translateY(-2px);
   filter: brightness(1.05);
-  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.2);
 }
 
 .pulsing-heart-root:active:not(:disabled):not([aria-disabled="true"]) {
@@ -41,104 +39,120 @@
   display: block;
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 16px rgba(123, 182, 250, 0.6));
   transition: filter 0.3s ease, transform 0.2s ease;
   will-change: transform, filter;
+  /* Remove the generic drop-shadow, we'll use SVG filters instead */
 }
 
-/* Animation States */
+/* Heart path styling with proper heart-shaped shadows */
+.heart-path {
+  transition: filter 0.3s ease;
+}
+
+/* Animation States with heart-specific shadows */
 .pulsing-heart-root.idle .pulsing-heart-svg {
   animation: ph-pulse 2s ease-in-out infinite;
 }
 
+.pulsing-heart-root.idle .heart-path {
+  filter: drop-shadow(0 4px 12px rgba(74, 144, 226, 0.25)) 
+          drop-shadow(0 2px 6px rgba(74, 144, 226, 0.15));
+}
+
 .pulsing-heart-root.listening .pulsing-heart-svg {
   animation: ph-pulse-fast 1s ease-in-out infinite;
-  filter: drop-shadow(0 0 24px rgba(123, 182, 250, 0.8));
+}
+
+.pulsing-heart-root.listening .heart-path {
+  filter: drop-shadow(0 6px 20px rgba(107, 163, 245, 0.4)) 
+          drop-shadow(0 3px 10px rgba(107, 163, 245, 0.3))
+          drop-shadow(0 0 25px rgba(107, 163, 245, 0.2));
 }
 
 .pulsing-heart-root.processing .pulsing-heart-svg {
   animation: ph-processing 1.5s ease-in-out infinite;
-  filter: drop-shadow(0 0 24px rgba(123, 182, 250, 0.8));
+}
+
+.pulsing-heart-root.processing .heart-path {
+  filter: drop-shadow(0 5px 16px rgba(74, 144, 226, 0.35)) 
+          drop-shadow(0 2px 8px rgba(74, 144, 226, 0.25))
+          drop-shadow(0 0 20px rgba(74, 144, 226, 0.2));
 }
 
 .pulsing-heart-root.speaking .pulsing-heart-svg {
   animation: ph-speaking 1.8s ease-in-out infinite;
-  filter: drop-shadow(0 0 20px rgba(123, 182, 250, 0.7));
+}
+
+.pulsing-heart-root.speaking .heart-path {
+  filter: drop-shadow(0 5px 15px rgba(74, 144, 226, 0.3)) 
+          drop-shadow(0 2px 8px rgba(74, 144, 226, 0.2))
+          drop-shadow(0 0 18px rgba(74, 144, 226, 0.15));
 }
 
 .pulsing-heart-root.error .pulsing-heart-svg {
   animation: ph-error 0.6s ease-in-out 3;
-  filter: drop-shadow(0 0 24px rgba(255, 107, 107, 0.8));
+}
+
+.pulsing-heart-root.error .heart-path {
+  filter: drop-shadow(0 6px 18px rgba(255, 107, 107, 0.4)) 
+          drop-shadow(0 3px 9px rgba(255, 107, 107, 0.3))
+          drop-shadow(0 0 24px rgba(255, 107, 107, 0.25));
 }
 
 /* Enhanced Keyframe Animations */
 @keyframes ph-pulse {
   0%, 100% { 
     transform: scale(1);
-    filter: drop-shadow(0 0 16px rgba(123, 182, 250, 0.4));
   }
   50% { 
     transform: scale(1.05);
-    filter: drop-shadow(0 0 20px rgba(123, 182, 250, 0.6));
   }
 }
 
 @keyframes ph-pulse-fast {
   0%, 100% { 
     transform: scale(1.02);
-    filter: drop-shadow(0 0 20px rgba(123, 182, 250, 0.6));
   }
   50% { 
     transform: scale(1.1);
-    filter: drop-shadow(0 0 28px rgba(123, 182, 250, 0.8));
   }
 }
 
 @keyframes ph-processing {
   0% { 
     transform: scale(1) rotate(0deg);
-    filter: drop-shadow(0 0 20px rgba(123, 182, 250, 0.6));
   }
   25% { 
     transform: scale(1.05) rotate(2deg);
-    filter: drop-shadow(0 0 24px rgba(123, 182, 250, 0.7));
   }
   50% { 
     transform: scale(1.07) rotate(0deg);
-    filter: drop-shadow(0 0 28px rgba(123, 182, 250, 0.8));
   }
   75% { 
     transform: scale(1.05) rotate(-2deg);
-    filter: drop-shadow(0 0 24px rgba(123, 182, 250, 0.7));
   }
   100% { 
     transform: scale(1) rotate(0deg);
-    filter: drop-shadow(0 0 20px rgba(123, 182, 250, 0.6));
   }
 }
 
 @keyframes ph-speaking {
   0%, 100% { 
     transform: scale(1.01);
-    filter: drop-shadow(0 0 18px rgba(123, 182, 250, 0.6));
   }
   33% { 
     transform: scale(1.06);
-    filter: drop-shadow(0 0 22px rgba(123, 182, 250, 0.7));
   }
   66% { 
     transform: scale(1.03);
-    filter: drop-shadow(0 0 20px rgba(123, 182, 250, 0.65));
   }
 }
 
 @keyframes ph-error {
   0%, 100% { 
-    filter: drop-shadow(0 0 12px rgba(255, 107, 107, 0.6)); 
     transform: scale(1);
   }
   50% { 
-    filter: drop-shadow(0 0 32px rgba(255, 107, 107, 0.9)); 
     transform: scale(1.08);
   }
 }
@@ -166,10 +180,14 @@
   filter: grayscale(30%);
 }
 
+.pulsing-heart-root:disabled .heart-path,
+.pulsing-heart-root[aria-disabled="true"] .heart-path {
+  filter: drop-shadow(0 2px 6px rgba(74, 144, 226, 0.2));
+}
+
 .pulsing-heart-root:disabled .pulsing-heart-svg,
 .pulsing-heart-root[aria-disabled="true"] .pulsing-heart-svg {
   animation: none;
-  filter: drop-shadow(0 0 8px rgba(74, 144, 226, 0.3));
 }
 
 /* Loading State Enhancement */
@@ -209,7 +227,6 @@
   .pulsing-heart-root:hover {
     transform: none;
     filter: none;
-    box-shadow: 0 0 0 0 #4A90E2;
   }
 }
 
@@ -224,67 +241,8 @@
   }
   
   .pulsing-heart-root,
-  .pulsing-heart-svg {
+  .pulsing-heart-svg,
+  .heart-path {
     transition: none !important;
   }
-}
-
-@media (prefers-contrast: high) {
-  .pulsing-heart-root:focus-visible {
-    outline: 3px solid currentColor;
-    outline-offset: 2px;
-  }
-  
-  .pulsing-heart-root[aria-pressed="true"] {
-    box-shadow: 0 0 0 3px currentColor;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .pulsing-heart-root:focus-visible {
-    outline-color: #6BA3F5;
-  }
-  
-  .pulsing-heart-svg {
-    filter: drop-shadow(0 0 16px rgba(107, 163, 245, 0.4));
-  }
-}
-
-/* Print Styles */
-@media print {
-  .pulsing-heart-root .pulsing-heart-svg {
-    animation: none !important;
-    filter: none !important;
-    transform: none !important;
-  }
-  
-  .pulsing-heart-root::after {
-    display: none;
-  }
-  
-  .pulsing-heart-root {
-    transform: none !important;
-    filter: none !important;
-    box-shadow: none !important;
-  }
-}
-
-/* Performance Optimizations */
-.pulsing-heart-root,
-.pulsing-heart-svg {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d;
-}
-
-/* Error State Recovery */
-.pulsing-heart-root.error {
-  animation: ph-error-shake 0.8s ease-in-out 1;
-}
-
-@keyframes ph-error-shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-  20%, 40%, 60%, 80% { transform: translateX(2px); }
 }

@@ -22,6 +22,7 @@ const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const voiceRoutes = require('./routes/voice');
 const insightsRoutes = require('./routes/insights');
+const voiceRecordRoute = require('./routes/record');
 const subscriptionRoutes = require('./routes/subscription');
 
 //collect secrets from secrets manager
@@ -155,6 +156,7 @@ function startServer() {
   app.use(`${API_PREFIX}/chat`, chatRoutes);
   app.use(`${API_PREFIX}/voice`, voiceRoutes);
   app.use(`${API_PREFIX}/insights`, insightsRoutes);
+  app.use(`${API_PREFIX}/voicerecord`, voiceRecordRoute);
   app.use(`${API_PREFIX}/subscription`, subscriptionRoutes);
 
   // Maintain backward compatibility with original routes
@@ -162,6 +164,7 @@ function startServer() {
   app.use('/api/chat', chatRoutes);
   app.use('/api/voice', voiceRoutes);
   app.use('/api/insights', insightsRoutes);
+
   app.use('/api/subscription', subscriptionRoutes);
 
   let serverReady = false;

@@ -5,13 +5,26 @@ import { useVoice, VOICE_STATUSES } from '../contexts/VoiceContext';
 import VoiceErrorBoundary from './VoiceErrorBoundary';
 import './VoicePage.css';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 // Toolbar icons (simple SVGs for demo)
 const MicIcon = ({ active }) => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-    <path 
-      d="M12 15a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 14 0zM11 19h2v2h-2v-2z" 
-      fill={active ? '#4A90E2' : '#6b7a90'} 
+    <rect
+      x="9"
+      y="3"
+      width="6"
+      height="10"
+      rx="3"
+      fill={active ? '#4A90E2' : '#fff'}
+    />
+    <path
+      d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"
+      stroke={active ? '#4A90E2' : '#fff'}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
     />
   </svg>
 );
@@ -36,6 +49,18 @@ const CloseIcon = () => (
     <path d="M6 6l12 12M6 18L18 6" stroke="#dc3545" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
+
+// Helper: Retry wrapper for axios requests
+const axiosWithRetry = async (axiosCall, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await axiosCall();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+};
 
 // Mock API functions
 const mockSpeechToText = (audioBlob) =>
@@ -106,8 +131,38 @@ const VoicePage = () => {
   const [showExitModal, setShowExitModal] = useState(false);
   const [pendingExit, setPendingExit] = useState(false);
   const [showMicTooltip, setShowMicTooltip] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
+  const [speechResult, setSpeechResult] = useState(null);
 
   const navigate = useNavigate();
+
+  const getToken = () => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token');
+  };
+  // Create Conversation
+  useEffect(() => {
+    const createConversation = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.log("not logged in")
+          return;
+        }
+        const res = await fetch('/api/chat/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`} ,
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        setConversationId(data.id);
+        console.log('Created conversation:', data.id);
+      } catch (err) {
+        console.error('Failed to create conversation:', err);
+      }
+    };
+  
+    createConversation();
+  }, []);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -122,52 +177,99 @@ const VoicePage = () => {
 
   // Handle status changes and simulate API workflow
   useEffect(() => {
+    const callClaude = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.log("not logged in")
+          return;
+        }
+        const response = await axiosWithRetry(() =>
+          axios.post('/api/chat/send', { content: speechResult.transcript, conversationId: conversationId }, {
+            headers: { 'Content-Type': 'application/json' , 'Authorization': `Bearer ${token}` },
+          })
+        );
+        dispatch(actions.setAiResponse(response.data.message.content)); // adjust if key is different
+        dispatch(actions.setStatus(VOICE_STATUSES.SPEAKING));
+        setSpokenIndex(0);
+        setIsTransitioning(false);
+        setSpeechResult(null);
+      } catch (error) {
+        console.error('Request failed:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+
+        dispatch(actions.setError(error.message, 'API_ERROR', true));
+        setIsTransitioning(false);
+        setSpeechResult(null);
+      }
+    };
+  
     if (status === VOICE_STATUSES.PROCESSING && currentTranscript) {
       setIsTransitioning(true);
+      callClaude();
       
-      // Simulate Claude AI processing
-      mockClaudeResponse(currentTranscript)
-        .then(response => {
-          dispatch(actions.setAiResponse(response));
-          dispatch(actions.setStatus(VOICE_STATUSES.SPEAKING));
-          setSpokenIndex(0);
-          setIsTransitioning(false);
-        })
-        .catch(error => {
-          dispatch(actions.setError(error.message, 'API_ERROR', true));
-          setIsTransitioning(false);
-        });
     }
-    
+  
     if (status === VOICE_STATUSES.IDLE) {
       dispatch(actions.setAiResponse(''));
       dispatch(actions.setTranscript(''));
       setSpokenIndex(0);
     }
   }, [status, currentTranscript, dispatch, actions]);
+  
 
-  // Handle TTS word-by-word highlighting
+  // CallElevenLabs
   useEffect(() => {
-    if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
-      const words = aiResponse.split(' ');
-      if (spokenIndex < words.length) {
-        const timer = setTimeout(() => {
-          setSpokenIndex(spokenIndex + 1);
-          
-          // When finished speaking, return to idle
-          if (spokenIndex + 1 >= words.length) {
-            const finishTimer = setTimeout(() => {
-              dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
-            }, 1000);
-            timersRef.current.push(finishTimer);
-          }
-        }, 350);
-        
-        timersRef.current.push(timer);
-        return () => clearTimeout(timer);
+    const speakWithElevenLabs = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.warn("No token available");
+          return;
+        }
+  
+        const response = await axiosWithRetry(() =>
+          axios.post(
+            '/api/chat/elevenlabs',
+            { text: aiResponse },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              responseType: 'blob', // Important to get audio data
+            }
+          )
+        );
+       
+        const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+      
+        await audio.play();
+  
+        audio.onended = () => {
+          dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+        };
+        dispatch(actions.setAiResponse(''));
+        dispatch(actions.setTranscript(''));
+      } catch (err) {
+        console.error("TTS playback failed", err);
+        dispatch(actions.setError(err.message || 'TTS failed', 'AUDIO_ERROR', true));
+        dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+        dispatch(actions.setAiResponse(''));
+        dispatch(actions.setTranscript(''));
       }
+    };
+  
+    if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
+      speakWithElevenLabs();
     }
-  }, [status, aiResponse, spokenIndex, dispatch, actions]);
+  }, [status, aiResponse, dispatch, actions]);
+  
 
   // Update live region for accessibility
   useEffect(() => {
@@ -196,7 +298,24 @@ const VoicePage = () => {
         // Process the audio
         try {
           dispatch(actions.setStatus(VOICE_STATUSES.PROCESSING));
-          const result = await mockSpeechToText(audioBlob);
+          // const result = await mockSpeechToText(audioBlob);
+          
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.wav');
+
+          const response = await fetch('/api/v1/voicerecord', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error('Server returned an error while transcribing.');
+          }
+
+          const result = await response.json();
+          setSpeechResult(result)
+
+
           dispatch(actions.setTranscript(result.transcript));
         } catch (error) {
           dispatch(actions.setError(error.message, 'API_ERROR', true));
@@ -285,34 +404,34 @@ const VoicePage = () => {
   };
 
   // Render AI response with word highlighting
-  const renderAiText = () => {
-    if (loading || status === VOICE_STATUSES.PROCESSING) {
-      return <span className="ai-loading">...</span>;
-    }
+  // const renderAiText = () => {
+  //   if (loading || status === VOICE_STATUSES.PROCESSING) {
+  //     return <span className="ai-loading">...</span>;
+  //   }
     
-    if (error) {
-      return <span className="ai-error">{error.message}</span>;
-    }
+  //   if (error) {
+  //     return <span className="ai-error">{error.message}</span>;
+  //   }
     
-    if (!aiResponse) return null;
+  //   if (!aiResponse) return null;
     
-    const words = aiResponse.split(' ');
-    return words.map((word, i) => (
-      <span
-        key={i}
-        className={
-          i < spokenIndex 
-            ? 'spoken' 
-            : i === spokenIndex 
-            ? 'speaking' 
-            : ''
-        }
-        aria-current={i === spokenIndex ? 'true' : undefined}
-      >
-        {word + ' '}
-      </span>
-    ));
-  };
+  //   const words = aiResponse.split(' ');
+  //   return words.map((word, i) => (
+  //     <span
+  //       key={i}
+  //       className={
+  //         i < spokenIndex 
+  //           ? 'spoken' 
+  //           : i === spokenIndex 
+  //           ? 'speaking' 
+  //           : ''
+  //       }
+  //       aria-current={i === spokenIndex ? 'true' : undefined}
+  //     >
+  //       {word + ' '}
+  //     </span>
+  //   ));
+  // };
 
   // Status messages
   const getStatusMessage = () => {
@@ -338,18 +457,25 @@ const VoicePage = () => {
         <Navbar />
         <main className="voice-main" role="main">
           <section className="voice-center" aria-label="Voice interaction area">
+            {/* Status Message */}
             <div className="voice-status" id="voice-status" aria-live="polite">
               {getStatusMessage()}
             </div>
+  
+            {/* Pulsing Heart */}
             <PulsingHeart
+              key={status} // force remount on state change
               state={status}
               onClick={handleMicToggle}
-              size={window.innerWidth < 600 ? 150 : 200}
+              size={typeof window !== 'undefined' && window.innerWidth < 600 ? 150 : 200}
               disabled={isTransitioning}
               className="voice-heart"
             />
-            {/* Blue glow connector between heart and mic button */}
+  
+            {/* Glow line */}
             <div className="heart-mic-glow" aria-hidden="true"></div>
+  
+            {/* AI Response */}
             <div
               className="voice-ai-text"
               aria-live="polite"
@@ -357,9 +483,10 @@ const VoicePage = () => {
               ref={liveRegionRef}
               tabIndex={0}
             >
-              {renderAiText()}
+              {/* {renderAiText()} */}
             </div>
-            {/* Bottom Microphone Button */}
+  
+            {/* Bottom Mic Button */}
             <div style={{ position: 'relative', width: 'fit-content', margin: '0 auto' }}>
               <button
                 className={`bottom-mic-button${status === VOICE_STATUSES.LISTENING ? ' active' : ''}`}
@@ -383,7 +510,8 @@ const VoicePage = () => {
               )}
             </div>
           </section>
-          
+  
+          {/* Toolbar */}
           <aside className="voice-toolbar" aria-label="Toolbar">
             <button
               className="toolbar-btn"
@@ -393,9 +521,9 @@ const VoicePage = () => {
               disabled={isTransitioning}
               tabIndex={0}
             >
-              <MicIcon active={isRecording} />
+              <MicIcon active={status === VOICE_STATUSES.LISTENING} />
             </button>
-            
+  
             <button
               className="toolbar-btn"
               aria-label="Attach file"
@@ -404,7 +532,7 @@ const VoicePage = () => {
             >
               <AttachIcon />
             </button>
-            
+  
             <div className="toolbar-window-controls">
               <button
                 className="toolbar-btn"
@@ -414,7 +542,7 @@ const VoicePage = () => {
               >
                 <MinimizeIcon />
               </button>
-              
+  
               <button
                 className="toolbar-btn"
                 aria-label="Close window"
@@ -426,6 +554,7 @@ const VoicePage = () => {
             </div>
           </aside>
         </main>
+  
         {/* Bottom Right Exit Button */}
         <button
           className="exit-button"
@@ -436,6 +565,8 @@ const VoicePage = () => {
         >
           <CloseIcon />
         </button>
+  
+        {/* Exit Confirmation Modal */}
         <BlueConfirmModal
           open={showExitModal}
           onConfirm={confirmExit}
@@ -445,6 +576,7 @@ const VoicePage = () => {
       </div>
     </VoiceErrorBoundary>
   );
+  
 };
 
 export default VoicePage;
