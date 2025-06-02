@@ -100,21 +100,18 @@ const PulsingHeart = React.forwardRef(({
         className={`pulsing-heart-svg ${state}`}
         width={size}
         height={size}
-        viewBox="0 0 200 220"
+        viewBox="0 0 200 200"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
         focusable="false"
       >
         <defs>
-          {/* Gradient for more sophisticated coloring */}
           <linearGradient id={`heartGradient-${state}`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={heartColor} stopOpacity="0.9" />
             <stop offset="100%" stopColor={heartColor} stopOpacity="1" />
           </linearGradient>
-          
-          {/* Glow filter for enhanced visual feedback */}
-          <filter id={`heartGlow-${state}`} x="-50%" y="-50%" width="200%" height="200%">
+          <filter id={`heartGlow-${state}`} x="-25%" y="-25%" width="150%" height="150%">
             <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
             <feMerge> 
               <feMergeNode in="coloredBlur"/>
@@ -122,9 +119,8 @@ const PulsingHeart = React.forwardRef(({
             </feMerge>
           </filter>
         </defs>
-        
         <path
-          d="M100 170c0 0-60-40-60-85 0-25 20-45 45-45 15 0 28 8 35 20 7-12 20-20 35-20 25 0 45 20 45 45 0 45-60 85-60 85z"
+          d="M100,160 C75,135 25,105 25,65 C25,40 45,20 70,20 C82,20 92,26 100,38 C108,26 118,20 130,20 C155,20 175,40 175,65 C175,105 125,135 100,160 Z"
           fill={`url(#heartGradient-${state})`}
           filter={state !== 'idle' ? `url(#heartGlow-${state})` : 'none'}
           className="heart-path"

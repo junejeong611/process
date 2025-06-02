@@ -10,9 +10,21 @@ import axios from 'axios';
 // Toolbar icons (simple SVGs for demo)
 const MicIcon = ({ active }) => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-    <path 
-      d="M12 15a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 14 0zM11 19h2v2h-2v-2z" 
-      fill={active ? '#4A90E2' : '#6b7a90'} 
+    <rect
+      x="9"
+      y="3"
+      width="6"
+      height="10"
+      rx="3"
+      fill={active ? '#4A90E2' : '#fff'}
+    />
+    <path
+      d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"
+      stroke={active ? '#4A90E2' : '#fff'}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
     />
   </svg>
 );
@@ -509,7 +521,7 @@ const VoicePage = () => {
               disabled={isTransitioning}
               tabIndex={0}
             >
-              <MicIcon active={isRecording} />
+              <MicIcon active={status === VOICE_STATUSES.LISTENING} />
             </button>
   
             <button
