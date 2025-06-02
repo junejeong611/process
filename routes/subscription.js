@@ -39,8 +39,21 @@ router.post('/create-checkout-session', auth, async (req, res) => {
 
 // POST /api/subscription/create-portal-session
 router.post('/create-portal-session', auth, async (req, res) => {
-  // TODO: Implement logic to create Stripe customer portal session
-  res.json({ message: 'Not implemented yet' });
+  try {
+    const user = req.user;
+    if (!user.stripeCustomerId) {
+      return res.status(400).json({ error: 'No Stripe customer ID found for user.' });
+    }
+    const returnUrl = req.body.returnUrl || 'http://localhost:3000/subscription/manage';
+    const session = await createPortalSession({
+      customerId: user.stripeCustomerId,
+      returnUrl
+    });
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('Stripe portal session error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // GET /api/subscription/status

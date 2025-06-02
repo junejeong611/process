@@ -1,10 +1,10 @@
 const axios = require('axios');
 
 const LOGIN_URL = 'http://localhost:5001/api/auth/login';
-const CHECKOUT_URL = 'http://localhost:5001/api/subscription/create-checkout-session';
+const PORTAL_URL = 'http://localhost:5001/api/subscription/create-portal-session';
 
-const EMAIL = 'testuser@example.com'; // Replace with your test user email
-const PASSWORD = 'TestPass123'; // Replace with your test user password
+const EMAIL = 'nlgowda@gmail.com'; // Replace with your test user email
+const PASSWORD = 'A1234567'; // Replace with your test user password
 
 async function loginAndGetToken() {
   try {
@@ -23,11 +23,14 @@ async function loginAndGetToken() {
   }
 }
 
-async function createCheckoutSession(jwtToken) {
+async function createPortalSession(jwtToken) {
   try {
     const response = await axios.post(
-      CHECKOUT_URL,
-      {},
+      PORTAL_URL,
+      {
+        // Optionally, you can specify a custom returnUrl:
+        // returnUrl: 'http://localhost:3000/subscription/manage'
+      },
       {
         headers: {
           Authorization: `Bearer ${jwtToken}`,
@@ -35,12 +38,12 @@ async function createCheckoutSession(jwtToken) {
         }
       }
     );
-    console.log('Stripe Checkout URL:', response.data.url);
+    console.log('Stripe Portal URL:', response.data.url);
   } catch (error) {
     if (error.response) {
-      console.error('Checkout session error:', error.response.data);
+      console.error('Portal session error:', error.response.data);
     } else {
-      console.error('Checkout session error:', error.message);
+      console.error('Portal session error:', error.message);
     }
   }
 }
@@ -48,8 +51,8 @@ async function createCheckoutSession(jwtToken) {
 (async () => {
   try {
     const token = await loginAndGetToken();
-    await createCheckoutSession(token);
+    await createPortalSession(token);
   } catch (err) {
     // Already logged above
   }
-})(); 
+})();
