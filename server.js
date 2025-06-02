@@ -18,9 +18,9 @@ const getSecrets = require('./load');
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const chatRoutes = require('./routes/chat');
+const chatRoutes = require('./server/routes/chat');
 const voiceRoutes = require('./routes/voice');
-const insightsRoutes = require('./routes/insights');
+const insightsRoutes = require('./server/routes/insights');
 const voiceRecordRoute = require('./routes/record');
 
 //collect secrets from secrets manager

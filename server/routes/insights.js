@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const Message = require('../models/Message');
 const claudeService = require('../services/claudeService');
-const auth = require('../middleware/auth');
+const auth = require('../../middleware/auth');
 
 // Helper: Build the analysis prompt
 function buildAnalysisPrompt(messagesText) {
