@@ -301,6 +301,12 @@ body, .voice-bg {
   position: relative;
 }
 
+.toolbar-btn svg {
+  /* Ensure toolbar icons are properly centered */
+  display: block;
+  margin: 0;
+}
+
 .toolbar-btn:focus {
   background: #e3f0fa;
   box-shadow: 0 0 0 2px var(--color-primary);
@@ -367,6 +373,30 @@ body, .voice-bg {
   .voice-ai-text {
     font-size: var(--font-sm);
     margin-top: var(--space-2);
+  }
+  
+  .bottom-mic-button {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .bottom-mic-button svg {
+    width: 24px;
+    height: 24px;
+    /* Removed transform - no longer needed */
+    display: block;
+    margin: 0 auto;
+  }
+  
+  .exit-button {
+    width: 36px;
+    height: 36px;
+    bottom: 16px;
+    right: 16px;
+  }
+  .exit-button svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -524,6 +554,7 @@ body, .voice-bg {
   }
 }
 
+/* FIXED MIC BUTTON STYLES */
 .bottom-mic-button {
   display: flex;
   align-items: center;
@@ -540,15 +571,19 @@ body, .voice-bg {
   outline: none;
   position: relative;
   z-index: 2;
+  /* Fix alignment issues */
+  padding: 0;
+  overflow: hidden;
 }
 
 .bottom-mic-button svg {
-  width: 32px;
-  height: 32px;
-}
-
-.bottom-mic-button svg path {
-  fill: #fff !important;
+  width: 28px;
+  height: 28px;
+  /* Center the icon perfectly */
+  display: block;
+  margin: 0 auto;
+  position: relative;
+  /* Removed transform - no longer needed with centered icon */
 }
 
 .bottom-mic-button:hover:not(:disabled),
@@ -621,10 +656,15 @@ body, .voice-bg {
     width: 56px;
     height: 56px;
   }
+  
   .bottom-mic-button svg {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
+    /* Removed transform - no longer needed */
+    display: block;
+    margin: 0 auto;
   }
+  
   .exit-button {
     width: 36px;
     height: 36px;
@@ -730,16 +770,19 @@ body, .voice-bg {
 
 .mic-spinner {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 28px; height: 28px;
-  margin: -14px 0 0 -14px;
-  border: 3px solid #E3F0FA;
-  border-top: 3px solid #4A90E2;
+  top: 50%; 
+  left: 50%;
+  width: 24px; 
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #fff;
   border-radius: 50%;
   animation: mic-spin 0.8s linear infinite;
   z-index: 3;
   background: none;
 }
+
 @keyframes mic-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -777,4 +820,19 @@ body, .voice-bg {
 .exit-button:focus-visible {
   outline: 2px solid #4A90E2;
   outline-offset: 2px;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .bottom-mic-button.active {
+    animation: none !important;
+  }
+  
+  .mic-spinner {
+    animation: none !important;
+  }
+  
+  .fadeInBtn {
+    animation: none !important;
+  }
 }
