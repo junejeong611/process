@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const { generateResponse } = require('../services/ai');
+const claudeService = require('../services/claudeService');
+const auth = require('../../middleware/auth');
 
 // Initialize a new conversation with AI greeting
-router.post('/conversations/init', async (req, res) => {
+router.post('/conversations/init', auth, async (req, res) => {
   try {
     // Create new conversation
     const conversation = new Conversation({
@@ -42,11 +43,15 @@ router.post('/conversations/init', async (req, res) => {
 });
 
 // Get all conversations for a user
-router.get('/conversations', async (req, res) => {
+router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await Conversation.find({ userId: req.user._id })
       .sort({ createdAt: -1 });
-    res.json(conversations);
+    const conversationsWithId = conversations.map(conv => ({
+      ...conv.toObject(),
+      id: conv._id
+    }));
+    res.json({ success: true, conversations: conversationsWithId });
   } catch (error) {
     console.error('Error fetching conversations:', error);
     res.status(500).json({ message: 'Error fetching conversations' });
@@ -54,7 +59,7 @@ router.get('/conversations', async (req, res) => {
 });
 
 // Get messages for a specific conversation
-router.get('/messages/:conversationId', async (req, res) => {
+router.get('/messages/:conversationId', auth, async (req, res) => {
   try {
     const messages = await Message.find({ conversationId: req.params.conversationId })
       .sort({ timestamp: 1 });
@@ -66,7 +71,7 @@ router.get('/messages/:conversationId', async (req, res) => {
 });
 
 // Send a message
-router.post('/send', async (req, res) => {
+router.post('/send', auth, async (req, res) => {
   try {
     const { content, conversationId } = req.body;
 
@@ -80,7 +85,7 @@ router.post('/send', async (req, res) => {
     await userMessage.save();
 
     // Generate AI response
-    const aiResponse = await generateResponse(content);
+    const aiResponse = await claudeService.generateResponse(content);
 
     // Save AI response
     const botMessage = new Message({
@@ -103,6 +108,49 @@ router.post('/send', async (req, res) => {
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ message: 'Error sending message' });
+  }
+});
+
+// Bulk delete conversations
+router.delete('/conversations/bulk-delete', auth, async (req, res) => {
+  try {
+    const { conversationIds } = req.body;
+    if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'No conversation IDs provided' });
+    }
+
+    // Only delete conversations belonging to the current user
+    const result = await Conversation.deleteMany({
+      _id: { $in: conversationIds },
+      userId: req.user._id
+    });
+
+    return res.json({ success: true, deletedCount: result.deletedCount });
+  } catch (err) {
+    console.error('Bulk delete error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Delete a single conversation
+router.delete('/conversations/:conversationId', auth, async (req, res) => {
+  console.log('Single delete route hit:', req.params.conversationId);
+  try {
+    const { conversationId } = req.params;
+    // Only delete if it belongs to the current user
+    const result = await Conversation.deleteOne({
+      _id: conversationId,
+      userId: req.user._id
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Delete error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

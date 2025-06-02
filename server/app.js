@@ -5,6 +5,7 @@ const passport = require('passport');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const { configurePassport } = require('./middleware/auth');
+const auth = require('../middleware/auth');
 
 const app = express();
 
@@ -18,7 +19,7 @@ configurePassport();
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/chat', auth, chatRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -29,6 +30,13 @@ app.get('/api/health', (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
+});
+
+console.log('Registered routes:');
+app._router.stack.forEach(function(r){
+  if (r.route && r.route.path){
+    console.log(r.route.stack[0].method.toUpperCase(), r.route.path);
+  }
 });
 
 module.exports = app; 
