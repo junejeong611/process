@@ -15,6 +15,7 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression'); // Add compression for better performance
 const getSecrets = require('./load');
+const { initializeStripe } = require('./services/stripeService');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -22,6 +23,7 @@ const chatRoutes = require('./server/routes/chat');
 const voiceRoutes = require('./routes/voice');
 const insightsRoutes = require('./server/routes/insights');
 const voiceRecordRoute = require('./routes/record');
+const subscriptionRoutes = require('./routes/subscription');
 
 //collect secrets from secrets manager
 (async () => {
@@ -39,6 +41,18 @@ const voiceRecordRoute = require('./routes/record');
     process.env.EMAIL_USER = secrets.EMAIL_USER;
     process.env.EMAIL_PASS = secrets.EMAIL_PASS;
     process.env.EMAIL_FROM = secrets.EMAIL_FROM;
+    // Stripe secrets
+    process.env.STRIPE_SECRET_KEY = secrets.STRIPE_SECRET_KEY;
+    process.env.STRIPE_PUBLISHABLE_KEY = secrets.STRIPE_PUBLISHABLE_KEY;
+    process.env.STRIPE_WEBHOOK_SECRET = secrets.STRIPE_WEBHOOK_SECRET;
+    process.env.STRIPE_PRICE_ID = secrets.STRIPE_PRICE_ID;
+
+    // Initialize Stripe
+    if (process.env.STRIPE_SECRET_KEY) {
+      initializeStripe(process.env.STRIPE_SECRET_KEY);
+    } else {
+      console.warn('STRIPE_SECRET_KEY not found in environment variables!');
+    }
 
     console.warn("HELLO!")
     console.warn(process.env.JWT_SECRET)
@@ -143,6 +157,7 @@ function startServer() {
   app.use(`${API_PREFIX}/voice`, voiceRoutes);
   app.use(`${API_PREFIX}/insights`, insightsRoutes);
   app.use(`${API_PREFIX}/voicerecord`, voiceRecordRoute);
+  app.use(`${API_PREFIX}/subscription`, subscriptionRoutes);
 
   // Maintain backward compatibility with original routes
   app.use('/api/auth', authRoutes);
@@ -150,6 +165,7 @@ function startServer() {
   app.use('/api/voice', voiceRoutes);
   app.use('/api/insights', insightsRoutes);
 
+  app.use('/api/subscription', subscriptionRoutes);
 
   let serverReady = false;
 
