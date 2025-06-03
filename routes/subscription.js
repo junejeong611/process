@@ -58,14 +58,82 @@ router.post('/create-portal-session', auth, async (req, res) => {
 
 // GET /api/subscription/status
 router.get('/status', auth, async (req, res) => {
-  // TODO: Implement logic to return current user's subscription status
-  res.json({ message: 'Not implemented yet' });
+  try {
+    const user = req.user;
+    res.json({
+      trialStart: user.trialStart,
+      trialEnd: user.trialEnd,
+      subscriptionStatus: user.subscriptionStatus,
+      stripeCustomerId: user.stripeCustomerId,
+      stripeSubscriptionId: user.stripeSubscriptionId,
+      currentPlan: user.currentPlan
+    });
+  } catch (error) {
+    console.error('Subscription status error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // POST /api/webhooks/stripe
 router.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
-  // TODO: Implement logic to verify and handle Stripe webhook events
-  res.json({ message: 'Not implemented yet' });
+  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let event;
+  try {
+    event = verifyWebhookSignature(req, stripeWebhookSecret);
+  } catch (err) {
+    console.error('Stripe webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  try {
+    switch (event.type) {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        const user = await User.findOne({ stripeCustomerId: customerId });
+        if (user) {
+          user.stripeSubscriptionId = subscription.id;
+          user.subscriptionStatus = subscription.status;
+          user.currentPlan = subscription.items.data[0]?.price?.id || null;
+          user.trialEnd = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
+          await user.save();
+        }
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        const user = await User.findOne({ stripeCustomerId: customerId });
+        if (user) {
+          user.subscriptionStatus = 'canceled';
+          user.stripeSubscriptionId = null;
+          user.currentPlan = null;
+          await user.save();
+        }
+        break;
+      }
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+        const user = await User.findOne({ stripeCustomerId: customerId });
+        if (user) {
+          user.subscriptionStatus = 'past_due';
+          await user.save();
+        }
+        break;
+      }
+      // Add more event types as needed
+      default:
+        // Unhandled event type
+        break;
+    }
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Error handling Stripe webhook event:', err);
+    res.status(500).send('Webhook handler error');
+  }
 });
 
 module.exports = router; 
