@@ -115,6 +115,7 @@ const VoicePage = () => {
     isRecording,
     currentTranscript,
     aiResponse,
+    aiReturn,
     error,
     loading,
     dispatch,
@@ -128,11 +129,14 @@ const VoicePage = () => {
   const timersRef = useRef([]);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
   const [showExitModal, setShowExitModal] = useState(false);
   const [pendingExit, setPendingExit] = useState(false);
   const [showMicTooltip, setShowMicTooltip] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [speechResult, setSpeechResult] = useState(null);
+  const [isSpeak, setIsSpeak] = useState(false);
+  
 
   const navigate = useNavigate();
 
@@ -215,11 +219,19 @@ const VoicePage = () => {
   
     if (status === VOICE_STATUSES.IDLE) {
       dispatch(actions.setAiResponse(''));
+      dispatch(actions.setAiReturn(''));
       dispatch(actions.setTranscript(''));
       setSpokenIndex(0);
     }
   }, [status, currentTranscript, dispatch, actions]);
   
+  //play audio
+  async function playAndWait(audio) {
+    return new Promise((resolve) => {
+      audio.onended = () => resolve();
+      audio.play();
+    });
+  }
 
   // CallElevenLabs
   useEffect(() => {
@@ -248,19 +260,27 @@ const VoicePage = () => {
         const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        console.log(isSpeak)
+        console.log(status)
       
-        await audio.play();
-  
-        audio.onended = () => {
-          dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
-        };
+        setIsSpeak(true);
+        dispatch(actions.setAiReturn(aiResponse));
+        await playAndWait(audio);
+        
+
+        dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+        setIsSpeak(false);
         dispatch(actions.setAiResponse(''));
+        dispatch(actions.setAiReturn(''));
         dispatch(actions.setTranscript(''));
       } catch (err) {
         console.error("TTS playback failed", err);
+        setIsSpeak(false);
         dispatch(actions.setError(err.message || 'TTS failed', 'AUDIO_ERROR', true));
         dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
         dispatch(actions.setAiResponse(''));
+        dispatch(actions.setAiReturn(''));
         dispatch(actions.setTranscript(''));
       }
     };
@@ -273,10 +293,10 @@ const VoicePage = () => {
 
   // Update live region for accessibility
   useEffect(() => {
-    if (liveRegionRef.current && aiResponse) {
-      liveRegionRef.current.textContent = aiResponse;
+    if (liveRegionRef.current && aiReturn) {
+      liveRegionRef.current.textContent = aiReturn;
     }
-  }, [aiResponse]);
+  }, [aiReturn]);
 
   // Start recording function
   const startRecording = async () => {
@@ -350,8 +370,18 @@ const VoicePage = () => {
   // Main mic toggle handler
   const handleMicToggle = () => {
     if (isTransitioning) return;
-    
-    if (status === VOICE_STATUSES.IDLE || status === VOICE_STATUSES.ERROR) {
+
+    if (status === VOICE_STATUSES.IDLE || status === VOICE_STATUSES.ERROR || (status === VOICE_STATUSES.SPEAKING && isSpeak)) {
+      if(status === VOICE_STATUSES.SPEAKING && isSpeak) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+        setIsSpeak(false);
+        dispatch(actions.setAiResponse(''));
+        dispatch(actions.setAiReturn(''));
+        dispatch(actions.setTranscript(''));
+      }
       startRecording();
     } else if (status === VOICE_STATUSES.LISTENING) {
       stopRecording();
@@ -443,7 +473,10 @@ const VoicePage = () => {
       case VOICE_STATUSES.PROCESSING:
         return 'Processing...';
       case VOICE_STATUSES.SPEAKING:
-        return 'Speaking...';
+        if(isSpeak)
+          return 'Speaking...';
+        else
+          return 'Processing...';
       case VOICE_STATUSES.ERROR:
         return 'Something went wrong. Tap to try again.';
       default:
