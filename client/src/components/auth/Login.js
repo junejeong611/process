@@ -5,14 +5,14 @@ import { toast } from 'react-toastify';
 
 // Form validation helper functions
 const validateEmail = (email) => {
-  if (!email.trim()) return 'Email is required.';
-  if (!/^\S+@\S+\.\S+$/.test(email)) return 'Please enter a valid email address.';
+  if (!email.trim()) return 'email is required';
+  if (!/^\S+@\S+\.\S+$/.test(email)) return 'please enter a valid email address';
   return '';
 };
 
 const validatePassword = (password) => {
-  if (!password) return 'Password is required.';
-  if (password.length < 6) return 'Password must be at least 6 characters.';
+  if (!password) return 'password is required';
+  if (password.length < 6) return 'password must be at least 6 characters';
   return '';
 };
 
@@ -39,7 +39,10 @@ const Login = () => {
     meta.name = 'description';
     meta.content = 'Login to Process, your emotional support app.';
     document.head.appendChild(meta);
-    return () => { document.head.removeChild(meta); };
+    return () => { 
+      const existingMeta = document.querySelector('meta[name="description"]');
+      if (existingMeta) document.head.removeChild(existingMeta);
+    };
   }, []);
 
   const handleEmailChange = (e) => {
@@ -133,7 +136,7 @@ const Login = () => {
           )}
           
           <form onSubmit={handleSubmit} className="login-form" noValidate>
-            <div className="form-group">
+            <div className={`form-group${emailError ? ' has-error' : ''}`}>
               <label htmlFor="email" className="form-label">email address</label>
               <div className="input-wrapper">
                 <input
@@ -150,10 +153,10 @@ const Login = () => {
                   disabled={isLoading}
                   autoComplete="username"
                 />
-                {emailError && (
-                  <div className="invalid-feedback" id="email-error">{emailError}</div>
-                )}
               </div>
+              {emailError && (
+                <div className="invalid-feedback" id="email-error">{emailError}</div>
+              )}
             </div>
             
             <div className="form-group">
@@ -182,10 +185,10 @@ const Login = () => {
                 >
                   {showPassword ? "hide" : "show"}
                 </button>
-                {passwordError && (
-                  <div className="invalid-feedback" id="password-error">{passwordError}</div>
-                )}
               </div>
+              {passwordError && (
+                <div className="invalid-feedback" id="password-error">{passwordError}</div>
+              )}
             </div>
             
             <div className="form-options">
@@ -222,8 +225,6 @@ const Login = () => {
             <p>don't have an account? <Link to="/register">sign up</Link></p>
             <p className="support-text">we're here to help whenever you need us.</p>
           </footer>
-          
-          {/* Login progress and success animations are controlled via CSS */}
         </div>
       </div>
     </div>
