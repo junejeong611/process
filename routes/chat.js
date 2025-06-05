@@ -173,7 +173,7 @@ router.post('/elevenlabs', auth, async (req, res) => {
       return res.status(400).json({ error: 'Text is required' });
     }
 
-    const voiceId = 'JBFqnCBsd6RMkjVDRZzb'; // Replace with your actual voice ID
+    const voiceId = 'XB0fDUnXU5powFXDhCwa'; // Replace with your actual voice ID
 
     console.log(text)
 

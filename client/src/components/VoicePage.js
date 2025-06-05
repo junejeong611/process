@@ -432,7 +432,13 @@ const VoicePage = () => {
     setShowExitModal(false);
     setPendingExit(false);
   };
-
+  
+  const getHeartState = (status, isSpeak) => {
+    if (status === VOICE_STATUSES.SPEAKING) {
+      return isSpeak ? VOICE_STATUSES.SPEAKING : VOICE_STATUSES.PROCESSING;
+    }
+    return status;
+  };
   // Render AI response with word highlighting
   // const renderAiText = () => {
   //   if (loading || status === VOICE_STATUSES.PROCESSING) {
@@ -497,8 +503,8 @@ const VoicePage = () => {
   
             {/* Pulsing Heart */}
             <PulsingHeart
-              key={status} // force remount on state change
-              state={status}
+              key={getHeartState(status,isSpeak)} // force remount on state change
+              state={getHeartState(status,isSpeak)}
               onClick={handleMicToggle}
               size={typeof window !== 'undefined' && window.innerWidth < 600 ? 150 : 200}
               disabled={isTransitioning}
