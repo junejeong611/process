@@ -1,4 +1,4 @@
-/* Enhanced Login.css - Building on existing minimalist design */
+/* Enhanced Login.css - Fixed version */
 
 /* Minimalist, soft blue/gray palette for emotional support app */
 .login-container {
@@ -16,7 +16,7 @@
   border-radius: 18px;
   box-shadow: 0 4px 24px rgba(60, 90, 130, 0.08), 0 1.5px 6px rgba(60, 90, 130, 0.04);
   padding: 2.5rem 2rem 2rem 2rem;
-  max-width: 330px;
+  max-width: 400px;
   width: 100%;
   transition: all 0.3s cubic-bezier(.4,0,.2,1);
   outline: none;
@@ -48,19 +48,6 @@
   }
 }
 
-/* Site logo styles */
-.site-logo-container {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  z-index: 10;
-}
-
-.site-logo {
-  height: 28px;
-  width: auto;
-}
-
 .login-header {
   margin-bottom: 1.5rem;
 }
@@ -78,6 +65,7 @@
   font-size: 1rem;
   margin-bottom: 0;
   text-align: center;
+  white-space: nowrap;
 }
 
 .login-form {
@@ -100,35 +88,38 @@
   margin-bottom: 1.2rem;
 }
 
+.form-group.has-error {
+  margin-bottom: 0.5rem;
+}
+
 .form-label {
   color: #3a5a8c;
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 0;
-  align-self: flex-start;
-  margin-left: 10px;
+  text-align: left;
+  margin-left: 0;
 }
 
 .input-wrapper {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  width: 100%;
 }
 
 .form-control {
   width: 100%;
-  padding: 0.8rem 1rem;
+  padding: 1rem 1.2rem;
   border: 1.5px solid #dbe6f3;
   border-radius: 8px;
   background: #f7fafd;
   color: #2a3a4d;
   font-size: 1rem;
   transition: all 0.25s ease;
-  margin-bottom: 0.2rem;
-  max-width: 280px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -147,10 +138,10 @@
   color: #a8bcd3;
 }
 
-/* Password toggle button */
+/* Password toggle button - FIXED POSITIONING */
 .toggle-password {
   position: absolute;
-  right: 18px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -161,6 +152,7 @@
   padding: 4px 8px;
   border-radius: 4px;
   transition: all 0.2s;
+  z-index: 2;
 }
 
 .toggle-password:hover {
@@ -182,8 +174,10 @@
 .invalid-feedback {
   color: #e57373;
   font-size: 0.85rem;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
   animation: fadeIn 0.3s;
+  text-align: left;
+  margin-left: 0;
 }
 
 .form-options {
@@ -243,8 +237,7 @@
 .login-button {
   position: relative;
   width: 100%;
-  max-width: 280px;
-  padding: 0.85rem 0;
+  padding: 1rem 0;
   background: linear-gradient(90deg, #7bb6fa 0%, #5a8fd6 100%);
   color: #fff;
   border: none;
@@ -256,9 +249,6 @@
   box-shadow: 0 2px 8px rgba(60, 90, 130, 0.07);
   transition: all 0.2s ease;
   overflow: hidden;
-  margin-left: auto;
-  margin-right: auto;
-  display: block;
 }
 
 .login-button:not(:disabled):hover {
@@ -324,7 +314,7 @@
   font-size: 0.88rem !important;
   text-align: center !important;
   animation: fadeIn 0.5s !important;
-  max-width: 260px !important;
+  max-width: 100% !important;
   margin-left: auto !important;
   margin-right: auto !important;
 }
@@ -411,30 +401,11 @@
   80% { width: 70%; }
 }
 
-/* Input focus helper animation */
-.form-control:focus + .focus-indicator {
-  opacity: 1;
-  transform: scaleX(1);
-}
-
-.focus-indicator {
-  position: absolute;
-  bottom: 0;
-  left: 10%;
-  width: 80%;
-  height: 3px;
-  background: #7bb6fa;
-  opacity: 0;
-  transform: scaleX(0);
-  transition: all 0.3s;
-  border-radius: 2px;
-}
-
 /* Enhanced responsive design */
 @media (max-width: 600px) {
   .login-card {
     padding: 1.8rem 1.3rem 1.5rem 1.3rem;
-    max-width: 320px;
+    max-width: 350px;
   }
   
   .login-title {
@@ -495,11 +466,6 @@
   animation: success-pulse 1.2s ease;
 }
 
-@keyframes success-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
 .register-title {
   color: #3a5a8c;
   font-size: 2rem;
@@ -520,19 +486,6 @@
   flex-direction: column;
   gap: 1.1rem;
   animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: none; }
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  position: relative;
-  margin-bottom: 1.2rem;
 }
 
 .form-actions {
@@ -657,18 +610,6 @@
   text-align: left;
 }
 
-/* Validation */
-.is-invalid {
-  border-color: #e57373;
-  background: #fff6f6;
-}
-.invalid-feedback {
-  color: #e57373;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
-  animation: fadeIn 0.3s;
-}
-
 /* Success and error messages */
 .success-message {
   background: #f0fbe7;
@@ -702,23 +643,6 @@
   color: #3a5a8c;
   text-decoration: underline;
   background: #f0f6fd;
-}
-
-/* Checkbox */
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 0.92rem;
-  color: #6b7a90;
-  gap: 0.5rem;
-}
-.checkbox-label input[type="checkbox"] {
-  accent-color: #7bb6fa;
-  margin-right: 0.5em;
-  width: 1.1em;
-  height: 1.1em;
-  cursor: pointer;
 }
 
 /* Responsive */
@@ -765,9 +689,9 @@
 
 .register-card .form-control {
   width: 100%;
-  max-width: 320px;
-  margin-left: 0;
-  margin-right: 0;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .register-card .form-label {
@@ -776,4 +700,13 @@
 
 .register-card .input-wrapper {
   align-items: flex-start;
+}
+
+.reset-password-form input[type="email"],
+.reset-password-form input[type="password"] {
+  width: 100%;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
