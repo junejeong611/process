@@ -26,6 +26,10 @@ const Register = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [nameBlurred, setNameBlurred] = useState(false);
+  const [emailBlurred, setEmailBlurred] = useState(false);
+  const [passwordBlurred, setPasswordBlurred] = useState(false);
+  const [confirmPasswordBlurred, setConfirmPasswordBlurred] = useState(false);
   
   const navigate = useNavigate();
 
@@ -204,9 +208,10 @@ const Register = () => {
                 <input
                   id="name"
                   type="text"
-                  className={`form-control ${fieldErrors.name ? 'is-invalid' : ''}`}
+                  className={`form-control ${(fieldErrors.name && nameBlurred) ? 'is-invalid' : ''}`}
                   value={name}
                   onChange={handleNameChange}
+                  onBlur={() => setNameBlurred(true)}
                   required
                   aria-required="true"
                   aria-invalid={!!fieldErrors.name}
@@ -228,9 +233,10 @@ const Register = () => {
                 <input
                   id="email"
                   type="email"
-                  className={`form-control ${fieldErrors.email ? 'is-invalid' : ''}`}
+                  className={`form-control ${(fieldErrors.email && emailBlurred) ? 'is-invalid' : ''}`}
                   value={email}
                   onChange={handleEmailChange}
+                  onBlur={() => setEmailBlurred(true)}
                   required
                   aria-required="true"
                   aria-invalid={!!fieldErrors.email}
@@ -252,9 +258,10 @@ const Register = () => {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  className={`form-control ${fieldErrors.password ? 'is-invalid' : ''}`}
+                  className={`form-control ${(fieldErrors.password && passwordBlurred) ? 'is-invalid' : ''}`}
                   value={password}
                   onChange={handlePasswordChange}
+                  onBlur={() => setPasswordBlurred(true)}
                   required
                   aria-required="true"
                   aria-invalid={!!fieldErrors.password}
@@ -305,9 +312,10 @@ const Register = () => {
                 <input
                   id="confirmPassword"
                   type="password"
-                  className={`form-control ${fieldErrors.confirmPassword ? 'is-invalid' : ''}`}
+                  className={`form-control ${(fieldErrors.confirmPassword && confirmPasswordBlurred) ? 'is-invalid' : ''}`}
                   value={confirmPassword}
                   onChange={handleConfirmPasswordChange}
+                  onBlur={() => setConfirmPasswordBlurred(true)}
                   required
                   aria-required="true"
                   aria-invalid={!!fieldErrors.confirmPassword}
