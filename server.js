@@ -30,6 +30,7 @@ const subscriptionRoutes = require('./routes/subscription');
   try {
     // Load secrets from AWS Secrets Manager
     const secrets = await getSecrets('process-it/dev/secrets');
+    console.log('Loaded secrets:', secrets);
 
     // Set them as environment variables
     process.env.MONGODB_URI = secrets.MONGODB_URI;
