@@ -518,30 +518,30 @@
   position: relative;
   width: 100%;
   padding: 1rem 0;
-  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
+  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
   color: #fff;
   border: none;
-  border-radius: var(--border-radius);
-  font-size: 1.08rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 0.5rem;
-  box-shadow: 0 2px 8px rgba(60, 90, 130, 0.07);
-  transition: all var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
+  transition: all 0.3s ease;
   overflow: hidden;
   font-family: inherit;
   text-transform: lowercase;
+  letter-spacing: 0.3px;
 }
 
 .login-button:not(:disabled):hover {
-  background: linear-gradient(90deg, var(--medium-blue) 0%, var(--light-blue) 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(60, 90, 130, 0.13);
+  background: linear-gradient(135deg, #5a8fd6 0%, #7bb6fa 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(123, 182, 250, 0.4);
 }
 
 .login-button:not(:disabled):active {
-  transform: translateY(0);
-  background: var(--primary-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
 }
 
 .login-button:focus {
@@ -553,38 +553,18 @@
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
+  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
+  color: #fff;
 }
 
-/* Button states */
-.login-button.loading {
-  background: linear-gradient(90deg, var(--medium-blue) 0%, var(--light-blue) 100%);
+.login-button .button-text {
+  color: #fff;
+  font-weight: 600;
 }
 
-.login-button.loading .button-text {
-  opacity: 0.8;
-}
-
-.login-button.loading::after {
-  content: "";
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  top: 50%;
-  left: 50%;
-  margin-top: -10px;
-  margin-left: -30px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.login-button.success {
-  background: linear-gradient(90deg, var(--success-green) 0%, #66bb6a 100%);
+.login-button.loading .button-text,
+.login-button.success .button-text {
+  color: #3a5a8c;
 }
 
 .retry-count {
@@ -657,7 +637,7 @@
 .login-card::after {
   content: "";
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   width: 0;
   height: 3px;
@@ -668,12 +648,13 @@
 
 .login-card.is-loading::after {
   width: 70%;
+  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
   animation: progress 2s forwards ease-out;
 }
 
 .login-card.success::after {
   width: 100%;
-  background: linear-gradient(90deg, var(--success-green) 0%, #66bb6a 100%);
+  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
 }
 
 @keyframes progress {
@@ -811,4 +792,21 @@
   .login-card {
     overflow: hidden;
   }
+}
+
+.retry-button.network {
+  background: rgba(227, 242, 253, 0.95);
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  box-shadow: none;
+  font-weight: 600;
+  text-transform: lowercase;
+  transition: background 0.2s, color 0.2s;
+}
+
+.retry-button.network:hover,
+.retry-button.network:focus {
+  background: #dbeafe;
+  color: #1565c0;
+  outline: none;
 }
