@@ -651,6 +651,7 @@
   .register-card {
     padding: 1.8rem 1.3rem 1.5rem 1.3rem;
     max-width: 380px;
+    overflow: hidden;
   }
   
   .register-title {
@@ -689,6 +690,7 @@
 @media (max-width: 400px) {
   .register-card {
     padding: 1.5rem 1rem;
+    overflow: hidden;
   }
   
   .register-title {
@@ -718,6 +720,7 @@
 @media (prefers-contrast: high) {
   .register-card {
     border: 2px solid var(--primary-blue);
+    overflow: hidden;
   }
   
   .form-control:focus {
@@ -1031,4 +1034,16 @@
   height: 5px;
   background: #10b981;
   border-radius: 8px 8px 0 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .register-card {
+    overflow: hidden;
+  }
+}
+
+@media print {
+  .register-card {
+    overflow: hidden;
+  }
 }
