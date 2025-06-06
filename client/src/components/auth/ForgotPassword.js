@@ -259,9 +259,9 @@ const ForgotPassword = () => {
                   {error}
                 </div>
               </div>
-              {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
+              {errorCategory?.type === 'network' && retryCount < 3 && countdown === 0 && (
                 <button 
-                  className="retry-button"
+                  className="retry-button network"
                   onClick={handleRetry}
                   aria-label="retry password reset request"
                 >
@@ -332,15 +332,15 @@ const ForgotPassword = () => {
 
             <button
               type="submit"
-              className={`reset-button ${isLoading ? 'loading' : ''} ${success ? 'success' : ''}`}
+              className={`forgot-password-button${isLoading ? ' loading' : ''}${success ? ' success' : ''}`}
               disabled={isLoading || !email || success || countdown > 0}
               aria-busy={isLoading}
               aria-describedby="reset-status"
             >
               <span className="button-text">
-                {success ? 'email sent!' : 
-                 isLoading ? 'sending...' : 
+                {success ? 'email sent!' :
                  countdown > 0 ? `wait ${formatCountdown(countdown)}` :
+                 isLoading ? ' password reset email...' :
                  'send reset link'}
               </span>
               {retryCount > 0 && !isLoading && (

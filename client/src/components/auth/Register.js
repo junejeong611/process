@@ -616,18 +616,14 @@ const Register = () => {
           
           {/* Enhanced error display - consistent with Login/ResetPassword */}
           {error && (
-            <div 
-              className={`error-message ${errorCategory?.type || ''}`} 
-              role="alert"
-              aria-live="polite"
-            >
+            <div className={`error-message ${errorCategory?.type || ''}`} role="alert" aria-live="polite">
               <div className="error-content">
                 <div className="error-icon" aria-hidden="true">
                   {getErrorIcon(errorCategory)}
                 </div>
                 <div className="error-text">
-                  {errorCategory?.type === 'conflict' && (
-                    <div className="error-title">account already exists</div>
+                  {errorCategory?.type === 'email' && (
+                    <div className="error-title">email error</div>
                   )}
                   {errorCategory?.type === 'validation' && (
                     <div className="error-title">validation error</div>
@@ -644,16 +640,6 @@ const Register = () => {
                   {error}
                 </div>
               </div>
-              {errorCategory?.canRetry && errorCategory?.type !== 'conflict' && retryCount < 3 && countdown === 0 && (
-                <button 
-                  className="retry-button"
-                  onClick={handleRetry}
-                  aria-label={`retry registration (attempt ${retryCount + 2})`}
-                  type="button"
-                >
-                  try again
-                </button>
-              )}
             </div>
           )}
 

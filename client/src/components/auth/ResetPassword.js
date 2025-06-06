@@ -586,9 +586,9 @@ const ResetPassword = () => {
                   {error}
                 </div>
               </div>
-              {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && tokenValid && (
+              {errorCategory?.canRetry && errorCategory?.type === 'network' && retryCount < 3 && countdown === 0 && tokenValid && (
                 <button 
-                  className="retry-button"
+                  className="retry-button network"
                   onClick={handleRetry}
                   aria-label={`retry password reset (attempt ${retryCount + 2})`}
                   type="button"
@@ -736,7 +736,7 @@ const ResetPassword = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className={`reset-button ${isLoading ? 'loading' : ''} ${resetSuccess ? 'success' : ''}`}
+              className={`reset-password-button ${isLoading ? 'loading' : ''} ${resetSuccess ? 'success' : ''}`}
               disabled={!isFormValid}
               aria-busy={isLoading}
               aria-describedby="reset-status"
