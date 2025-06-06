@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import './ResetPassword.css';
+import { toast } from 'react-toastify';
 
 // Enhanced password strength calculation
 const passwordStrength = (password) => {
@@ -46,36 +47,39 @@ const validateConfirmPassword = (confirmPassword, password) => {
   return '';
 };
 
-// Enhanced error categorization
-const categorizeError = (error) => {
+// Enhanced error categorization - consistent with Login/Register
+const categorizeError = (error, statusCode = null) => {
   const errorLower = error.toLowerCase();
   
   // Token errors
   if (errorLower.includes('token') || errorLower.includes('expired') ||
-      errorLower.includes('invalid') || errorLower.includes('link')) {
+      errorLower.includes('invalid') || errorLower.includes('link') ||
+      statusCode === 401 || statusCode === 403) {
     return { type: 'token', canRetry: false, severity: 'error' };
   }
   
   // Password validation errors
-  if (errorLower.includes('password') && errorLower.includes('requirements')) {
+  if (errorLower.includes('password') && errorLower.includes('requirements') ||
+      errorLower.includes('validation') || statusCode === 400) {
     return { type: 'validation', canRetry: true, severity: 'warning' };
   }
   
   // Network errors
   if (errorLower.includes('network') || errorLower.includes('connection') || 
-      errorLower.includes('fetch') || errorLower.includes('timeout')) {
+      errorLower.includes('fetch') || errorLower.includes('timeout') ||
+      errorLower.includes('failed to fetch')) {
     return { type: 'network', canRetry: true, severity: 'warning' };
   }
   
   // Rate limiting
   if (errorLower.includes('rate limit') || errorLower.includes('too many') ||
-      errorLower.includes('throttle')) {
+      errorLower.includes('throttle') || statusCode === 429) {
     return { type: 'rateLimit', canRetry: false, severity: 'warning' };
   }
   
   // Server errors
   if (errorLower.includes('server') || errorLower.includes('500') ||
-      errorLower.includes('503')) {
+      errorLower.includes('503') || (statusCode >= 500 && statusCode < 600)) {
     return { type: 'server', canRetry: true, severity: 'error' };
   }
   
@@ -385,16 +389,27 @@ const ResetPassword = () => {
       
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Parse response data first to get better error information
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response JSON:', parseError);
+        throw new Error(`HTTP ${response.status}: Failed to parse server response`);
       }
-      
-      const data = await response.json();
+
+      if (!response.ok) {
+        // Use the server's error message if available, otherwise use status text
+        const errorMessage = data?.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage, { cause: { statusCode: response.status, data } });
+      }
       
       if (data.success) {
         setResetSuccess(true);
         setSuccess('password has been reset successfully! redirecting to login...');
         setRetryCount(0);
+        
+        toast.success('Password reset successful!');
         
         // Analytics tracking
         if (typeof gtag !== 'undefined') {
@@ -411,8 +426,9 @@ const ResetPassword = () => {
           });
         }, 2500);
       } else {
+        // Handle server-side reset failures
         const errorMessage = data.message || 'failed to reset password. please try again.';
-        const category = categorizeError(errorMessage);
+        const category = categorizeError(errorMessage, response.status);
         
         setError(errorMessage);
         setErrorCategory(category);
@@ -425,29 +441,57 @@ const ResetPassword = () => {
         } else if (category.type === 'server') {
           setCountdown(30);
         }
+        
+        toast.error(errorMessage);
       }
     } catch (err) {
       console.error('Reset password error:', err);
       let errorMessage;
       let category;
+      let statusCode = null;
+
+      // Extract status code if available
+      if (err.cause?.statusCode) {
+        statusCode = err.cause.statusCode;
+      }
 
       if (err.name === 'AbortError') {
         errorMessage = 'request timed out. please check your connection and try again.';
         category = categorizeError('network timeout');
-      } else if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
+      } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
         errorMessage = 'connection error. please check your internet and try again.';
         category = categorizeError('network connection');
-      } else if (err.message.includes('HTTP 429')) {
-        errorMessage = 'too many attempts. please wait before trying again.';
-        category = categorizeError('rate limit');
+      } else if (err.message.includes('HTTP 401') || statusCode === 401) {
+        errorMessage = 'invalid or expired reset token. please request a new password reset.';
+        category = categorizeError('token expired', 401);
+        setTokenValid(false);
+      } else if (err.message.includes('HTTP 403') || statusCode === 403) {
+        errorMessage = 'reset token is no longer valid. please request a new password reset.';
+        category = categorizeError('token invalid', 403);
+        setTokenValid(false);
+      } else if (err.message.includes('HTTP 429') || statusCode === 429) {
+        errorMessage = 'too many reset attempts. please wait before trying again.';
+        category = categorizeError('rate limit', 429);
         setCountdown(300);
-      } else if (err.message.includes('HTTP 5')) {
+      } else if (err.message.includes('HTTP 5') || (statusCode >= 500 && statusCode < 600)) {
         errorMessage = 'server error. please try again in a moment.';
-        category = categorizeError('server error');
+        category = categorizeError('server error', statusCode);
         setCountdown(30);
+      } else if (statusCode === 400) {
+        errorMessage = 'invalid password reset data. please check your input and try again.';
+        category = categorizeError('validation error', 400);
       } else {
-        errorMessage = 'connection error. please check your internet and try again.';
-        category = categorizeError('unknown error');
+        // Check if the error message itself contains token-related keywords
+        const errorLower = err.message.toLowerCase();
+        if (errorLower.includes('token') || errorLower.includes('expired') || 
+            errorLower.includes('invalid')) {
+          errorMessage = err.message;
+          category = categorizeError(err.message, statusCode);
+          setTokenValid(false);
+        } else {
+          errorMessage = 'connection error. please check your internet and try again.';
+          category = categorizeError('unknown error');
+        }
       }
 
       setError(errorMessage);
@@ -469,11 +513,11 @@ const ResetPassword = () => {
     return Math.max((passwordStrength(password) / 4) * 100, 25);
   }, [password]);
 
-  // Get appropriate error icon based on category
+  // Get appropriate error icon based on category - consistent with Login/Register
   const getErrorIcon = (category) => {
     switch (category?.type) {
       case 'token': return '🔗';
-      case 'validation': return '🔐';
+      case 'validation': return '📝';
       case 'network': return '⚡';
       case 'rateLimit': return '⏰';
       case 'server': return '🔧';
@@ -512,7 +556,7 @@ const ResetPassword = () => {
             </p>
           </header>
 
-          {/* Enhanced error display */}
+          {/* Enhanced error display - consistent with Login/Register */}
           {error && (
             <div 
               className={`error-message ${errorCategory?.type || ''}`} 
@@ -525,7 +569,19 @@ const ResetPassword = () => {
                 </div>
                 <div className="error-text">
                   {errorCategory?.type === 'token' && (
-                    <div className="error-title">Invalid Reset Link</div>
+                    <div className="error-title">invalid reset link</div>
+                  )}
+                  {errorCategory?.type === 'validation' && (
+                    <div className="error-title">validation error</div>
+                  )}
+                  {errorCategory?.type === 'network' && (
+                    <div className="error-title">connection problem</div>
+                  )}
+                  {errorCategory?.type === 'rateLimit' && (
+                    <div className="error-title">too many attempts</div>
+                  )}
+                  {errorCategory?.type === 'server' && (
+                    <div className="error-title">server error</div>
                   )}
                   {error}
                 </div>

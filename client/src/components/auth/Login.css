@@ -1,4 +1,4 @@
-/* Enhanced Login.css with Improved Error Handling */
+/* Enhanced Login.css with Improved Error Handling - Consistent with ResetPassword */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* Root variables for consistent theming */
@@ -232,7 +232,7 @@
 .is-invalid {
   border-color: var(--error-red);
   background: rgba(255, 246, 246, 0.9);
-  animation: shake 0.3s ease-in-out;
+  animation: shake 0.2s ease-in-out;
 }
 
 .is-valid {
@@ -242,8 +242,8 @@
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-1.5px); }
-  20%, 40%, 60%, 80% { transform: translateX(1.5px); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-1px); }
+  20%, 40%, 60%, 80% { transform: translateX(1px); }
 }
 
 .invalid-feedback {
@@ -267,7 +267,7 @@
   }
 }
 
-/* Enhanced error message styles with icons */
+/* Enhanced error message styles with icons - consistent with ResetPassword */
 .error-message {
   background: rgba(255, 246, 246, 0.95);
   color: var(--error-red);
@@ -283,6 +283,7 @@
   gap: 0.75rem;
   position: relative;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+  overflow: hidden;
 }
 
 @keyframes errorSlideIn {
@@ -298,23 +299,21 @@
 
 .error-content {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
 }
 
 .error-icon {
-  flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  font-weight: bold;
-  background: #fecaca;
-  color: #b91c1c;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.15);
+  height: 1.75rem;
+  width: 1.75rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
 }
 
 .error-text {
@@ -333,7 +332,7 @@
   text-transform: lowercase;
 }
 
-/* Error type specific styles */
+/* Error type specific styles - enhanced and consistent with ResetPassword */
 .error-message.auth {
   border-color: rgba(243, 188, 188, 0.8);
   background: rgba(255, 246, 246, 0.95);
@@ -391,6 +390,18 @@
 .error-message.server .error-icon {
   background: #e5e7eb;
   color: #374151;
+}
+
+.error-message.validation {
+  border-color: rgba(255, 171, 145, 0.8);
+  background: rgba(255, 243, 224, 0.95);
+  color: var(--warning-orange);
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.08);
+}
+
+.error-message.validation .error-icon {
+  background: #fed7aa;
+  color: #c2410c;
 }
 
 .retry-button {
@@ -763,4 +774,26 @@
   .login-button.loading::after {
     animation: none;
   }
+}
+
+/* If there's a top border or pseudo-element causing this */
+.error-message::before,
+.error-message::after {
+  border-radius: inherit; /* Inherit the border-radius from parent */
+}
+
+/* Ensure the card itself clips overflow */
+.login-card {
+  overflow: hidden;
+}
+
+.success-message::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  width: calc(100% - 1.5rem);
+  height: 5px;
+  background: #10b981;
+  border-radius: 8px 8px 0 0;
 }

@@ -28,38 +28,48 @@ const validatePassword = (password) => {
   return '';
 };
 
-// Enhanced error categorization
-const categorizeError = (error) => {
+// Enhanced error categorization - consistent with ResetPassword
+const categorizeError = (error, statusCode = null) => {
   const errorLower = error.toLowerCase();
   
-  // Authentication errors
+  // Authentication errors - improved detection
   if (errorLower.includes('invalid email') || errorLower.includes('invalid password') ||
-      errorLower.includes('incorrect') || errorLower.includes('wrong')) {
+      errorLower.includes('incorrect') || errorLower.includes('wrong') ||
+      errorLower.includes('invalid credentials') || errorLower.includes('unauthorized') ||
+      errorLower.includes('authentication failed') || errorLower.includes('login failed') ||
+      statusCode === 401 || statusCode === 403) {
     return { type: 'auth', canRetry: true, severity: 'warning' };
   }
   
   // Account issues
   if (errorLower.includes('locked') || errorLower.includes('suspended') ||
-      errorLower.includes('disabled')) {
+      errorLower.includes('disabled') || errorLower.includes('blocked')) {
     return { type: 'account', canRetry: false, severity: 'error' };
   }
   
   // Network errors
   if (errorLower.includes('network') || errorLower.includes('connection') || 
-      errorLower.includes('fetch') || errorLower.includes('timeout')) {
+      errorLower.includes('fetch') || errorLower.includes('timeout') ||
+      errorLower.includes('failed to fetch')) {
     return { type: 'network', canRetry: true, severity: 'warning' };
   }
   
   // Rate limiting
   if (errorLower.includes('rate limit') || errorLower.includes('too many') ||
-      errorLower.includes('throttle')) {
+      errorLower.includes('throttle') || statusCode === 429) {
     return { type: 'rateLimit', canRetry: false, severity: 'warning' };
   }
   
   // Server errors
   if (errorLower.includes('server') || errorLower.includes('500') ||
-      errorLower.includes('503')) {
+      errorLower.includes('503') || (statusCode >= 500 && statusCode < 600)) {
     return { type: 'server', canRetry: true, severity: 'error' };
+  }
+  
+  // Validation errors
+  if (errorLower.includes('validation') || errorLower.includes('invalid format') ||
+      statusCode === 400) {
+    return { type: 'validation', canRetry: true, severity: 'warning' };
   }
   
   return { type: 'unknown', canRetry: true, severity: 'error' };
@@ -344,11 +354,20 @@ const Login = () => {
       
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Parse response data first to get better error information
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response JSON:', parseError);
+        throw new Error(`HTTP ${response.status}: Failed to parse server response`);
       }
-      
-      const data = await response.json();
+
+      if (!response.ok) {
+        // Use the server's error message if available, otherwise use status text
+        const errorMessage = data?.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage, { cause: { statusCode: response.status, data } });
+      }
       
       if (data.success) {
         // Set login success state for animation
@@ -376,8 +395,9 @@ const Login = () => {
           navigate('/options');
         }, 1200);
       } else {
-        const errorMessage = data.message || 'Invalid email or password. Please try again.';
-        const category = categorizeError(errorMessage);
+        // Handle server-side authentication failures
+        const errorMessage = data.message || 'invalid email or password. please try again.';
+        const category = categorizeError(errorMessage, response.status);
         
         setError(errorMessage);
         setErrorCategory(category);
@@ -395,24 +415,48 @@ const Login = () => {
       console.error('Login error:', err);
       let errorMessage;
       let category;
+      let statusCode = null;
+
+      // Extract status code if available
+      if (err.cause?.statusCode) {
+        statusCode = err.cause.statusCode;
+      }
 
       if (err.name === 'AbortError') {
         errorMessage = 'request timed out. please check your connection and try again.';
         category = categorizeError('network timeout');
-      } else if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
+      } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
         errorMessage = 'connection error. please check your internet and try again.';
         category = categorizeError('network connection');
-      } else if (err.message.includes('HTTP 429')) {
-        errorMessage = 'too many attempts. please wait before trying again.';
-        category = categorizeError('rate limit');
+      } else if (err.message.includes('HTTP 401') || statusCode === 401) {
+        errorMessage = 'invalid email or password. please try again.';
+        category = categorizeError('authentication failed', 401);
+      } else if (err.message.includes('HTTP 403') || statusCode === 403) {
+        errorMessage = 'access denied. please check your credentials.';
+        category = categorizeError('authentication failed', 403);
+      } else if (err.message.includes('HTTP 429') || statusCode === 429) {
+        errorMessage = 'too many login attempts. please wait before trying again.';
+        category = categorizeError('rate limit', 429);
         setCountdown(300);
-      } else if (err.message.includes('HTTP 5')) {
+      } else if (err.message.includes('HTTP 5') || (statusCode >= 500 && statusCode < 600)) {
         errorMessage = 'server error. please try again in a moment.';
-        category = categorizeError('server error');
+        category = categorizeError('server error', statusCode);
         setCountdown(30);
+      } else if (statusCode === 400) {
+        errorMessage = 'invalid request. please check your input and try again.';
+        category = categorizeError('validation error', 400);
       } else {
-        errorMessage = 'connection error. please check your internet and try again.';
-        category = categorizeError('unknown error');
+        // Check if the error message itself contains authentication-related keywords
+        const errorLower = err.message.toLowerCase();
+        if (errorLower.includes('invalid') || errorLower.includes('incorrect') || 
+            errorLower.includes('wrong') || errorLower.includes('password') ||
+            errorLower.includes('email')) {
+          errorMessage = err.message;
+          category = categorizeError(err.message, statusCode);
+        } else {
+          errorMessage = 'connection error. please check your internet and try again.';
+          category = categorizeError('unknown error');
+        }
       }
 
       setError(errorMessage);
@@ -429,7 +473,7 @@ const Login = () => {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   }, []);
 
-  // Get appropriate error icon based on category
+  // Get appropriate error icon based on category - consistent with ResetPassword
   const getErrorIcon = (category) => {
     switch (category?.type) {
       case 'auth': return '🔐';
@@ -437,6 +481,7 @@ const Login = () => {
       case 'network': return '⚡';
       case 'rateLimit': return '⏰';
       case 'server': return '🔧';
+      case 'validation': return '📝';
       default: return '⚠';
     }
   };
@@ -456,7 +501,7 @@ const Login = () => {
             </p>
           </header>
           
-          {/* Enhanced error display */}
+          {/* Enhanced error display - consistent with ResetPassword */}
           {error && (
             <div 
               className={`error-message ${errorCategory?.type || ''}`} 
@@ -469,12 +514,27 @@ const Login = () => {
                 </div>
                 <div className="error-text">
                   {errorCategory?.type === 'auth' && (
-                    <div className="error-title">Login Failed</div>
+                    <div className="error-title">login failed</div>
+                  )}
+                  {errorCategory?.type === 'account' && (
+                    <div className="error-title">account issue</div>
+                  )}
+                  {errorCategory?.type === 'network' && (
+                    <div className="error-title">connection problem</div>
+                  )}
+                  {errorCategory?.type === 'rateLimit' && (
+                    <div className="error-title">too many attempts</div>
+                  )}
+                  {errorCategory?.type === 'server' && (
+                    <div className="error-title">server error</div>
+                  )}
+                  {errorCategory?.type === 'validation' && (
+                    <div className="error-title">validation error</div>
                   )}
                   {error}
                 </div>
               </div>
-              {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
+              {errorCategory?.canRetry && errorCategory?.type !== 'auth' && retryCount < 3 && countdown === 0 && (
                 <button 
                   className="retry-button"
                   onClick={handleRetry}
