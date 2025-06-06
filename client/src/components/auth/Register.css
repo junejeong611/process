@@ -205,13 +205,13 @@
 .is-invalid {
   border-color: #e57373;
   background: rgba(255, 246, 246, 0.9);
-  animation: shake 0.5s ease-in-out;
+  animation: shake 0.3s ease-in-out;
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-  20%, 40%, 60%, 80% { transform: translateX(3px); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-1.5px); }
+  20%, 40%, 60%, 80% { transform: translateX(1.5px); }
 }
 
 .invalid-feedback {
@@ -759,4 +759,15 @@
   .password-strength {
     display: none;
   }
+}
+
+/* Ensure textboxes have equal left/right spacing to card edge */
+.register-card .form-group,
+.register-card .input-wrapper,
+.register-card .form-control {
+  margin-left: 0;
+  margin-right: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
