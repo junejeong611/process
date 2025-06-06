@@ -90,6 +90,7 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   await user.save();
   // Send email with raw token
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${rawToken}`;
+  
   await sendEmail({
     to: user.email,
     subject: 'Password Reset',
