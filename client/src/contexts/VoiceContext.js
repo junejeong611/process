@@ -24,6 +24,7 @@ const initialState = {
   hasPermission: null,
   currentTranscript: '',
   aiResponse: '',
+  aiReturned: '',
   conversationHistory: [],
   error: null,
   userSettings: {
@@ -159,6 +160,9 @@ function voiceReducer(state, action) {
       
     case 'SET_AI_RESPONSE':
       return { ...state, aiResponse: action.response };
+
+    case 'SET_AI_RETURN':
+      return { ...state, aiReturn: action.response };
       
     case 'ADD_HISTORY': {
       const newEntry = {
@@ -247,7 +251,8 @@ export const voiceActions = {
   setRecording: (isRecording) => ({ type: 'SET_RECORDING', isRecording }),
   setPermission: (hasPermission) => ({ type: 'SET_PERMISSION', hasPermission }),
   setTranscript: (transcript) => ({ type: 'SET_TRANSCRIPT', transcript }),
-  setAiResponse: (response) => ({ type: 'SET_AI_RESPONSE', response }),
+  setAiResponse: (response) => ({ type: 'SET_AI_RESPONSE', response }), //loaded at the same time as voice
+  setAiReturn: (response) => ({ type: 'SET_AI_RETURN', response }), 
   addHistory: (entry) => ({ type: 'ADD_HISTORY', entry }),
   setHistory: (history) => ({ type: 'SET_HISTORY', history }),
   clearHistory: () => ({ type: 'CLEAR_HISTORY' }),
