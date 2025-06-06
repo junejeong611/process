@@ -1,4 +1,3 @@
-# Use official Node LTS image
 FROM node:22
 
 # Install ffmpeg
