@@ -233,62 +233,82 @@ const VoicePage = () => {
     });
   }
 
+  useEffect(() => {
+  return () => {
+    // Clean FSM when navigating away
+    dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+    dispatch(actions.setAiResponse(''));
+    dispatch(actions.setAiReturn(''));
+    dispatch(actions.setTranscript(''));
+    setIsSpeak(false);
+  };
+}, []);
+
+
   // CallElevenLabs
   useEffect(() => {
-    const speakWithElevenLabs = async () => {
-      try {
-        const token = getToken();
-        if (!token) {
-          console.warn("No token available");
-          return;
-        }
-  
-        const response = await axiosWithRetry(() =>
-          axios.post(
-            '/api/chat/elevenlabs',
-            { text: aiResponse },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              responseType: 'blob', // Important to get audio data
-            }
-          )
-        );
-       
-        const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
-        console.log(isSpeak)
-        console.log(status)
-      
-        setIsSpeak(true);
-        dispatch(actions.setAiReturn(aiResponse));
-        await playAndWait(audio);
-        
+  let audio;
 
-        dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
-        setIsSpeak(false);
-        dispatch(actions.setAiResponse(''));
-        dispatch(actions.setAiReturn(''));
-        dispatch(actions.setTranscript(''));
-      } catch (err) {
-        console.error("TTS playback failed", err);
-        setIsSpeak(false);
-        dispatch(actions.setError(err.message || 'TTS failed', 'AUDIO_ERROR', true));
-        dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
-        dispatch(actions.setAiResponse(''));
-        dispatch(actions.setAiReturn(''));
-        dispatch(actions.setTranscript(''));
+  const speakWithElevenLabs = async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        console.warn("No token available");
+        return;
       }
-    };
-  
-    if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
-      speakWithElevenLabs();
+
+      const response = await axiosWithRetry(() =>
+        axios.post(
+          '/api/chat/elevenlabs',
+          { text: aiResponse },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            responseType: 'blob',
+          }
+        )
+      );
+
+      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      setIsSpeak(true);
+      dispatch(actions.setAiReturn(aiResponse));
+      await playAndWait(audio);
+
+      dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+      setIsSpeak(false);
+      dispatch(actions.setAiResponse(''));
+      dispatch(actions.setAiReturn(''));
+      dispatch(actions.setTranscript(''));
+    } catch (err) {
+      console.error("TTS playback failed", err);
+      setIsSpeak(false);
+      dispatch(actions.setError(err.message || 'TTS failed', 'AUDIO_ERROR', true));
+      dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+      dispatch(actions.setAiResponse(''));
+      dispatch(actions.setAiReturn(''));
+      dispatch(actions.setTranscript(''));
     }
-  }, [status, aiResponse, dispatch, actions]);
+  };
+
+  if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
+    speakWithElevenLabs();
+  }
+
+  // Cleanup function
+  return () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
+}, [status, aiResponse, dispatch, actions]);
+
   
 
   // Update live region for accessibility
@@ -439,6 +459,8 @@ const VoicePage = () => {
     }
     return status;
   };
+
+  
   // Render AI response with word highlighting
   // const renderAiText = () => {
   //   if (loading || status === VOICE_STATUSES.PROCESSING) {

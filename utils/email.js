@@ -12,8 +12,6 @@ async function sendEmail({ to, subject, text, html }) {
       pass: process.env.EMAIL_PASS
     }
   });
-  console.log(process.env.EMAIL_USER)
-  console.log(process.env.EMAIL_PASS)
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to,
