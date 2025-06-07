@@ -4,7 +4,20 @@ import './Login.css';
 import { toast } from 'react-toastify';
 
 // Enhanced form validation helper functions
+// Enhanced form validation helper functions
 const validateEmail = (email) => {
+  if (!email.trim()) return 'email is required';
+  
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  if (!emailRegex.test(email)) {
+    return 'please enter a valid email address';
+  }
+  
+  if (email.length > 254) {
+    return 'email address is too long';
+  }
+  
   if (!email.trim()) return 'email is required';
   
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -86,6 +99,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [errorCategory, setErrorCategory] = useState(null);
+  const [errorCategory, setErrorCategory] = useState(null);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -135,6 +149,53 @@ const Login = () => {
   }, [error, errorCategory]);
 
   // Countdown timer for rate limiting
+  const formRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  const controllerRef = useRef(null);
+
+  // Debounced values for real-time validation
+  const debouncedEmail = useDebounce(email, 500);
+  const debouncedPassword = useDebounce(password, 300);
+
+  // Enhanced online/offline monitoring
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      if (error && errorCategory?.type === 'network') {
+        setError('');
+        setErrorCategory(null);
+      }
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setError('you appear to be offline. please check your connection.');
+      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [error, errorCategory]);
+
+  // Countdown timer for rate limiting
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    } else if (countdown === 0 && error && errorCategory?.type === 'rateLimit') {
+      setError('');
+      setErrorCategory(null);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown, error, errorCategory]);
+
+  // Enhanced page setup
   useEffect(() => {
     let timer;
     if (countdown > 0) {
@@ -155,10 +216,82 @@ const Login = () => {
     existingMetas.forEach(meta => meta.remove());
     
     // Add new meta tags
+    
+    // Remove existing meta tags
+    const existingMetas = document.querySelectorAll('meta[name="description"], meta[name="keywords"]');
+    existingMetas.forEach(meta => meta.remove());
+    
+    // Add new meta tags
     const meta = document.createElement('meta');
     meta.name = 'description';
     meta.content = 'Login to Process, your emotional support app. A safe place to process your emotions.';
+    meta.content = 'Login to Process, your emotional support app. A safe place to process your emotions.';
     document.head.appendChild(meta);
+    
+    const keywords = document.createElement('meta');
+    keywords.name = 'keywords';
+    keywords.content = 'login, emotional support, process, mental health';
+    document.head.appendChild(keywords);
+    
+    return () => {
+      const metas = document.querySelectorAll('meta[name="description"], meta[name="keywords"]');
+      metas.forEach(meta => meta.remove());
+    };
+  }, []);
+
+  // Real-time validation
+  useEffect(() => {
+    if (debouncedEmail && debouncedEmail.trim()) {
+      const validationError = validateEmail(debouncedEmail);
+      if (validationError !== emailError) {
+        setEmailError(validationError);
+      }
+    } else if (emailError && !debouncedEmail.trim()) {
+      setEmailError('');
+    }
+  }, [debouncedEmail, emailError]);
+
+  useEffect(() => {
+    if (debouncedPassword) {
+      const validationError = validatePassword(debouncedPassword);
+      if (validationError !== passwordError) {
+        setPasswordError(validationError);
+      }
+    } else if (passwordError && !debouncedPassword) {
+      setPasswordError('');
+    }
+  }, [debouncedPassword, passwordError]);
+
+  // Enhanced keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Enter key to submit form
+      if (e.key === 'Enter' && !isLoading && !loginSuccess && countdown === 0) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+      
+      // Escape key to clear errors
+      if (e.key === 'Escape') {
+        if (error) {
+          setError('');
+          setErrorCategory(null);
+          emailInputRef.current?.focus();
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [isLoading, loginSuccess, countdown, error]);
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      if (controllerRef.current) {
+        controllerRef.current.abort();
+      }
+    };
     
     const keywords = document.createElement('meta');
     keywords.name = 'keywords';
@@ -235,7 +368,21 @@ const Login = () => {
   const handleEmailChange = useCallback((e) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
+  // Memoized form validation
+  const isFormValid = useMemo(() => {
+    return email.trim() && password && !emailError && !passwordError && 
+           !isLoading && !loginSuccess && countdown === 0;
+  }, [email, password, emailError, passwordError, isLoading, loginSuccess, countdown]);
+
+  const handleEmailChange = useCallback((e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
     if (emailError) setEmailError('');
+    if (error) {
+      setError('');
+      setErrorCategory(null);
+    }
+  }, [emailError, error]);
     if (error) {
       setError('');
       setErrorCategory(null);
@@ -245,13 +392,22 @@ const Login = () => {
   const handlePasswordChange = useCallback((e) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
+  const handlePasswordChange = useCallback((e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
     if (passwordError) setPasswordError('');
     if (error) {
       setError('');
       setErrorCategory(null);
     }
   }, [passwordError, error]);
+    if (error) {
+      setError('');
+      setErrorCategory(null);
+    }
+  }, [passwordError, error]);
 
+  const togglePasswordVisibility = useCallback(() => {
   const togglePasswordVisibility = useCallback(() => {
     setShowPassword(!showPassword);
   }, [showPassword]);
@@ -301,6 +457,20 @@ const Login = () => {
       setError(`please wait ${formatCountdown(countdown)} before trying again.`);
       return;
     }
+    setErrorCategory(null);
+
+    // Check if offline
+    if (!isOnline) {
+      setError('you appear to be offline. please check your connection and try again.');
+      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
+      return;
+    }
+
+    // Check countdown
+    if (countdown > 0) {
+      setError(`please wait ${formatCountdown(countdown)} before trying again.`);
+      return;
+    }
     
     // Client-side validation
     const emailErr = validateEmail(email);
@@ -318,8 +488,29 @@ const Login = () => {
       }, 100);
       return;
     }
+    if (emailErr || passwordErr) {
+      setTimeout(() => {
+        if (emailErr) {
+          emailInputRef.current?.focus();
+        } else if (passwordErr) {
+          passwordInputRef.current?.focus();
+        }
+      }, 100);
+      return;
+    }
     
     setIsLoading(true);
+    setSubmitAttempts(prev => prev + 1);
+    
+    try {
+      // Abort previous request if still pending
+      if (controllerRef.current) {
+        controllerRef.current.abort();
+      }
+
+      controllerRef.current = new AbortController();
+      const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
+
     setSubmitAttempts(prev => prev + 1);
     
     try {
@@ -508,9 +699,18 @@ const Login = () => {
             autoComplete="on"
           >
             <div className={`form-group${emailError ? ' has-error' : ''}`}>
+          <form 
+            ref={formRef}
+            onSubmit={handleSubmit} 
+            className="login-form" 
+            noValidate
+            autoComplete="on"
+          >
+            <div className={`form-group${emailError ? ' has-error' : ''}`}>
               <label htmlFor="email" className="form-label">email address</label>
               <div className="input-wrapper">
                 <input
+                  ref={emailInputRef}
                   ref={emailInputRef}
                   id="email"
                   type="email"
@@ -522,12 +722,24 @@ const Login = () => {
                   aria-required="true"
                   aria-invalid={!!emailError}
                   aria-describedby={emailError ? 'email-error' : 'email-help'}
+                  aria-describedby={emailError ? 'email-error' : 'email-help'}
                   placeholder="email address"
+                  disabled={isLoading || loginSuccess}
                   disabled={isLoading || loginSuccess}
                   autoComplete="username"
                   spellCheck="false"
                   maxLength="254"
+                  spellCheck="false"
+                  maxLength="254"
                 />
+              </div>
+              {emailError && (
+                <div className="invalid-feedback" id="email-error" role="alert">
+                  {emailError}
+                </div>
+              )}
+              <div id="email-help" className="visually-hidden">
+                enter your registered email address
               </div>
               {emailError && (
                 <div className="invalid-feedback" id="email-error" role="alert">
@@ -544,6 +756,7 @@ const Login = () => {
               <div className="input-wrapper">
                 <input
                   ref={passwordInputRef}
+                  ref={passwordInputRef}
                   id="password"
                   type={showPassword ? "text" : "password"}
                   className={`form-control ${(passwordError && (hasSubmitted || passwordTouched)) ? 'is-invalid' : ''}`}
@@ -554,9 +767,12 @@ const Login = () => {
                   aria-required="true"
                   aria-invalid={!!passwordError}
                   aria-describedby={passwordError ? 'password-error' : 'password-help'}
+                  aria-describedby={passwordError ? 'password-error' : 'password-help'}
                   placeholder="password"
                   disabled={isLoading || loginSuccess}
+                  disabled={isLoading || loginSuccess}
                   autoComplete="current-password"
+                  maxLength="128"
                   maxLength="128"
                 />
                 <button 
@@ -566,9 +782,18 @@ const Login = () => {
                   aria-label={showPassword ? "hide password" : "show password"}
                   tabIndex="0"
                   disabled={isLoading || loginSuccess}
+                  disabled={isLoading || loginSuccess}
                 >
                   {showPassword ? "hide" : "show"}
                 </button>
+              </div>
+              {passwordError && (
+                <div className="invalid-feedback" id="password-error" role="alert">
+                  {passwordError}
+                </div>
+              )}
+              <div id="password-help" className="visually-hidden">
+                enter your account password
               </div>
               {passwordError && (
                 <div className="invalid-feedback" id="password-error" role="alert">
@@ -588,6 +813,7 @@ const Login = () => {
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                     disabled={isLoading || loginSuccess}
+                    disabled={isLoading || loginSuccess}
                     aria-checked={rememberMe}
                   />
                   <span className="checkbox-text">remember me</span>
@@ -602,10 +828,16 @@ const Login = () => {
               type="submit"
               className={`login-button ${isLoading ? 'loading' : ''} ${loginSuccess ? 'success' : ''}`}
               disabled={!isFormValid}
+              disabled={!isFormValid}
               aria-busy={isLoading}
+              aria-describedby="login-status"
               aria-describedby="login-status"
             >
               <span className="button-text">
+                {loginSuccess ? 'success!' : 
+                 isLoading ? 'signing in...' : 
+                 countdown > 0 ? `wait ${formatCountdown(countdown)}` :
+                 'sign in'}
                 {loginSuccess ? 'success!' : 
                  isLoading ? 'signing in...' : 
                  countdown > 0 ? `wait ${formatCountdown(countdown)}` :
@@ -620,7 +852,22 @@ const Login = () => {
                   #{retryCount + 1}
                 </span>
               )}
+              {retryCount > 0 && !isLoading && !loginSuccess && (
+                <span 
+                  className="retry-count" 
+                  aria-label={`attempt ${retryCount + 1}`}
+                  aria-hidden="true"
+                >
+                  #{retryCount + 1}
+                </span>
+              )}
             </button>
+
+            <div id="login-status" className="visually-hidden" aria-live="polite">
+              {isLoading ? 'signing in, please wait' : ''}
+              {loginSuccess ? 'login successful, redirecting' : ''}
+              {error ? `error: ${error}` : ''}
+            </div>
 
             <div id="login-status" className="visually-hidden" aria-live="polite">
               {isLoading ? 'signing in, please wait' : ''}

@@ -94,8 +94,8 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   await sendEmail({
     to: user.email,
     subject: 'Password Reset',
-    text: `You requested a password reset. Click the link to reset: ${resetUrl}`,
-    html: `<p>You requested a password reset.</p><p><a href="${resetUrl}">Reset Password</a></p>`
+    text: `A password reset has been requested for your Process account. Click the link to reset your password: ${resetUrl}`,
+    html: `<p>A password reset has been requested for your Process account. Click the link to reset your password.</p><p><a href="${resetUrl}">Reset Password</a></p>`
   });
   res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
 });

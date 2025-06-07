@@ -104,6 +104,7 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [errorCategory, setErrorCategory] = useState(null);
+  const [errorCategory, setErrorCategory] = useState(null);
   const [success, setSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -327,7 +328,13 @@ const ResetPassword = () => {
     // Reset states
     setError('');
     setErrorCategory(null);
+    setErrorCategory(null);
     setSuccess('');
+
+    // Check if offline
+    if (!isOnline) {
+      setError('you appear to be offline. please check your connection and try again.');
+      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
 
     // Check if offline
     if (!isOnline) {
@@ -335,6 +342,10 @@ const ResetPassword = () => {
       setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
       return;
     }
+
+    // Check countdown
+    if (countdown > 0) {
+      setError(`please wait ${formatCountdown(countdown)} before trying again.`);
 
     // Check countdown
     if (countdown > 0) {
@@ -357,10 +368,38 @@ const ResetPassword = () => {
           confirmPasswordInputRef.current?.focus();
         }
       }, 100);
+
+    // Client-side validation
+    const passwordErr = validatePassword(password);
+    const confirmPasswordErr = validateConfirmPassword(confirmPassword, password);
+    
+    setPasswordError(passwordErr);
+    setConfirmPasswordError(confirmPasswordErr);
+
+    if (passwordErr || confirmPasswordErr) {
+      setTimeout(() => {
+        if (passwordErr) {
+          passwordInputRef.current?.focus();
+        } else if (confirmPasswordErr) {
+          confirmPasswordInputRef.current?.focus();
+        }
+      }, 100);
       return;
     }
 
+
     setIsLoading(true);
+    setSubmitAttempts(prev => prev + 1);
+
+    try {
+      // Abort previous request if still pending
+      if (controllerRef.current) {
+        controllerRef.current.abort();
+      }
+
+      controllerRef.current = new AbortController();
+      const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
+
     setSubmitAttempts(prev => prev + 1);
 
     try {
@@ -731,8 +770,10 @@ const ResetPassword = () => {
           </footer>
         </div>
       </div>
+      </div>
     </div>
   );
 };
 
+export default ResetPassword;
 export default ResetPassword;
