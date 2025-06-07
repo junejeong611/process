@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
+/* global gtag */
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './Register.css';
 
+// Enhanced password strength calculation - consistent with ResetPassword
 const passwordStrength = (password) => {
   let score = 0;
   if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
   if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  return score;
+  
+  // Bonus for variety
+  const uniqueChars = new Set(password).size;
+  if (uniqueChars >= 8) score++;
+  
+  return Math.min(score, 4);
 };
 
 const strengthLabels = ['too weak', 'weak', 'fair', 'good', 'strong'];
@@ -22,8 +31,13 @@ const Register = () => {
   const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errorCategory, setErrorCategory] = useState(null);
   const [success, setSuccess] = useState('');
-  const [fieldErrors, setFieldErrors] = useState({});
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [agreementError, setAgreementError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -126,6 +140,7 @@ const Register = () => {
     e.preventDefault();
     setHasSubmitted(true);
     setError('');
+    setErrorCategory(null);
     setSuccess('');
     
     if (!validateAll()) return;
@@ -142,6 +157,7 @@ const Register = () => {
       const data = await response.json();
       
       if (data.success) {
+        setRegistrationSuccess(true);
         setRegistrationSuccess(true);
         localStorage.setItem('token', data.token);
         setSuccess('registration successful! redirecting...');

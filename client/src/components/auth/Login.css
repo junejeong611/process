@@ -32,8 +32,15 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
   padding: 2rem 1rem;
   position: relative;
+  font-family: var(--font-family);
+}
+
+.login-content {
+  width: 100%;
+  max-width: 400px;
   font-family: var(--font-family);
 }
 
@@ -46,9 +53,13 @@
   background: #fff;
   border-radius: var(--border-radius-large);
   box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
+  border-radius: var(--border-radius-large);
+  box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
   padding: 2.5rem 2rem 2rem 2rem;
   max-width: 400px;
+  max-width: 400px;
   width: 100%;
+  transition: all var(--transition-medium);
   transition: all var(--transition-medium);
   outline: none;
   position: relative;
@@ -67,14 +78,29 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+  animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Enhanced entrance animation */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .login-card:focus {
+  box-shadow: 0 0 0 3px var(--focus-blue);
   box-shadow: 0 0 0 3px var(--focus-blue);
 }
 
 /* Enhanced animations for loading and success states */
 .login-card.is-loading {
+  box-shadow: 0 8px 30px var(--shadow-medium);
   box-shadow: 0 8px 30px var(--shadow-medium);
 }
 
@@ -95,22 +121,28 @@
 .login-header {
   margin-bottom: 1.5rem;
   text-align: center;
+  text-align: center;
 }
 
 .login-title {
+  color: var(--primary-blue);
   color: var(--primary-blue);
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
   text-align: center;
   text-transform: lowercase;
+  text-transform: lowercase;
 }
 
 .login-subtitle {
   color: var(--text-gray);
+  color: var(--text-gray);
   font-size: 1rem;
   margin-bottom: 0;
   text-align: center;
+  white-space: nowrap;
+  text-transform: lowercase;
   white-space: nowrap;
   text-transform: lowercase;
 }
@@ -139,11 +171,19 @@
   margin-bottom: 0.5rem;
 }
 
+.form-group.has-error {
+  margin-bottom: 0.5rem;
+}
+
 .form-label {
+  color: var(--primary-blue);
   color: var(--primary-blue);
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 0;
+  text-align: left;
+  margin-left: 0;
+  text-transform: lowercase;
   text-align: left;
   margin-left: 0;
   text-transform: lowercase;
@@ -155,6 +195,8 @@
   flex-direction: column;
   align-items: stretch;
   width: 100%;
+  align-items: stretch;
+  width: 100%;
 }
 
 .form-control {
@@ -163,10 +205,18 @@
   border: 1.5px solid var(--border-light);
   border-radius: var(--border-radius);
   background: var(--bg-light);
+  padding: 1rem 1.2rem;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--border-radius);
+  background: var(--bg-light);
   color: #2a3a4d;
   font-size: 1rem;
   font-weight: 500;
+  font-weight: 500;
   transition: all 0.25s ease;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: inherit;
   margin: 0;
   box-sizing: border-box;
   font-family: inherit;
@@ -175,12 +225,18 @@
 .form-control:focus {
   border-color: var(--light-blue);
   box-shadow: 0 0 0 2px var(--focus-blue);
+  border-color: var(--light-blue);
+  box-shadow: 0 0 0 2px var(--focus-blue);
   outline: none;
   background: #fff;
+  transform: translateY(-2px);
   transform: translateY(-2px);
 }
 
 .form-control::placeholder {
+  color: var(--light-gray);
+  transition: color var(--transition-fast);
+  text-transform: lowercase;
   color: var(--light-gray);
   transition: color var(--transition-fast);
   text-transform: lowercase;
@@ -196,13 +252,21 @@
 }
 
 /* Password toggle button - FIXED POSITIONING */
+.form-control:hover:not(:disabled):not(:focus) {
+  border-color: rgba(123, 182, 250, 0.5);
+  background: var(--bg-light);
+}
+
+/* Password toggle button - FIXED POSITIONING */
 .toggle-password {
   position: absolute;
+  right: 12px;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
+  color: var(--text-gray);
   color: var(--text-gray);
   cursor: pointer;
   font-size: 0.85rem;
@@ -211,10 +275,14 @@
   transition: all var(--transition-fast);
   z-index: 2;
   text-transform: lowercase;
+  transition: all var(--transition-fast);
+  z-index: 2;
+  text-transform: lowercase;
 }
 
 .toggle-password:hover {
   background: #f0f6fd;
+  color: var(--primary-blue);
   color: var(--primary-blue);
 }
 
@@ -226,8 +294,15 @@
 .toggle-password:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: 0 0 0 2px var(--focus-blue);
 }
 
+.toggle-password:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Enhanced validation styles */
 /* Enhanced validation styles */
 .is-invalid {
   border-color: var(--error-red);
@@ -444,6 +519,16 @@
 
 .offline-icon {
   font-size: 1rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.offline-icon {
+  font-size: 1rem;
 }
 
 .form-options {
@@ -464,9 +549,11 @@
   cursor: pointer;
   font-size: 0.92rem;
   color: var(--text-gray);
+  color: var(--text-gray);
 }
 
 .checkbox-label input[type="checkbox"] {
+  accent-color: var(--light-blue);
   accent-color: var(--light-blue);
   margin-right: 0.5em;
   width: 1.1em;
@@ -475,6 +562,7 @@
 }
 
 .checkbox-label:hover .checkbox-text {
+  color: var(--primary-blue);
   color: var(--primary-blue);
 }
 
@@ -486,19 +574,24 @@
 
 .forgot-password a {
   color: var(--light-blue);
+  color: var(--light-blue);
   text-decoration: none;
   font-size: 0.92rem;
   transition: all var(--transition-fast);
+  transition: all var(--transition-fast);
   padding: 2px 4px;
   border-radius: 4px;
+  text-transform: lowercase;
   text-transform: lowercase;
 }
 
 .forgot-password a:hover, 
 .forgot-password a:focus {
   color: var(--primary-blue);
+  color: var(--primary-blue);
   text-decoration: underline;
   background: #f0f6fd;
+  outline: none;
   outline: none;
 }
 
@@ -549,19 +642,20 @@
   background: linear-gradient(90deg, var(--medium-blue) 0%, var(--light-blue) 100%);
 }
 
-.login-button.loading .button-text {
-  opacity: 0.8;
+.login-button.loading .button-text,
+.login-button.success .button-text {
+  color: #3a5a8c;
 }
 
-.login-button.loading::after {
-  content: "";
+.retry-count {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  top: 50%;
-  left: 50%;
-  margin-top: -10px;
-  margin-left: -30px;
+  top: -0.5rem;
+  right: -0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--primary-blue);
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0.2rem 0.4rem;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
@@ -598,6 +692,7 @@
   text-align: center;
   margin-top: 1.5rem;
   color: var(--text-gray);
+  color: var(--text-gray);
   font-size: 0.92rem;
 }
 
@@ -607,24 +702,30 @@
 
 .login-footer a {
   color: var(--medium-blue);
+  color: var(--medium-blue);
   text-decoration: none;
   font-weight: 500;
   transition: color var(--transition-fast);
+  transition: color var(--transition-fast);
   padding: 2px 4px;
   border-radius: 4px;
+  text-transform: lowercase;
   text-transform: lowercase;
 }
 
 .login-footer a:hover, 
 .login-footer a:focus {
   color: var(--primary-blue);
+  color: var(--primary-blue);
   text-decoration: underline;
   background: #f0f6fd;
+  outline: none;
   outline: none;
 }
 
 .support-text {
   font-size: 0.85rem;
+  color: var(--light-gray);
   color: var(--light-gray);
   margin-top: 0.5rem;
 }
@@ -646,17 +747,20 @@
 .login-card::after {
   content: "";
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   width: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
+  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
   transition: width 0.5s ease;
+  border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
   border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
 }
 
 .login-card.is-loading::after {
   width: 70%;
+  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
   animation: progress 2s forwards ease-out;
 }
 
@@ -674,6 +778,10 @@
 
 /* Enhanced responsive design */
 @media (max-width: 600px) {
+  .login-container {
+    padding: 1rem 0.5rem;
+  }
+  
   .login-container {
     padding: 1rem 0.5rem;
   }
