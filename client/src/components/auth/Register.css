@@ -1,5 +1,29 @@
-/* Register.css - Final Enhanced Version */
+/* Register.css - Enhanced Version with Consistent Error Handling */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Root variables for consistent theming */
+:root {
+  --primary-blue: #3a5a8c;
+  --light-blue: #7bb6fa;
+  --medium-blue: #5a8fd6;
+  --text-gray: #6b7a90;
+  --light-gray: #8ca0b8;
+  --bg-light: #f7fafd;
+  --bg-gradient-start: #e3edf7;
+  --bg-gradient-end: #f7fafd;
+  --border-light: #dbe6f3;
+  --error-red: #e57373;
+  --success-green: #4caf50;
+  --warning-orange: #ef6c00;
+  --shadow-light: rgba(60, 90, 130, 0.08);
+  --shadow-medium: rgba(60, 90, 130, 0.12);
+  --focus-blue: #b3d4fc;
+  --border-radius: 8px;
+  --border-radius-large: 18px;
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.3s cubic-bezier(.4,0,.2,1);
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
 
 /* Container and layout */
 .register-container {
@@ -7,10 +31,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
   padding: 2rem 1rem;
   position: relative;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-family);
 }
 
 .register-content {
@@ -19,19 +43,17 @@
 }
 
 .register-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(60, 90, 130, 0.12), 0 2px 8px rgba(60, 90, 130, 0.08);
+  background: #fff;
+  border-radius: var(--border-radius-large);
+  box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
   padding: 2.5rem 2rem;
   width: 100%;
-  transition: all 0.3s cubic-bezier(.4,0,.2,1);
+  transition: all var(--transition-medium);
   outline: none;
   position: relative;
   overflow: hidden;
   animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  margin: 0 auto;
 }
 
 /* Enhanced entrance animation */
@@ -47,16 +69,16 @@
 }
 
 .register-card:focus {
-  box-shadow: 0 0 0 3px rgba(123, 182, 250, 0.15);
+  box-shadow: 0 0 0 3px var(--focus-blue);
 }
 
 /* Loading and success states */
 .register-card.is-loading {
-  box-shadow: 0 12px 40px rgba(60, 90, 130, 0.15);
+  box-shadow: 0 8px 30px var(--shadow-medium);
 }
 
 .register-card.success {
-  box-shadow: 0 12px 40px rgba(43, 155, 115, 0.18);
+  box-shadow: 0 8px 30px rgba(43, 155, 115, 0.15);
   animation: success-pulse 1.2s ease;
 }
 
@@ -72,28 +94,25 @@
 /* Header */
 .register-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .register-title {
-  color: #3a5a8c;
-  font-size: 2.2rem;
+  color: var(--primary-blue);
+  font-size: 2rem;
   font-weight: 700;
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 0.25rem 0;
   text-align: center;
   line-height: 1.2;
   text-transform: lowercase;
 }
 
 .register-subtitle {
-  color: #6b7a90;
+  color: var(--text-gray);
   font-size: 1rem;
   margin: 0;
   text-align: center;
   line-height: 1.5;
-  max-width: 300px;
-  margin-left: auto;
-  margin-right: auto;
   text-transform: lowercase;
 }
 
@@ -101,7 +120,7 @@
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.1rem;
   animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1) 0.2s both;
 }
 
@@ -115,12 +134,17 @@
   flex-direction: column;
   gap: 0.5rem;
   position: relative;
+  margin-bottom: 1.2rem;
+}
+
+.form-group.has-error {
+  margin-bottom: 0.5rem;
 }
 
 .form-label {
-  color: #3a5a8c;
+  color: var(--primary-blue);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 0;
   text-align: left;
   text-transform: lowercase;
@@ -137,9 +161,9 @@
 .form-control {
   width: 100%;
   padding: 1rem 1.2rem;
-  border: 1.5px solid #dbe6f3;
-  border-radius: 12px;
-  background: #f7fafd;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--border-radius);
+  background: var(--bg-light);
   color: #2a3a4d;
   font-size: 1rem;
   font-weight: 500;
@@ -150,16 +174,16 @@
 }
 
 .form-control:focus {
-  border-color: #7bb6fa;
-  box-shadow: 0 0 0 3px rgba(123, 182, 250, 0.15);
+  border-color: var(--light-blue);
+  box-shadow: 0 0 0 2px var(--focus-blue);
   outline: none;
-  background: rgba(255, 255, 255, 0.95);
+  background: #fff;
   transform: translateY(-2px);
 }
 
 .form-control::placeholder {
-  color: #8ca0b8;
-  transition: color 0.2s;
+  color: var(--light-gray);
+  transition: color var(--transition-fast);
   text-transform: lowercase;
 }
 
@@ -169,7 +193,7 @@
 
 .form-control:hover:not(:disabled):not(:focus) {
   border-color: rgba(123, 182, 250, 0.5);
-  background: #f7fafd;
+  background: var(--bg-light);
 }
 
 /* Password toggle button */
@@ -180,12 +204,12 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #6b7a90;
+  color: var(--text-gray);
   cursor: pointer;
   font-size: 0.85rem;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   z-index: 2;
   font-family: inherit;
   text-transform: lowercase;
@@ -193,29 +217,39 @@
 
 .toggle-password:hover {
   background: #f0f6fd;
-  color: #3a5a8c;
+  color: var(--primary-blue);
 }
 
 .toggle-password:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #b3d4fc;
+  box-shadow: 0 0 0 2px var(--focus-blue);
+}
+
+.toggle-password:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Enhanced validation styles */
 .is-invalid {
-  border-color: #e57373;
+  border-color: var(--error-red);
   background: rgba(255, 246, 246, 0.9);
-  animation: shake 0.5s ease-in-out;
+  animation: shake 0.3s ease-in-out;
+}
+
+.is-valid {
+  border-color: var(--success-green);
+  background: rgba(249, 255, 249, 0.9);
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-  20%, 40%, 60%, 80% { transform: translateX(3px); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-1.5px); }
+  20%, 40%, 60%, 80% { transform: translateX(1.5px); }
 }
 
 .invalid-feedback {
-  color: #e57373;
+  color: var(--error-red);
   font-size: 0.85rem;
   margin-top: 0.5rem;
   animation: slideDown 0.3s ease;
@@ -235,31 +269,294 @@
   }
 }
 
-/* Password strength indicator */
+/* Enhanced password strength indicator */
 .password-strength {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin-top: 0.5rem;
-  padding: 0 0.25rem;
+  padding: 0.5rem 0;
 }
 
 .strength-bar {
   height: 6px;
   border-radius: 3px;
+  background: #e57373;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 60px;
   max-width: 120px;
-  transition: all 0.4s ease;
-  background: #e57373;
+  position: relative;
+  overflow: hidden;
+}
+
+.strength-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    rgba(255,255,255,0.2) 25%, 
+    transparent 25%, 
+    transparent 50%, 
+    rgba(255,255,255,0.2) 50%, 
+    rgba(255,255,255,0.2) 75%, 
+    transparent 75%, 
+    transparent
+  );
+  background-size: 20px 20px;
+  animation: strength-shimmer 2s linear infinite;
+}
+
+@keyframes strength-shimmer {
+  0% { transform: translateX(-20px); }
+  100% { transform: translateX(20px); }
 }
 
 .strength-label {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   min-width: 70px;
   text-align: left;
-  text-transform: lowercase;
   transition: color 0.4s ease;
+  text-transform: lowercase;
+}
+
+/* Enhanced error message styles - consistent with Login/ResetPassword */
+.error-message {
+  background: rgba(255, 246, 246, 0.95);
+  color: var(--error-red);
+  border: 1px solid rgba(243, 188, 188, 0.8);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  text-align: left;
+  animation: errorSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+}
+
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.error-text {
+  flex: 1;
+  line-height: 1.4;
+  font-weight: 500;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.error-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+  color: #b91c1c;
+  text-transform: lowercase;
+}
+
+/* Error type specific styles */
+.error-message.conflict {
+  border-color: rgba(156, 163, 175, 0.8);
+  background: rgba(249, 250, 251, 0.95);
+  color: #374151;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.08);
+}
+
+.error-message.conflict .error-icon {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.error-message.validation {
+  border-color: rgba(255, 171, 145, 0.8);
+  background: rgba(255, 243, 224, 0.95);
+  color: var(--warning-orange);
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.08);
+}
+
+.error-message.validation .error-icon {
+  background: #fed7aa;
+  color: #c2410c;
+}
+
+.error-message.network {
+  border-color: rgba(144, 202, 249, 0.8);
+  background: rgba(227, 242, 253, 0.95);
+  color: #1976d2;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+
+.error-message.network .error-icon {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.error-message.rateLimit {
+  border-color: rgba(255, 204, 2, 0.8);
+  background: rgba(255, 253, 231, 0.95);
+  color: #f57f17;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08);
+}
+
+.error-message.rateLimit .error-icon {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.error-message.server {
+  border-color: rgba(156, 163, 175, 0.8);
+  background: rgba(249, 250, 251, 0.95);
+  color: #374151;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.08);
+}
+
+.error-message.server .error-icon {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.retry-button {
+  align-self: flex-start;
+  background: var(--medium-blue);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  text-transform: lowercase;
+  box-shadow: 0 2px 4px rgba(90, 143, 214, 0.15);
+  font-family: inherit;
+  letter-spacing: 0.3px;
+}
+
+.retry-button:hover {
+  background: #4a7bc8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(90, 143, 214, 0.2);
+}
+
+.retry-button:active {
+  transform: translateY(0);
+}
+
+.retry-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-blue);
+}
+
+/* Enhanced success message - consistent with ResetPassword */
+.success-message {
+  background: rgba(240, 253, 244, 0.95);
+  color: #166534;
+  border: 1px solid rgba(134, 239, 172, 0.8);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  animation: successSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+}
+
+@keyframes successSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.success-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.success-icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background: #d1fae5;
+  color: #065f46;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
+}
+
+.success-text {
+  flex: 1;
+}
+
+.success-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+  color: #065f46;
+  text-transform: lowercase;
+}
+
+/* Offline indicator */
+.offline-indicator {
+  background: rgba(255, 243, 224, 0.95);
+  color: var(--warning-orange);
+  border: 1px solid rgba(251, 191, 36, 0.8);
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.offline-icon {
+  font-size: 1rem;
 }
 
 /* Terms and agreement */
@@ -272,13 +569,13 @@
   align-items: flex-start;
   cursor: pointer;
   font-size: 0.9rem;
-  color: #6b7a90;
+  color: var(--text-gray);
   gap: 0.5rem;
   line-height: 1.4;
 }
 
 .checkbox-label input[type="checkbox"] {
-  accent-color: #7bb6fa;
+  accent-color: var(--light-blue);
   width: 1.1em;
   height: 1.1em;
   cursor: pointer;
@@ -288,38 +585,34 @@
 
 .checkbox-text {
   user-select: none;
-  transition: color 0.2s;
+  transition: color var(--transition-fast);
   text-transform: lowercase;
 }
 
 .checkbox-label:hover .checkbox-text {
-  color: #3a5a8c;
+  color: var(--primary-blue);
 }
 
 /* Special styling for capitalized 'I' */
-.checkbox-text {
-  text-transform: lowercase;
-}
-
-/* This ensures 'I' stays capitalized even with lowercase transform */
 .checkbox-text::first-letter {
   text-transform: uppercase;
 }
 
 .checkbox-text a {
-  color: #5a8fd6;
+  color: var(--medium-blue);
   text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
+  font-weight: 500;
+  transition: all var(--transition-fast);
   padding: 1px 3px;
   border-radius: 4px;
 }
 
 .checkbox-text a:hover,
 .checkbox-text a:focus {
-  color: #3a5a8c;
+  color: var(--primary-blue);
   text-decoration: underline;
   background: rgba(123, 182, 250, 0.08);
+  outline: none;
 }
 
 /* Register button */
@@ -340,7 +633,141 @@
   font-family: inherit;
   text-transform: lowercase;
   letter-spacing: 0.3px;
-  margin-top: 0.5rem;
+}
+
+.register-card.is-loading::after {
+  width: 70%;
+  animation: progress 2s forwards ease-out;
+}
+
+.register-card.success::after {
+  width: 100%;
+  background: linear-gradient(90deg, var(--success-green) 0%, #66bb6a 100%);
+}
+
+@keyframes progress {
+  0% { width: 0; }
+  20% { width: 40%; }
+  50% { width: 60%; }
+  80% { width: 70%; }
+}
+
+/* Enhanced responsive design */
+@media (max-width: 600px) {
+  .register-container {
+    padding: 1rem 0.5rem;
+  }
+  
+  .register-card {
+    padding: 1.8rem 1.3rem 1.5rem 1.3rem;
+    max-width: 380px;
+    overflow: hidden;
+  }
+  
+  .register-title {
+    font-size: 1.6rem;
+  }
+  
+  .register-subtitle {
+    font-size: 0.92rem;
+  }
+  
+  .register-header {
+    margin-bottom: 1.2rem;
+  }
+  
+  .error-message, .success-message {
+    padding: 0.875rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  .password-strength {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .strength-bar {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .checkbox-label {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .register-card {
+    padding: 1.5rem 1rem;
+    overflow: hidden;
+  }
+  
+  .register-title {
+    font-size: 1.4rem;
+  }
+  
+  .register-subtitle {
+    font-size: 0.88rem;
+  }
+  
+  .error-content, .success-content {
+    gap: 0.5rem;
+  }
+  
+  .error-icon, .success-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .checkbox-label {
+    font-size: 0.8rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .register-card {
+    border: 2px solid var(--primary-blue);
+    overflow: hidden;
+  }
+  
+  .form-control:focus {
+    border-width: 3px;
+  }
+  
+  .error-message {
+    border-width: 2px;
+  }
+  
+  .success-message {
+    border-width: 2px;
+  }
+  
+  .strength-bar {
+    border: 1px solid currentColor;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .register-card,
+  .error-message,
+  .success-message,
+  .form-control,
+  .register-button {
+    animation: none;
+    transition: none;
+  }
+  
+  .register-button.loading::after {
+    animation: none;
+  }
+  
+  .strength-bar::before {
+    animation: none;
+  }
 }
 
 .register-button:not(:disabled):hover {
@@ -363,162 +790,72 @@
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
-  background: #dbe6f3;
-  color: #8ca0b8;
+  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
+  color: #fff;
 }
 
-/* Button states */
-.register-button.loading {
-  background: linear-gradient(135deg, #5a8fd6 0%, #7bb6fa 100%);
+.register-button .button-text {
+  color: #fff;
+  font-weight: 600;
 }
 
-.register-button.loading .button-text {
-  opacity: 0.8;
+.register-button.loading .button-text,
+.register-button.success .button-text {
+  color: #3a5a8c;
 }
 
-.register-button.loading::after {
-  content: "";
+.retry-count {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  top: 50%;
-  left: 50%;
-  margin-top: -10px;
-  margin-left: -40px;
+  top: -0.5rem;
+  right: -0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--primary-blue);
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0.2rem 0.4rem;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.register-button.success {
-  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
-  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
-}
-
-/* Error message */
-.error-message {
-  background: rgba(255, 246, 246, 0.95);
-  color: #e57373;
-  border: 1px solid rgba(243, 188, 188, 0.8);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
-  font-size: 0.9rem;
-  text-align: center;
-  animation: errorSlideIn 0.5s ease;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-}
-
-@keyframes errorSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-15px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Success message */
-.success-message {
-  background: rgba(240, 251, 231, 0.95);
-  color: #388e3c;
-  border: 1px solid rgba(182, 230, 160, 0.8);
-  border-radius: 12px;
-  padding: 1.25rem;
-  margin-bottom: 1.25rem;
-  font-size: 0.9rem;
-  animation: successSlideIn 0.5s ease;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-}
-
-@keyframes successSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-15px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.success-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.success-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: #d1fae5;
-  color: #065f46;
+  border: 1px solid var(--light-blue);
+  min-width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.success-text {
-  flex: 1;
-}
-
-.success-title {
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
-  color: #2e7d32;
-  text-transform: lowercase;
 }
 
 /* Footer */
 .register-footer {
   text-align: center;
-  margin-top: 2rem;
-  color: #6b7a90;
-  font-size: 0.9rem;
-  animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1) 0.4s both;
+  margin-top: 1.5rem;
+  color: var(--text-gray);
+  font-size: 0.92rem;
 }
 
 .register-footer p {
-  margin: 0.8rem 0;
-  text-transform: lowercase;
+  margin: 0.6rem 0;
 }
 
 .register-footer a {
-  color: #5a8fd6;
+  color: var(--medium-blue);
   text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
-  padding: 2px 6px;
-  border-radius: 6px;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+  padding: 2px 4px;
+  border-radius: 4px;
+  text-transform: lowercase;
 }
 
-.register-footer a:hover,
+.register-footer a:hover, 
 .register-footer a:focus {
-  color: #3a5a8c;
+  color: var(--primary-blue);
   text-decoration: underline;
-  background: rgba(123, 182, 250, 0.08);
-  transform: translateY(-1px);
+  background: #f0f6fd;
+  outline: none;
 }
 
 .support-text {
-  font-size: 0.8rem;
-  color: #8ca0b8;
-  margin-top: 1rem;
-  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--light-gray);
+  margin-top: 0.5rem;
 }
 
 /* Accessibility helper */
@@ -542,221 +879,40 @@
   left: 0;
   width: 0;
   height: 3px;
-  background: linear-gradient(90deg, #7bb6fa 0%, #5a8fd6 100%);
-  transition: width 0.5s ease;
-  border-radius: 0 0 20px 20px;
+  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  box-shadow: 0 2px 8px rgba(60, 90, 130, 0.07);
+  transition: all var(--transition-fast);
+  overflow: hidden;
+  font-family: inherit;
+  text-transform: lowercase;
 }
 
-.register-card.is-loading::after {
-  width: 70%;
-  animation: progress 2s forwards ease-out;
+.success-message::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  width: calc(100% - 1.5rem);
+  height: 5px;
+  background: #10b981;
+  border-radius: 8px 8px 0 0;
 }
 
-.register-card.success::after {
-  width: 100%;
-  background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
-}
-
-@keyframes progress {
-  0% { width: 0; }
-  20% { width: 40%; }
-  50% { width: 60%; }
-  80% { width: 70%; }
-}
-
-/* Enhanced hover effects */
-.form-control:hover:not(:disabled):not(:focus) {
-  border-color: rgba(123, 182, 250, 0.5);
-  background: #f7fafd;
-}
-
-/* Responsive Design */
-@media (max-width: 600px) {
-  .register-container {
-    padding: 1rem 0.5rem;
-  }
-  
-  .register-card {
-    padding: 2rem 1.5rem;
-    border-radius: 16px;
-  }
-  
-  .register-content {
-    max-width: 380px;
-  }
-  
-  .register-title {
-    font-size: 1.8rem;
-  }
-  
-  .register-subtitle {
-    font-size: 0.9rem;
-  }
-  
-  .form-control {
-    padding: 0.9rem 1rem;
-    font-size: 0.95rem;
-  }
-  
-  .register-button {
-    padding: 0.9rem 0;
-    font-size: 1rem;
-  }
-  
-  .register-form {
-    gap: 1.25rem;
-  }
-  
-  .checkbox-label {
-    font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .register-card {
-    padding: 1.5rem 1rem;
-    margin: 0.5rem;
-  }
-  
-  .register-title {
-    font-size: 1.6rem;
-  }
-  
-  .register-subtitle {
-    font-size: 0.85rem;
-    line-height: 1.4;
-  }
-  
-  .error-message,
-  .success-message {
-    padding: 0.8rem 1rem;
-    font-size: 0.85rem;
-  }
-  
-  .checkbox-label {
-    font-size: 0.8rem;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .register-card {
-    border: 2px solid #3a5a8c;
-    background: #fff;
-  }
-  
-  .form-control:focus {
-    outline: 3px solid currentColor;
-    outline-offset: 2px;
-  }
-  
-  .register-button:focus {
-    outline: 3px solid currentColor;
-    outline-offset: 2px;
-  }
-  
-  .register-button:not(:disabled) {
-    background: #3a5a8c;
-    color: #fff;
-  }
-}
-
-/* Reduced motion preferences */
-@media (prefers-reduced-motion: reduce) {
-  .register-card,
-  .error-message,
-  .success-message,
-  .register-form,
-  .register-footer {
-    animation: none;
-  }
-  
-  .form-control:focus {
-    transform: none;
-  }
-  
-  .register-button:hover {
-    transform: none;
-  }
-  
-  .register-footer a:hover {
-    transform: none;
-  }
-  
-  * {
-    transition: none !important;
-  }
-}
-
-/* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .register-container {
-    background: linear-gradient(135deg, #1a2332 0%, #2c3e50 100%);
-  }
-  
   .register-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .register-title {
-    color: #e1e8f0;
-  }
-  
-  .register-subtitle,
-  .form-label {
-    color: #b8c5d1;
-  }
-  
-  .form-control {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #e1e8f0;
-  }
-  
-  .form-control:focus {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #6BA3F5;
-  }
-  
-  .register-footer {
-    color: #b8c5d1;
-  }
-  
-  .register-footer a,
-  .checkbox-text a {
-    color: #6BA3F5;
-  }
-  
-  .register-footer a:hover,
-  .checkbox-text a:hover {
-    color: #e1e8f0;
-  }
-  
-  .checkbox-label {
-    color: #b8c5d1;
+    overflow: hidden;
   }
 }
 
-/* Print styles */
 @media print {
-  .register-container {
-    background: white;
-    color: black;
-  }
-  
   .register-card {
-    box-shadow: none;
-    border: 1px solid #ccc;
-  }
-  
-  .register-button {
-    display: none;
-  }
-  
-  .password-strength {
-    display: none;
+    overflow: hidden;
   }
 }
