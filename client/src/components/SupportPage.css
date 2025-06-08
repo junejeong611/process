@@ -1,0 +1,97 @@
+.support-main {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.support-container {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(60, 90, 130, 0.08), 0 1.5px 6px rgba(60, 90, 130, 0.04);
+  padding: 2.5rem 2rem 2rem 2rem;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.support-title {
+  color: #3a5a8c;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-transform: lowercase;
+}
+
+.support-intro {
+  color: #6b7a90;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.support-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+}
+
+.support-resource {
+  background: #f8fbff;
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(123, 182, 250, 0.08);
+  text-align: left;
+}
+
+.support-resource-name {
+  color: #3a5a8c;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.support-resource-desc {
+  color: #6b7a90;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.support-resource-contact {
+  color: #5a8fd6;
+  font-size: 0.95rem;
+}
+
+.support-link {
+  color: #3a5a8c;
+  text-decoration: underline;
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+
+.support-link:hover {
+  color: #7bb6fa;
+}
+
+.support-back {
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
+  background: linear-gradient(90deg, #7bb6fa 0%, #5a8fd6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.support-back:hover, .support-back:focus {
+  background: linear-gradient(90deg, #5a8fd6 0%, #7bb6fa 100%);
+  outline: none;
+} 

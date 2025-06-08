@@ -70,7 +70,6 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [errorCategory, setErrorCategory] = useState(null);
-  const [errorCategory, setErrorCategory] = useState(null);
   const [success, setSuccess] = useState('');
   const [emailError, setEmailError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
@@ -393,29 +392,6 @@ const ForgotPassword = () => {
     }
   };
 
-  const formatCountdown = useCallback((seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
-  }, []);
-
-  // Get appropriate error icon based on category
-  const getErrorIcon = (category) => {
-    switch (category?.type) {
-      case 'network': return '⚡';
-      case 'email': return '✉';
-      case 'rateLimit': return '⏰';
-      case 'server': return '🔧';
-      default: return '⚠';
-    }
-  };
-
-  const formatCountdown = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
-  };
-
   return (
     <div className="forgot-password-container" role="main">
       <div className="forgot-password-content">
@@ -586,5 +562,4 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword;
 export default ForgotPassword;

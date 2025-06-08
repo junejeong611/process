@@ -42,6 +42,7 @@ const Register = () => {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [touched, setTouched] = useState({ name: false, email: false, password: false, confirmPassword: false });
+  const [fieldErrors, setFieldErrors] = useState({});
   
   const navigate = useNavigate();
 

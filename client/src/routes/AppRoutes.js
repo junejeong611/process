@@ -14,6 +14,7 @@ import InsightsPage from '../components/InsightsPage';
 import VoicePage from '../components/VoicePage';
 import ExitThankYouPage from '../components/ExitThankYouPage';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
+import SupportPage from '../components/SupportPage';
 import './AppRoutes.css';
 
 // Dummy authentication check (replace with real logic)
@@ -49,6 +50,7 @@ const AppRoutes = () => (
     <Route path="/conversation" element={<ProtectedRoute><DashboardLayout><ChatInterface /></DashboardLayout></ProtectedRoute>} />
     <Route path="/voice" element={<ProtectedRoute><DashboardLayout><VoicePage /></DashboardLayout></ProtectedRoute>} />
     <Route path="/exit-thanks" element={<ProtectedRoute><ExitThankYouPage /></ProtectedRoute>} />
+    <Route path="/crisis-support" element={<SupportPage />} />
     <Route path="*" element={<Navigate to="/login" />} />
   </Routes>
 );

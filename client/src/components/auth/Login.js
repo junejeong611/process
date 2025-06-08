@@ -1,23 +1,11 @@
+/* global gtag */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './Login.css';
 import { toast } from 'react-toastify';
 
 // Enhanced form validation helper functions
-// Enhanced form validation helper functions
 const validateEmail = (email) => {
-  if (!email.trim()) return 'email is required';
-  
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-  
-  if (!emailRegex.test(email)) {
-    return 'please enter a valid email address';
-  }
-  
-  if (email.length > 254) {
-    return 'email address is too long';
-  }
-  
   if (!email.trim()) return 'email is required';
   
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -35,43 +23,53 @@ const validateEmail = (email) => {
 
 const validatePassword = (password) => {
   if (!password) return 'password is required';
-  if (password.length < 6) return 'password must be at least 6 characters';
+  if (password.length < 8) return 'password must be at least 8 characters';
   if (password.length > 128) return 'password is too long';
   return '';
 };
 
-// Enhanced error categorization
-const categorizeError = (error) => {
+// Enhanced error categorization - consistent with ResetPassword
+const categorizeError = (error, statusCode = null) => {
   const errorLower = error.toLowerCase();
   
-  // Authentication errors
+  // Authentication errors - improved detection
   if (errorLower.includes('invalid email') || errorLower.includes('invalid password') ||
-      errorLower.includes('incorrect') || errorLower.includes('wrong')) {
+      errorLower.includes('incorrect') || errorLower.includes('wrong') ||
+      errorLower.includes('invalid credentials') || errorLower.includes('unauthorized') ||
+      errorLower.includes('authentication failed') || errorLower.includes('login failed') ||
+      statusCode === 401 || statusCode === 403) {
     return { type: 'auth', canRetry: true, severity: 'warning' };
   }
   
   // Account issues
   if (errorLower.includes('locked') || errorLower.includes('suspended') ||
-      errorLower.includes('disabled')) {
+      errorLower.includes('disabled') || errorLower.includes('blocked')) {
     return { type: 'account', canRetry: false, severity: 'error' };
   }
   
   // Network errors
   if (errorLower.includes('network') || errorLower.includes('connection') || 
-      errorLower.includes('fetch') || errorLower.includes('timeout')) {
+      errorLower.includes('fetch') || errorLower.includes('timeout') ||
+      errorLower.includes('failed to fetch')) {
     return { type: 'network', canRetry: true, severity: 'warning' };
   }
   
   // Rate limiting
   if (errorLower.includes('rate limit') || errorLower.includes('too many') ||
-      errorLower.includes('throttle')) {
+      errorLower.includes('throttle') || statusCode === 429) {
     return { type: 'rateLimit', canRetry: false, severity: 'warning' };
   }
   
   // Server errors
   if (errorLower.includes('server') || errorLower.includes('500') ||
-      errorLower.includes('503')) {
+      errorLower.includes('503') || (statusCode >= 500 && statusCode < 600)) {
     return { type: 'server', canRetry: true, severity: 'error' };
+  }
+  
+  // Validation errors
+  if (errorLower.includes('validation') || errorLower.includes('invalid format') ||
+      statusCode === 400) {
+    return { type: 'validation', canRetry: true, severity: 'warning' };
   }
   
   return { type: 'unknown', canRetry: true, severity: 'error' };
@@ -99,7 +97,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [errorCategory, setErrorCategory] = useState(null);
-  const [errorCategory, setErrorCategory] = useState(null);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -109,9 +106,7 @@ const Login = () => {
   const [countdown, setCountdown] = useState(0);
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const [lastSubmitTime, setLastSubmitTime] = useState(null);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [emailBlurred, setEmailBlurred] = useState(false);
 
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -149,53 +144,6 @@ const Login = () => {
   }, [error, errorCategory]);
 
   // Countdown timer for rate limiting
-  const formRef = useRef(null);
-  const emailInputRef = useRef(null);
-  const passwordInputRef = useRef(null);
-  const controllerRef = useRef(null);
-
-  // Debounced values for real-time validation
-  const debouncedEmail = useDebounce(email, 500);
-  const debouncedPassword = useDebounce(password, 300);
-
-  // Enhanced online/offline monitoring
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      if (error && errorCategory?.type === 'network') {
-        setError('');
-        setErrorCategory(null);
-      }
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      setError('you appear to be offline. please check your connection.');
-      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [error, errorCategory]);
-
-  // Countdown timer for rate limiting
-  useEffect(() => {
-    let timer;
-    if (countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0 && error && errorCategory?.type === 'rateLimit') {
-      setError('');
-      setErrorCategory(null);
-    }
-    return () => clearTimeout(timer);
-  }, [countdown, error, errorCategory]);
-
-  // Enhanced page setup
   useEffect(() => {
     let timer;
     if (countdown > 0) {
@@ -216,15 +164,8 @@ const Login = () => {
     existingMetas.forEach(meta => meta.remove());
     
     // Add new meta tags
-    
-    // Remove existing meta tags
-    const existingMetas = document.querySelectorAll('meta[name="description"], meta[name="keywords"]');
-    existingMetas.forEach(meta => meta.remove());
-    
-    // Add new meta tags
     const meta = document.createElement('meta');
     meta.name = 'description';
-    meta.content = 'Login to Process, your emotional support app. A safe place to process your emotions.';
     meta.content = 'Login to Process, your emotional support app. A safe place to process your emotions.';
     document.head.appendChild(meta);
     
@@ -292,82 +233,8 @@ const Login = () => {
         controllerRef.current.abort();
       }
     };
-    
-    const keywords = document.createElement('meta');
-    keywords.name = 'keywords';
-    keywords.content = 'login, emotional support, process, mental health';
-    document.head.appendChild(keywords);
-    
-    return () => {
-      const metas = document.querySelectorAll('meta[name="description"], meta[name="keywords"]');
-      metas.forEach(meta => meta.remove());
-    };
   }, []);
 
-  // Real-time validation
-  useEffect(() => {
-    if (debouncedEmail && debouncedEmail.trim()) {
-      const validationError = validateEmail(debouncedEmail);
-      if (validationError !== emailError) {
-        setEmailError(validationError);
-      }
-    } else if (emailError && !debouncedEmail.trim()) {
-      setEmailError('');
-    }
-  }, [debouncedEmail, emailError]);
-
-  useEffect(() => {
-    if (debouncedPassword) {
-      const validationError = validatePassword(debouncedPassword);
-      if (validationError !== passwordError) {
-        setPasswordError(validationError);
-      }
-    } else if (passwordError && !debouncedPassword) {
-      setPasswordError('');
-    }
-  }, [debouncedPassword, passwordError]);
-
-  // Enhanced keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      // Enter key to submit form
-      if (e.key === 'Enter' && !isLoading && !loginSuccess && countdown === 0) {
-        e.preventDefault();
-        handleSubmit(e);
-      }
-      
-      // Escape key to clear errors
-      if (e.key === 'Escape') {
-        if (error) {
-          setError('');
-          setErrorCategory(null);
-          emailInputRef.current?.focus();
-        }
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyPress);
-    return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isLoading, loginSuccess, countdown, error]);
-
-  // Cleanup function
-  useEffect(() => {
-    return () => {
-      if (controllerRef.current) {
-        controllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  // Memoized form validation
-  const isFormValid = useMemo(() => {
-    return email.trim() && password && !emailError && !passwordError && 
-           !isLoading && !loginSuccess && countdown === 0;
-  }, [email, password, emailError, passwordError, isLoading, loginSuccess, countdown]);
-
-  const handleEmailChange = useCallback((e) => {
-    const newEmail = e.target.value;
-    setEmail(newEmail);
   // Memoized form validation
   const isFormValid = useMemo(() => {
     return email.trim() && password && !emailError && !passwordError && 
@@ -383,15 +250,7 @@ const Login = () => {
       setErrorCategory(null);
     }
   }, [emailError, error]);
-    if (error) {
-      setError('');
-      setErrorCategory(null);
-    }
-  }, [emailError, error]);
 
-  const handlePasswordChange = useCallback((e) => {
-    const newPassword = e.target.value;
-    setPassword(newPassword);
   const handlePasswordChange = useCallback((e) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
@@ -401,13 +260,7 @@ const Login = () => {
       setErrorCategory(null);
     }
   }, [passwordError, error]);
-    if (error) {
-      setError('');
-      setErrorCategory(null);
-    }
-  }, [passwordError, error]);
 
-  const togglePasswordVisibility = useCallback(() => {
   const togglePasswordVisibility = useCallback(() => {
     setShowPassword(!showPassword);
   }, [showPassword]);
@@ -426,12 +279,8 @@ const Login = () => {
     handleSubmit(e);
   }, [retryCount]);
 
-  const handleEmailBlur = () => setEmailTouched(true);
-  const handlePasswordBlur = () => setPasswordTouched(true);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setHasSubmitted(true);
     
     // Check for rapid successive submissions
     const now = Date.now();
@@ -443,20 +292,6 @@ const Login = () => {
 
     // Reset states
     setError('');
-    setErrorCategory(null);
-
-    // Check if offline
-    if (!isOnline) {
-      setError('you appear to be offline. please check your connection and try again.');
-      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
-      return;
-    }
-
-    // Check countdown
-    if (countdown > 0) {
-      setError(`please wait ${formatCountdown(countdown)} before trying again.`);
-      return;
-    }
     setErrorCategory(null);
 
     // Check if offline
@@ -488,29 +323,8 @@ const Login = () => {
       }, 100);
       return;
     }
-    if (emailErr || passwordErr) {
-      setTimeout(() => {
-        if (emailErr) {
-          emailInputRef.current?.focus();
-        } else if (passwordErr) {
-          passwordInputRef.current?.focus();
-        }
-      }, 100);
-      return;
-    }
     
     setIsLoading(true);
-    setSubmitAttempts(prev => prev + 1);
-    
-    try {
-      // Abort previous request if still pending
-      if (controllerRef.current) {
-        controllerRef.current.abort();
-      }
-
-      controllerRef.current = new AbortController();
-      const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
-
     setSubmitAttempts(prev => prev + 1);
     
     try {
@@ -540,11 +354,20 @@ const Login = () => {
       
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Parse response data first to get better error information
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response JSON:', parseError);
+        throw new Error(`HTTP ${response.status}: Failed to parse server response`);
       }
-      
-      const data = await response.json();
+
+      if (!response.ok) {
+        // Use the server's error message if available, otherwise use status text
+        const errorMessage = data?.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage, { cause: { statusCode: response.status, data } });
+      }
       
       if (data.success) {
         // Set login success state for animation
@@ -560,8 +383,8 @@ const Login = () => {
         toast.success('Login successful!');
         
         // Analytics tracking
-        if (typeof window.gtag !== 'undefined') {
-          window.gtag('event', 'login', {
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'login', {
             'event_category': 'auth',
             'event_label': 'success'
           });
@@ -572,8 +395,9 @@ const Login = () => {
           navigate('/options');
         }, 1200);
       } else {
-        const errorMessage = data.message || 'Invalid email or password. Please try again.';
-        const category = categorizeError(errorMessage);
+        // Handle server-side authentication failures
+        const errorMessage = data.message || 'invalid email or password. please try again.';
+        const category = categorizeError(errorMessage, response.status);
         
         setError(errorMessage);
         setErrorCategory(category);
@@ -591,24 +415,48 @@ const Login = () => {
       console.error('Login error:', err);
       let errorMessage;
       let category;
+      let statusCode = null;
+
+      // Extract status code if available
+      if (err.cause?.statusCode) {
+        statusCode = err.cause.statusCode;
+      }
 
       if (err.name === 'AbortError') {
         errorMessage = 'request timed out. please check your connection and try again.';
         category = categorizeError('network timeout');
-      } else if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
+      } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
         errorMessage = 'connection error. please check your internet and try again.';
         category = categorizeError('network connection');
-      } else if (err.message.includes('HTTP 429')) {
-        errorMessage = 'too many attempts. please wait before trying again.';
-        category = categorizeError('rate limit');
+      } else if (err.message.includes('HTTP 401') || statusCode === 401) {
+        errorMessage = 'invalid email or password. please try again.';
+        category = categorizeError('authentication failed', 401);
+      } else if (err.message.includes('HTTP 403') || statusCode === 403) {
+        errorMessage = 'access denied. please check your credentials.';
+        category = categorizeError('authentication failed', 403);
+      } else if (err.message.includes('HTTP 429') || statusCode === 429) {
+        errorMessage = 'too many login attempts. please wait before trying again.';
+        category = categorizeError('rate limit', 429);
         setCountdown(300);
-      } else if (err.message.includes('HTTP 5')) {
+      } else if (err.message.includes('HTTP 5') || (statusCode >= 500 && statusCode < 600)) {
         errorMessage = 'server error. please try again in a moment.';
-        category = categorizeError('server error');
+        category = categorizeError('server error', statusCode);
         setCountdown(30);
+      } else if (statusCode === 400) {
+        errorMessage = 'invalid request. please check your input and try again.';
+        category = categorizeError('validation error', 400);
       } else {
-        errorMessage = 'connection error. please check your internet and try again.';
-        category = categorizeError('unknown error');
+        // Check if the error message itself contains authentication-related keywords
+        const errorLower = err.message.toLowerCase();
+        if (errorLower.includes('invalid') || errorLower.includes('incorrect') || 
+            errorLower.includes('wrong') || errorLower.includes('password') ||
+            errorLower.includes('email')) {
+          errorMessage = err.message;
+          category = categorizeError(err.message, statusCode);
+        } else {
+          errorMessage = 'connection error. please check your internet and try again.';
+          category = categorizeError('unknown error');
+        }
       }
 
       setError(errorMessage);
@@ -625,7 +473,7 @@ const Login = () => {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
   }, []);
 
-  // Get appropriate error icon based on category
+  // Get appropriate error icon based on category - consistent with ResetPassword
   const getErrorIcon = (category) => {
     switch (category?.type) {
       case 'auth': return '🔐';
@@ -633,6 +481,7 @@ const Login = () => {
       case 'network': return '⚡';
       case 'rateLimit': return '⏰';
       case 'server': return '🔧';
+      case 'validation': return '📝';
       default: return '⚠';
     }
   };
@@ -652,7 +501,7 @@ const Login = () => {
             </p>
           </header>
           
-          {/* Enhanced error display */}
+          {/* Enhanced error display - consistent with ResetPassword */}
           {error && (
             <div 
               className={`error-message ${errorCategory?.type || ''}`} 
@@ -665,12 +514,27 @@ const Login = () => {
                 </div>
                 <div className="error-text">
                   {errorCategory?.type === 'auth' && (
-                    <div className="error-title">Login Failed</div>
+                    <div className="error-title">login failed</div>
+                  )}
+                  {errorCategory?.type === 'account' && (
+                    <div className="error-title">account issue</div>
+                  )}
+                  {errorCategory?.type === 'network' && (
+                    <div className="error-title">connection problem</div>
+                  )}
+                  {errorCategory?.type === 'rateLimit' && (
+                    <div className="error-title">too many attempts</div>
+                  )}
+                  {errorCategory?.type === 'server' && (
+                    <div className="error-title">server error</div>
+                  )}
+                  {errorCategory?.type === 'validation' && (
+                    <div className="error-title">validation error</div>
                   )}
                   {error}
                 </div>
               </div>
-              {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
+              {errorCategory?.canRetry && errorCategory?.type !== 'auth' && retryCount < 3 && countdown === 0 && (
                 <button 
                   className="retry-button"
                   onClick={handleRetry}
@@ -699,47 +563,26 @@ const Login = () => {
             autoComplete="on"
           >
             <div className={`form-group${emailError ? ' has-error' : ''}`}>
-          <form 
-            ref={formRef}
-            onSubmit={handleSubmit} 
-            className="login-form" 
-            noValidate
-            autoComplete="on"
-          >
-            <div className={`form-group${emailError ? ' has-error' : ''}`}>
               <label htmlFor="email" className="form-label">email address</label>
               <div className="input-wrapper">
                 <input
                   ref={emailInputRef}
-                  ref={emailInputRef}
                   id="email"
                   type="email"
-                  className={`form-control ${(emailError && (hasSubmitted || emailTouched)) ? 'is-invalid' : ''}`}
+                  className={`form-control ${(emailError && emailBlurred) ? 'is-invalid' : ''}`}
                   value={email}
                   onChange={handleEmailChange}
-                  onBlur={handleEmailBlur}
+                  onBlur={() => setEmailBlurred(true)}
                   required
                   aria-required="true"
                   aria-invalid={!!emailError}
                   aria-describedby={emailError ? 'email-error' : 'email-help'}
-                  aria-describedby={emailError ? 'email-error' : 'email-help'}
                   placeholder="email address"
-                  disabled={isLoading || loginSuccess}
                   disabled={isLoading || loginSuccess}
                   autoComplete="username"
                   spellCheck="false"
                   maxLength="254"
-                  spellCheck="false"
-                  maxLength="254"
                 />
-              </div>
-              {emailError && (
-                <div className="invalid-feedback" id="email-error" role="alert">
-                  {emailError}
-                </div>
-              )}
-              <div id="email-help" className="visually-hidden">
-                enter your registered email address
               </div>
               {emailError && (
                 <div className="invalid-feedback" id="email-error" role="alert">
@@ -756,23 +599,18 @@ const Login = () => {
               <div className="input-wrapper">
                 <input
                   ref={passwordInputRef}
-                  ref={passwordInputRef}
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  className={`form-control ${(passwordError && (hasSubmitted || passwordTouched)) ? 'is-invalid' : ''}`}
+                  className={`form-control ${passwordError ? 'is-invalid' : ''}`}
                   value={password}
                   onChange={handlePasswordChange}
-                  onBlur={handlePasswordBlur}
                   required
                   aria-required="true"
                   aria-invalid={!!passwordError}
                   aria-describedby={passwordError ? 'password-error' : 'password-help'}
-                  aria-describedby={passwordError ? 'password-error' : 'password-help'}
                   placeholder="password"
                   disabled={isLoading || loginSuccess}
-                  disabled={isLoading || loginSuccess}
                   autoComplete="current-password"
-                  maxLength="128"
                   maxLength="128"
                 />
                 <button 
@@ -782,18 +620,9 @@ const Login = () => {
                   aria-label={showPassword ? "hide password" : "show password"}
                   tabIndex="0"
                   disabled={isLoading || loginSuccess}
-                  disabled={isLoading || loginSuccess}
                 >
                   {showPassword ? "hide" : "show"}
                 </button>
-              </div>
-              {passwordError && (
-                <div className="invalid-feedback" id="password-error" role="alert">
-                  {passwordError}
-                </div>
-              )}
-              <div id="password-help" className="visually-hidden">
-                enter your account password
               </div>
               {passwordError && (
                 <div className="invalid-feedback" id="password-error" role="alert">
@@ -813,7 +642,6 @@ const Login = () => {
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                     disabled={isLoading || loginSuccess}
-                    disabled={isLoading || loginSuccess}
                     aria-checked={rememberMe}
                   />
                   <span className="checkbox-text">remember me</span>
@@ -828,16 +656,10 @@ const Login = () => {
               type="submit"
               className={`login-button ${isLoading ? 'loading' : ''} ${loginSuccess ? 'success' : ''}`}
               disabled={!isFormValid}
-              disabled={!isFormValid}
               aria-busy={isLoading}
-              aria-describedby="login-status"
               aria-describedby="login-status"
             >
               <span className="button-text">
-                {loginSuccess ? 'success!' : 
-                 isLoading ? 'signing in...' : 
-                 countdown > 0 ? `wait ${formatCountdown(countdown)}` :
-                 'sign in'}
                 {loginSuccess ? 'success!' : 
                  isLoading ? 'signing in...' : 
                  countdown > 0 ? `wait ${formatCountdown(countdown)}` :
@@ -852,22 +674,7 @@ const Login = () => {
                   #{retryCount + 1}
                 </span>
               )}
-              {retryCount > 0 && !isLoading && !loginSuccess && (
-                <span 
-                  className="retry-count" 
-                  aria-label={`attempt ${retryCount + 1}`}
-                  aria-hidden="true"
-                >
-                  #{retryCount + 1}
-                </span>
-              )}
             </button>
-
-            <div id="login-status" className="visually-hidden" aria-live="polite">
-              {isLoading ? 'signing in, please wait' : ''}
-              {loginSuccess ? 'login successful, redirecting' : ''}
-              {error ? `error: ${error}` : ''}
-            </div>
 
             <div id="login-status" className="visually-hidden" aria-live="polite">
               {isLoading ? 'signing in, please wait' : ''}
