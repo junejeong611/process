@@ -1,4 +1,4 @@
-/* Enhanced Login.css with Improved Error Handling */
+/* Enhanced Login.css with Improved Error Handling - Consistent with ResetPassword */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* Root variables for consistent theming */
@@ -32,15 +32,8 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
   padding: 2rem 1rem;
   position: relative;
-  font-family: var(--font-family);
-}
-
-.login-content {
-  width: 100%;
-  max-width: 400px;
   font-family: var(--font-family);
 }
 
@@ -53,13 +46,9 @@
   background: #fff;
   border-radius: var(--border-radius-large);
   box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
-  border-radius: var(--border-radius-large);
-  box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
   padding: 2.5rem 2rem 2rem 2rem;
   max-width: 400px;
-  max-width: 400px;
   width: 100%;
-  transition: all var(--transition-medium);
   transition: all var(--transition-medium);
   outline: none;
   position: relative;
@@ -78,29 +67,14 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-  animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Enhanced entrance animation */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 .login-card:focus {
-  box-shadow: 0 0 0 3px var(--focus-blue);
   box-shadow: 0 0 0 3px var(--focus-blue);
 }
 
 /* Enhanced animations for loading and success states */
 .login-card.is-loading {
-  box-shadow: 0 8px 30px var(--shadow-medium);
   box-shadow: 0 8px 30px var(--shadow-medium);
 }
 
@@ -121,28 +95,22 @@
 .login-header {
   margin-bottom: 1.5rem;
   text-align: center;
-  text-align: center;
 }
 
 .login-title {
-  color: var(--primary-blue);
   color: var(--primary-blue);
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
   text-align: center;
   text-transform: lowercase;
-  text-transform: lowercase;
 }
 
 .login-subtitle {
   color: var(--text-gray);
-  color: var(--text-gray);
   font-size: 1rem;
   margin-bottom: 0;
   text-align: center;
-  white-space: nowrap;
-  text-transform: lowercase;
   white-space: nowrap;
   text-transform: lowercase;
 }
@@ -171,19 +139,11 @@
   margin-bottom: 0.5rem;
 }
 
-.form-group.has-error {
-  margin-bottom: 0.5rem;
-}
-
 .form-label {
-  color: var(--primary-blue);
   color: var(--primary-blue);
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 0;
-  text-align: left;
-  margin-left: 0;
-  text-transform: lowercase;
   text-align: left;
   margin-left: 0;
   text-transform: lowercase;
@@ -195,8 +155,6 @@
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  align-items: stretch;
-  width: 100%;
 }
 
 .form-control {
@@ -205,18 +163,10 @@
   border: 1.5px solid var(--border-light);
   border-radius: var(--border-radius);
   background: var(--bg-light);
-  padding: 1rem 1.2rem;
-  border: 1.5px solid var(--border-light);
-  border-radius: var(--border-radius);
-  background: var(--bg-light);
   color: #2a3a4d;
   font-size: 1rem;
   font-weight: 500;
-  font-weight: 500;
   transition: all 0.25s ease;
-  margin: 0;
-  box-sizing: border-box;
-  font-family: inherit;
   margin: 0;
   box-sizing: border-box;
   font-family: inherit;
@@ -225,18 +175,12 @@
 .form-control:focus {
   border-color: var(--light-blue);
   box-shadow: 0 0 0 2px var(--focus-blue);
-  border-color: var(--light-blue);
-  box-shadow: 0 0 0 2px var(--focus-blue);
   outline: none;
   background: #fff;
-  transform: translateY(-2px);
   transform: translateY(-2px);
 }
 
 .form-control::placeholder {
-  color: var(--light-gray);
-  transition: color var(--transition-fast);
-  text-transform: lowercase;
   color: var(--light-gray);
   transition: color var(--transition-fast);
   text-transform: lowercase;
@@ -252,21 +196,13 @@
 }
 
 /* Password toggle button - FIXED POSITIONING */
-.form-control:hover:not(:disabled):not(:focus) {
-  border-color: rgba(123, 182, 250, 0.5);
-  background: var(--bg-light);
-}
-
-/* Password toggle button - FIXED POSITIONING */
 .toggle-password {
   position: absolute;
-  right: 12px;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--text-gray);
   color: var(--text-gray);
   cursor: pointer;
   font-size: 0.85rem;
@@ -275,14 +211,10 @@
   transition: all var(--transition-fast);
   z-index: 2;
   text-transform: lowercase;
-  transition: all var(--transition-fast);
-  z-index: 2;
-  text-transform: lowercase;
 }
 
 .toggle-password:hover {
   background: #f0f6fd;
-  color: var(--primary-blue);
   color: var(--primary-blue);
 }
 
@@ -294,20 +226,13 @@
 .toggle-password:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: 0 0 0 2px var(--focus-blue);
 }
 
-.toggle-password:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Enhanced validation styles */
 /* Enhanced validation styles */
 .is-invalid {
   border-color: var(--error-red);
   background: rgba(255, 246, 246, 0.9);
-  animation: shake 0.5s ease-in-out;
+  animation: shake 0.2s ease-in-out;
 }
 
 .is-valid {
@@ -317,8 +242,8 @@
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-  20%, 40%, 60%, 80% { transform: translateX(3px); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-1px); }
+  20%, 40%, 60%, 80% { transform: translateX(1px); }
 }
 
 .invalid-feedback {
@@ -342,7 +267,7 @@
   }
 }
 
-/* Enhanced error message styles with icons */
+/* Enhanced error message styles with icons - consistent with ResetPassword */
 .error-message {
   background: rgba(255, 246, 246, 0.95);
   color: var(--error-red);
@@ -358,6 +283,7 @@
   gap: 0.75rem;
   position: relative;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+  overflow: hidden;
 }
 
 @keyframes errorSlideIn {
@@ -373,23 +299,21 @@
 
 .error-content {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
 }
 
 .error-icon {
-  flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  font-weight: bold;
-  background: #fecaca;
-  color: #b91c1c;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.15);
+  height: 1.75rem;
+  width: 1.75rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
 }
 
 .error-text {
@@ -408,7 +332,7 @@
   text-transform: lowercase;
 }
 
-/* Error type specific styles */
+/* Error type specific styles - enhanced and consistent with ResetPassword */
 .error-message.auth {
   border-color: rgba(243, 188, 188, 0.8);
   background: rgba(255, 246, 246, 0.95);
@@ -468,6 +392,18 @@
   color: #374151;
 }
 
+.error-message.validation {
+  border-color: rgba(255, 171, 145, 0.8);
+  background: rgba(255, 243, 224, 0.95);
+  color: var(--warning-orange);
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.08);
+}
+
+.error-message.validation .error-icon {
+  background: #fed7aa;
+  color: #c2410c;
+}
+
 .retry-button {
   align-self: flex-start;
   background: var(--medium-blue);
@@ -519,16 +455,6 @@
 
 .offline-icon {
   font-size: 1rem;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  animation: fadeIn 0.3s ease;
-}
-
-.offline-icon {
-  font-size: 1rem;
 }
 
 .form-options {
@@ -549,11 +475,9 @@
   cursor: pointer;
   font-size: 0.92rem;
   color: var(--text-gray);
-  color: var(--text-gray);
 }
 
 .checkbox-label input[type="checkbox"] {
-  accent-color: var(--light-blue);
   accent-color: var(--light-blue);
   margin-right: 0.5em;
   width: 1.1em;
@@ -563,35 +487,29 @@
 
 .checkbox-label:hover .checkbox-text {
   color: var(--primary-blue);
-  color: var(--primary-blue);
 }
 
 .checkbox-text {
   user-select: none;
-  transition: color 0.2s;
-  text-transform: lowercase !important;
+  transition: color var(--transition-fast);
+  text-transform: lowercase;
 }
 
 .forgot-password a {
   color: var(--light-blue);
-  color: var(--light-blue);
   text-decoration: none;
   font-size: 0.92rem;
   transition: all var(--transition-fast);
-  transition: all var(--transition-fast);
   padding: 2px 4px;
   border-radius: 4px;
-  text-transform: lowercase;
   text-transform: lowercase;
 }
 
 .forgot-password a:hover, 
 .forgot-password a:focus {
   color: var(--primary-blue);
-  color: var(--primary-blue);
   text-decoration: underline;
   background: #f0f6fd;
-  outline: none;
   outline: none;
 }
 
@@ -600,30 +518,30 @@
   position: relative;
   width: 100%;
   padding: 1rem 0;
-  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
+  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
   color: #fff;
   border: none;
-  border-radius: var(--border-radius);
-  font-size: 1.08rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 0.5rem;
-  box-shadow: 0 2px 8px rgba(60, 90, 130, 0.07);
-  transition: all var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
+  transition: all 0.3s ease;
   overflow: hidden;
   font-family: inherit;
   text-transform: lowercase;
+  letter-spacing: 0.3px;
 }
 
 .login-button:not(:disabled):hover {
-  background: linear-gradient(90deg, var(--medium-blue) 0%, var(--light-blue) 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(60, 90, 130, 0.13);
+  background: linear-gradient(135deg, #5a8fd6 0%, #7bb6fa 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(123, 182, 250, 0.4);
 }
 
 .login-button:not(:disabled):active {
-  transform: translateY(0);
-  background: var(--primary-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
 }
 
 .login-button:focus {
@@ -635,39 +553,18 @@
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
+  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
+  color: #fff;
 }
 
-/* Button states */
-.login-button.loading {
-  background: linear-gradient(90deg, var(--medium-blue) 0%, var(--light-blue) 100%);
+.login-button .button-text {
+  color: #fff;
+  font-weight: 600;
 }
 
 .login-button.loading .button-text,
 .login-button.success .button-text {
   color: #3a5a8c;
-}
-
-.retry-count {
-  position: absolute;
-  top: -0.5rem;
-  right: -0.5rem;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--primary-blue);
-  font-size: 0.7rem;
-  font-weight: bold;
-  padding: 0.2rem 0.4rem;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.login-button.success {
-  background: linear-gradient(90deg, var(--success-green) 0%, #66bb6a 100%);
 }
 
 .retry-count {
@@ -692,7 +589,6 @@
   text-align: center;
   margin-top: 1.5rem;
   color: var(--text-gray);
-  color: var(--text-gray);
   font-size: 0.92rem;
 }
 
@@ -702,30 +598,24 @@
 
 .login-footer a {
   color: var(--medium-blue);
-  color: var(--medium-blue);
   text-decoration: none;
   font-weight: 500;
   transition: color var(--transition-fast);
-  transition: color var(--transition-fast);
   padding: 2px 4px;
   border-radius: 4px;
-  text-transform: lowercase;
   text-transform: lowercase;
 }
 
 .login-footer a:hover, 
 .login-footer a:focus {
   color: var(--primary-blue);
-  color: var(--primary-blue);
   text-decoration: underline;
   background: #f0f6fd;
-  outline: none;
   outline: none;
 }
 
 .support-text {
   font-size: 0.85rem;
-  color: var(--light-gray);
   color: var(--light-gray);
   margin-top: 0.5rem;
 }
@@ -752,9 +642,7 @@
   width: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
-  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
   transition: width 0.5s ease;
-  border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
   border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
 }
 
@@ -766,7 +654,7 @@
 
 .login-card.success::after {
   width: 100%;
-  background: linear-gradient(90deg, var(--success-green) 0%, #66bb6a 100%);
+  background: linear-gradient(90deg, var(--light-blue) 0%, var(--medium-blue) 100%);
 }
 
 @keyframes progress {
@@ -782,13 +670,10 @@
     padding: 1rem 0.5rem;
   }
   
-  .login-container {
-    padding: 1rem 0.5rem;
-  }
-  
   .login-card {
     padding: 1.8rem 1.3rem 1.5rem 1.3rem;
     max-width: 350px;
+    overflow: hidden;
   }
   
   .login-title {
@@ -822,6 +707,7 @@
 @media (max-width: 400px) {
   .login-card {
     padding: 1.5rem 1rem;
+    overflow: hidden;
   }
   
   .login-title {
@@ -847,6 +733,7 @@
 @media (prefers-contrast: high) {
   .login-card {
     border: 2px solid var(--primary-blue);
+    overflow: hidden;
   }
   
   .form-control:focus {
@@ -871,4 +758,55 @@
   .login-button.loading::after {
     animation: none;
   }
+}
+
+/* If there's a top border or pseudo-element causing this */
+.error-message::before,
+.error-message::after {
+  border-radius: inherit; /* Inherit the border-radius from parent */
+}
+
+/* Ensure the card itself clips overflow */
+.login-card {
+  overflow: hidden;
+}
+
+.success-message::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  width: calc(100% - 1.5rem);
+  height: 5px;
+  background: #10b981;
+  border-radius: 8px 8px 0 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .login-card {
+    overflow: hidden;
+  }
+}
+
+@media print {
+  .login-card {
+    overflow: hidden;
+  }
+}
+
+.retry-button.network {
+  background: rgba(227, 242, 253, 0.95);
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  box-shadow: none;
+  font-weight: 600;
+  text-transform: lowercase;
+  transition: background 0.2s, color 0.2s;
+}
+
+.retry-button.network:hover,
+.retry-button.network:focus {
+  background: #dbeafe;
+  color: #1565c0;
+  outline: none;
 }

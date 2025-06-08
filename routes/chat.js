@@ -29,7 +29,7 @@ router.post('/conversations', auth, async (req, res) => {
     await conversation.save();
 
     // AI's first message
-    const aiFirstMessage = "Hello! How can I help you today?";
+    const aiFirstMessage = "Hello! I'm here to listen and support you. How are you feeling today?";
 
     const aiMessage = new Message({
       userId: req.user._id,

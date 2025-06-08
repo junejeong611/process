@@ -42,9 +42,9 @@ body, .voice-bg {
 .voice-main {
   flex: 1;
   display: grid;
-  place-items: center;
-  min-height: 100vh;
-  padding: var(--space-2) var(--space-2) var(--space-4) var(--space-2);
+  place-items: start center;
+  min-height: 0;
+  padding: var(--space-2);
   box-sizing: border-box;
   grid-template-rows: 1fr auto;
 }
@@ -423,8 +423,8 @@ body, .voice-bg {
     align-items: flex-start;
     justify-content: center;
     gap: var(--space-5);
-    min-height: 80vh;
-    padding-top: var(--space-5);
+    min-height: 0;
+    padding-top: 0;
   }
   
   .voice-center {
@@ -563,7 +563,7 @@ body, .voice-bg {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4A90E2 0%, #6BA3F5 100%);
+  background: #eaf4fd;
   box-shadow: 0 4px 16px rgba(74, 144, 226, 0.3);
   border: none;
   cursor: pointer;
@@ -590,11 +590,12 @@ body, .voice-bg {
 .bottom-mic-button:focus-visible {
   transform: scale(1.05);
   box-shadow: 0 6px 24px rgba(74, 144, 226, 0.4);
-  background: linear-gradient(135deg, #5aa6f3 0%, #7bb6fa 100%);
+  background: #7bb6fa;
 }
 
 .bottom-mic-button:active {
   transform: scale(0.98);
+  background: #7bb6fa;
 }
 
 .bottom-mic-button.active {
