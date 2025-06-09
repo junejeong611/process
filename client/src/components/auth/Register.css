@@ -11,6 +11,7 @@
   padding: 2rem 1rem;
   position: relative;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  width: 100%;
 }
 
 .register-content {

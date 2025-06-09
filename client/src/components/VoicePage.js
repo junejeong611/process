@@ -155,7 +155,7 @@ const VoicePage = () => {
         const res = await fetch('/api/chat/conversations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`} ,
-          body: JSON.stringify({}),
+          body: JSON.stringify({ type: 'voice' }),
         });
         const data = await res.json();
         setConversationId(data.id);
@@ -515,7 +515,7 @@ const VoicePage = () => {
   return (
     <VoiceErrorBoundary>
       <div className="voice-bg">
-        <Navbar />
+        {/* <Navbar /> Removed to prevent duplicate navbars */}
         <main className="voice-main" role="main">
           <section className="voice-center" aria-label="Voice interaction area">
             {/* Status Message */}

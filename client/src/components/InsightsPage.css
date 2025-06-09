@@ -15,15 +15,21 @@
 }
 
 /* Main container */
+body {
+  background: #e3edf7;
+  overflow-x: hidden;
+}
+
 .comingsoon-bg {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
+  background: #e3edf7;
   padding: 2rem 1rem;
   position: relative;
-  width: 100%;
+  width: 100vw;
+  margin: 0;
 }
 
 .comingsoon-center {
