@@ -53,6 +53,7 @@ const ChatInterface = () => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const userName = getUserName();
+  const [uiReady, setUiReady] = useState(false);
   
   // Helper function to get token from either storage
   const getToken = () => {
@@ -85,6 +86,7 @@ const ChatInterface = () => {
     const init = async () => {
       setBackendReady(false);
       setBackendError('');
+      setUiReady(false);
       const ready = await waitForBackend();
       setBackendReady(ready);
       
@@ -101,7 +103,7 @@ const ChatInterface = () => {
         }
         
         // Create new conversation and get initial AI message
-        const response = await axiosWithRetry(() => axios.post('/api/chat/conversations', {}, {
+        const response = await axiosWithRetry(() => axios.post('/api/chat/conversations', { type: 'text' }, {
           headers: { 'Authorization': `Bearer ${token}` }
         }));
         
@@ -115,6 +117,7 @@ const ChatInterface = () => {
             sender: 'bot',
             timestamp: new Date().toISOString()
           }]);
+          setUiReady(true);
         }, 800);
       } catch (error) {
         setBackendError('Error creating conversation: ' + (error.response?.data?.message || error.message));
@@ -274,7 +277,15 @@ const ChatInterface = () => {
 
       {/* Enhanced Messages Container */}
       <div className="chat-messages-enhanced">
-        {messages.length === 0 ? (
+        {!uiReady ? (
+          <div className="welcome-state">
+            <div className="welcome-icon">
+              <div className="loading-spinner" />
+            </div>
+            <h3>starting your conversation...</h3>
+            <p>please wait a moment while we set things up for you</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="welcome-state">
             <div className="welcome-icon">
               <svg width="56" height="56" fill="none" viewBox="0 0 24 24">
@@ -352,7 +363,7 @@ const ChatInterface = () => {
               placeholder="share what's on your mind..."
               className="message-input-enhanced"
               rows="1"
-              disabled={isLoading || !backendReady}
+              disabled={isLoading || !backendReady || !uiReady}
               maxLength={2000}
             />
             <div className="input-actions">
@@ -361,7 +372,7 @@ const ChatInterface = () => {
               </div>
               <button
                 type="submit"
-                disabled={!inputMessage.trim() || isLoading || !backendReady}
+                disabled={!inputMessage.trim() || isLoading || !backendReady || !uiReady}
                 className={`send-button-enhanced${isLoading ? ' loading' : ''}`}
                 aria-label="Send message"
               >

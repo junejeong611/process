@@ -57,9 +57,14 @@ router.post('/send', auth, async (req, res) => {
 // POST /api/chat/conversations - Create a new conversation
 router.post('/conversations', auth, async (req, res) => {
   try {
-    // For simplicity, just use a new ObjectId as conversationId
-    const conversationId = new mongoose.Types.ObjectId();
-    res.json({ success: true, _id: conversationId });
+    const { type = 'text', title } = req.body;
+    const conversation = new (require('../models/Conversation'))({
+      userId: req.user._id,
+      type,
+      title: title || 'New Conversation'
+    });
+    await conversation.save();
+    res.json({ success: true, id: conversation._id });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -96,21 +101,40 @@ router.delete('/conversations/bulk-delete', auth, async (req, res) => {
 // GET /api/chat/conversations - List all conversations for the user
 router.get('/conversations', auth, async (req, res) => {
   try {
-    // Group messages by conversationId and get the latest message for each
-    const conversations = await Message.aggregate([
-      { $match: { userId: req.user._id } },
+    const Conversation = require('../models/Conversation');
+    const Message = require('../models/Message');
+    // Get all conversations for the user
+    const conversations = await Conversation.find({ userId: req.user._id }).lean();
+    // For each conversation, get the last message
+    const conversationIds = conversations.map(c => c._id);
+    const lastMessages = await Message.aggregate([
+      { $match: { conversationId: { $in: conversationIds }, userId: req.user._id } },
       { $sort: { createdAt: -1 } },
       {
         $group: {
           _id: '$conversationId',
           lastMessage: { $first: '$content' },
-          lastMessageTime: { $first: '$createdAt' },
-          type: { $first: '$sender' },
-        },
-      },
-      { $sort: { lastMessageTime: -1 } },
+          lastMessageTime: { $first: '$createdAt' }
+        }
+      }
     ]);
-    res.json({ success: true, conversations });
+    // Map lastMessages by conversationId
+    const lastMessageMap = {};
+    lastMessages.forEach(m => {
+      lastMessageMap[m._id.toString()] = m;
+    });
+    // Merge last message info into conversations
+    const merged = conversations.map(conv => {
+      const lm = lastMessageMap[conv._id.toString()] || {};
+      return {
+        ...conv,
+        lastMessage: lm.lastMessage || null,
+        lastMessageTime: lm.lastMessageTime || conv.updatedAt
+      };
+    });
+    // Sort by lastMessageTime descending
+    merged.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+    res.json({ success: true, conversations: merged });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

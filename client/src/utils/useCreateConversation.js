@@ -53,7 +53,7 @@ const useCreateConversation = () => {
       if (!token) throw new Error('No authentication token found');
 
       const response = await axiosWithRetry(() =>
-        axios.post('/api/chat/conversations', {}, {
+        axios.post('/api/chat/conversations', { type: 'text' }, {
           headers: { Authorization: `Bearer ${token}` },
         })
       );

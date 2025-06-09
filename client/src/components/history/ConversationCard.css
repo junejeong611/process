@@ -1,4 +1,4 @@
-/* ConversationCard.css - Matching App Style */
+/* ConversationCard.css - Matching Blue Theme */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .conversation-card {
@@ -217,7 +217,7 @@
   transform: scale(0.9);
 }
 
-/* Enhanced hover effects */
+/* Enhanced hover effects with blue theme */
 .conversation-card:hover .conversation-title {
   color: #2a3a4d;
 }
@@ -234,6 +234,90 @@
 .conversation-card:hover .type-badge.text {
   background: rgba(107, 163, 245, 0.15);
   border-color: rgba(107, 163, 245, 0.3);
+}
+
+/* Enhanced conversation themes/mood indicators with blue theme */
+.conversation-themes {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.theme-tag {
+  background: rgba(123, 182, 250, 0.1);
+  color: #3a5a8c;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid rgba(123, 182, 250, 0.2);
+}
+
+.theme-more {
+  background: rgba(107, 163, 245, 0.1);
+  color: #6b7a90;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid rgba(107, 163, 245, 0.2);
+}
+
+/* Mood indicator with blue theme variations */
+.mood-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.mood-indicator.anxious {
+  background: rgba(255, 182, 193, 0.2);
+  color: #8b5a5a;
+  border-color: rgba(255, 182, 193, 0.3);
+}
+
+.mood-indicator.peaceful {
+  background: rgba(123, 182, 250, 0.15);
+  color: #3a5a8c;
+  border-color: rgba(123, 182, 250, 0.25);
+}
+
+.mood-indicator.excited {
+  background: rgba(240, 230, 140, 0.2);
+  color: #8b7a3d;
+  border-color: rgba(240, 230, 140, 0.3);
+}
+
+.mood-indicator.reflective {
+  background: rgba(173, 216, 230, 0.2);
+  color: #4a6b7c;
+  border-color: rgba(173, 216, 230, 0.3);
+}
+
+.mood-indicator.grateful {
+  background: rgba(152, 251, 152, 0.2);
+  color: #4a7c4a;
+  border-color: rgba(152, 251, 152, 0.3);
+}
+
+/* Breakthrough indicator with blue theme */
+.breakthrough-indicator {
+  background: linear-gradient(135deg, rgba(123, 182, 250, 0.8) 0%, rgba(107, 163, 245, 0.8) 100%);
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 2px 6px rgba(123, 182, 250, 0.2);
 }
 
 /* Responsive Design */
@@ -396,6 +480,23 @@
   .type-badge.text {
     background: rgba(123, 182, 250, 0.2);
     color: #7bb6fa;
+  }
+  
+  .theme-tag {
+    background: rgba(123, 182, 250, 0.15);
+    color: #6BA3F5;
+    border-color: rgba(123, 182, 250, 0.3);
+  }
+  
+  .theme-more {
+    background: rgba(107, 163, 245, 0.15);
+    color: #8ca0b8;
+    border-color: rgba(107, 163, 245, 0.3);
+  }
+  
+  .conversation-mood {
+    background: rgba(123, 182, 250, 0.15);
+    color: #6BA3F5;
   }
 }
 

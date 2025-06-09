@@ -23,13 +23,20 @@
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+body {
+  background: #e3edf7;
+  overflow-x: hidden;
+}
+
 /* Main container */
 .options-main {
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background: #e3edf7;
+  width: 100vw;
+  margin: 0;
   padding: 2rem 1rem;
   font-family: var(--font-family);
   position: relative;
@@ -640,11 +647,11 @@
   color: #7bb6fa !important;
 }
 .options-card:first-child:hover .options-card-action {
-  background: #eaf4fd !important;
-  color: #7bb6fa !important;
+  background: #7bb6fa !important;
+  color: #eaf4fd !important;
 }
 .options-card:first-child:hover .options-card-action svg {
-  stroke: #7bb6fa !important;
+  stroke: #eaf4fd !important;
   fill: none !important;
 }
 

@@ -38,6 +38,12 @@ const conversationSchema = new mongoose.Schema({
   messageCount: {
     type: Number,
     default: 0
+  },
+  type: {
+    type: String,
+    enum: ['voice', 'text'],
+    default: 'text',
+    required: true
   }
 }, {
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },

@@ -7,7 +7,9 @@ import { toast } from 'react-toastify';
 const ChatHistoryPage = () => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingStage, setLoadingStage] = useState('initial');
   const [error, setError] = useState('');
+  const [errorType, setErrorType] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,6 +22,13 @@ const ChatHistoryPage = () => {
   
   const navigate = useNavigate();
   const deleteTimeoutRef = useRef(null);
+
+  // Loading stages with better messaging
+  const loadingMessages = {
+    initial: "loading your conversations...",
+    processing: "organizing your history...",
+    finalizing: "almost ready..."
+  };
 
   // Export function (standalone implementation)
   const exportHistory = async () => {
@@ -45,10 +54,16 @@ const ChatHistoryPage = () => {
     document.title = 'Chat History - Process';
   }, []);
 
+  // Enhanced loading sequence
+  const simulateLoadingStages = () => {
+    setLoadingStage('initial');
+    setTimeout(() => setLoadingStage('processing'), 800);
+    setTimeout(() => setLoadingStage('finalizing'), 1600);
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e) => {
-      // Escape to exit select mode or close modals
       if (e.key === 'Escape') {
         if (showDeleteConfirm || showExportModal) {
           setShowDeleteConfirm(false);
@@ -59,14 +74,12 @@ const ChatHistoryPage = () => {
         }
       }
       
-      // Ctrl/Cmd + A to select all
       if ((e.ctrlKey || e.metaKey) && e.key === 'a' && isSelectMode) {
         e.preventDefault();
         const allIds = new Set(filteredAndSortedConversations.map(c => c.id));
         setSelectedConversations(allIds);
       }
       
-      // Delete key to delete selected
       if (e.key === 'Delete' && selectedConversations.size > 0) {
         setShowDeleteConfirm(true);
       }
@@ -80,6 +93,8 @@ const ChatHistoryPage = () => {
     try {
       setLoading(true);
       setError('');
+      setErrorType('');
+      simulateLoadingStages();
       
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) {
@@ -88,7 +103,7 @@ const ChatHistoryPage = () => {
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout
 
       const response = await fetch('/api/chat/conversations', {
         headers: {
@@ -105,6 +120,16 @@ const ChatHistoryPage = () => {
           navigate('/login');
           return;
         }
+        
+        // Enhanced error type detection
+        if (response.status >= 500) {
+          setErrorType('server');
+        } else if (response.status === 429) {
+          setErrorType('rateLimit');
+        } else {
+          setErrorType('general');
+        }
+        
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -120,11 +145,21 @@ const ChatHistoryPage = () => {
     } catch (err) {
       console.error('Fetch Error:', err);
       
+      // Enhanced error categorization
       if (err.name === 'AbortError') {
-        setError('Request timed out. Please check your connection.');
-      } else if (err.message.includes('Failed to fetch')) {
+        setErrorType('timeout');
+        setError('Request timed out. Please check your connection and try again.');
+      } else if (err.message.includes('Failed to fetch') || !navigator.onLine) {
+        setErrorType('network');
         setError('Network error. Please check your internet connection.');
+      } else if (err.message.includes('429')) {
+        setErrorType('rateLimit');
+        setError('Too many requests. Please wait a moment before trying again.');
+      } else if (err.message.includes('5')) {
+        setErrorType('server');
+        setError('Server temporarily unavailable. Please try again in a moment.');
       } else {
+        setErrorType('general');
         setError(err.message || 'Failed to load conversations');
       }
     } finally {
@@ -197,7 +232,6 @@ const ChatHistoryPage = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Remove deleted conversations from state
         setConversations(prev => 
           prev.filter(conv => !selectedConversations.has(conv.id))
         );
@@ -255,11 +289,9 @@ const ChatHistoryPage = () => {
   // Filter and sort conversations
   const filteredAndSortedConversations = conversations
     .filter(conversation => {
-      // Filter by type
       if (filterType === 'voice' && conversation.type !== 'voice') return false;
       if (filterType === 'text' && conversation.type !== 'text') return false;
       
-      // Filter by search query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         return (
@@ -272,36 +304,147 @@ const ChatHistoryPage = () => {
       return true;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.lastMessageTime || a.createdAt);
-      const dateB = new Date(b.lastMessageTime || b.createdAt);
+      const dateA = new Date(a.lastMessageTime || a.updatedAt || a.createdAt);
+      const dateB = new Date(b.lastMessageTime || b.updatedAt || b.createdAt);
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
+  // Enhanced loading state
   if (loading) {
     return (
       <div className="chat-history-container">
         <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p className="loading-text">Loading your conversations...</p>
+          <div className="loading-content">
+            <div className="loading-spinner" role="status" aria-label="Loading">
+              <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  fill="none"
+                  stroke="#1976d2"
+                  strokeWidth="5"
+                  strokeDasharray="28 56"
+                  strokeLinecap="round"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 24 24"
+                    to="360 24 24"
+                    dur="0.9s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </svg>
+            </div>
+            <p className="loading-text" aria-live="polite">
+              {loadingMessages[loadingStage]}
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Enhanced error state
   if (error) {
+    const getErrorMessage = () => {
+      switch (errorType) {
+        case 'network':
+          return {
+            icon: '🌐',
+            title: 'Connection Issue',
+            message: 'Having trouble connecting. Your conversations are safe.',
+            supportText: 'Network issues happen - this isn\'t your fault.'
+          };
+        case 'server':
+          return {
+            icon: '⚠️',
+            title: 'Server Temporarily Unavailable',
+            message: 'Our servers are having a moment. Please try again.',
+            supportText: 'Technical difficulties are temporary.'
+          };
+        case 'timeout':
+          return {
+            icon: '⏱️',
+            title: 'Request Timed Out',
+            message: 'The request took too long. Let\'s try again.',
+            supportText: 'Sometimes a slower connection needs more time.'
+          };
+        case 'rateLimit':
+          return {
+            icon: '🛑',
+            title: 'Too Many Requests',
+            message: 'Please wait a moment before trying again.',
+            supportText: 'Taking breaks is important for both you and our systems.'
+          };
+        default:
+          return {
+            icon: '❌',
+            title: 'Something Went Wrong',
+            message: error,
+            supportText: 'Technical problems don\'t affect your progress.'
+          };
+      }
+    };
+
+    const errorConfig = getErrorMessage();
+    const canRetry = retryCount < 3;
+    const isOffline = !navigator.onLine;
+
     return (
       <div className="chat-history-container">
         <div className="error-container">
-          <div className="error-icon">⚠️</div>
-          <h2 className="error-title">Unable to Load Conversations</h2>
-          <p className="error-message">{error}</p>
-          <div className="error-actions">
-            <button onClick={handleRetry} className="retry-button">
-              Try Again
-            </button>
-            <Link to="/options" className="back-button">
-              Back to Options
-            </Link>
+          <div className="error-content">
+            <div className="error-icon" role="img" aria-label="Error">
+              {isOffline ? '📡' : errorConfig.icon}
+            </div>
+            <h2 className="error-title">
+              {isOffline ? 'You\'re Offline' : errorConfig.title}
+            </h2>
+            <p className="error-message">
+              {isOffline ? 'Please check your internet connection and try again.' : errorConfig.message}
+            </p>
+            
+            {/* Support message */}
+            <div className="error-support">
+              <div className="support-icon">💙</div>
+              <p className="support-text">
+                {isOffline ? 'Connection issues are common - don\'t worry.' : errorConfig.supportText}
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="error-actions">
+              {(canRetry || isOffline) && (
+                <button 
+                  onClick={isOffline ? () => window.location.reload() : handleRetry}
+                  className="retry-button"
+                  disabled={!canRetry && !isOffline}
+                >
+                  {retryCount > 0 && !isOffline && (
+                    <span className="retry-count">
+                      {retryCount + 1}/3
+                    </span>
+                  )}
+                  {isOffline ? 'Check Connection & Retry' : 'Try Again'}
+                </button>
+              )}
+              
+              <Link to="/options" className="back-button">
+                Back to Options
+              </Link>
+            </div>
+
+            {/* Retry limit message */}
+            {retryCount >= 3 && !isOffline && (
+              <div className="retry-limit-message">
+                <p>
+                  Maximum retry attempts reached. Try refreshing the page or contact support if the issue persists.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -312,18 +455,16 @@ const ChatHistoryPage = () => {
     <div className="chat-history-container">
       {/* Header */}
       <header className="chat-history-header">
-        <div className="header-main">
-          <Link to="/options" className="back-link" aria-label="Back to options">
-            <span className="back-icon">←</span>
-            back
-          </Link>
+        <Link to="/options" className="back-link" aria-label="Back to options">
+          <span className="back-icon">←</span>
+          back
+        </Link>
+        <div className="header-center">
           <h1 className="page-title">your conversations</h1>
           <p className="page-subtitle">
             {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
           </p>
         </div>
-
-        {/* Action buttons */}
         <div className="header-actions">
           <button
             onClick={toggleSelectMode}
@@ -332,33 +473,33 @@ const ChatHistoryPage = () => {
           >
             {isSelectMode ? 'cancel' : 'select'}
           </button>
-          
-          <button
-            onClick={() => setShowExportModal(true)}
-            className="action-button secondary"
-            disabled={conversations.length === 0}
-          >
-            export
-          </button>
         </div>
       </header>
 
       {/* Controls */}
-      <div className="controls-section">
-        {/* Search */}
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder="search conversations..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            className="search-input"
-            aria-label="Search conversations"
-          />
-          <span className="search-icon">🔍</span>
+      <div className="search-and-controls">
+        <div className="search-section">
+          <div className="search-input-wrapper">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="search conversations..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="search-input"
+              aria-label="Search conversations"
+            />
+            {searchQuery && (
+              <button
+                className="control-select clear-action"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* Filters and Sort */}
         <div className="filter-controls">
           <div className="control-group">
             <label htmlFor="filter-type" className="control-label">filter:</label>
@@ -373,7 +514,6 @@ const ChatHistoryPage = () => {
               <option value="text">text only</option>
             </select>
           </div>
-
           <div className="control-group">
             <label htmlFor="sort-order" className="control-label">sort:</label>
             <select
@@ -397,30 +537,34 @@ const ChatHistoryPage = () => {
               {selectedConversations.size} selected
             </span>
           </div>
-          
           <div className="selection-actions">
             <button
               onClick={selectAllConversations}
-              className="selection-button"
+              className="action-button"
               disabled={selectedConversations.size === filteredAndSortedConversations.length}
             >
               select all
             </button>
-            
             <button
               onClick={clearSelection}
-              className="selection-button"
+              className="action-button secondary"
               disabled={selectedConversations.size === 0}
             >
               clear
             </button>
-            
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="selection-button danger"
+              className="action-button danger"
               disabled={selectedConversations.size === 0}
             >
               delete ({selectedConversations.size})
+            </button>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="action-button secondary"
+              disabled={selectedConversations.size === 0}
+            >
+              export
             </button>
           </div>
         </div>
@@ -442,7 +586,7 @@ const ChatHistoryPage = () => {
                     setSearchQuery('');
                     setFilterType('all');
                   }}
-                  className="clear-filters-button"
+                  className="control-select clear-action"
                 >
                   clear filters
                 </button>
@@ -454,8 +598,11 @@ const ChatHistoryPage = () => {
                 <p className="empty-message">
                   start your first conversation to see it here
                 </p>
-                <Link to="/voice" className="start-conversation-button">
+                <Link to="/voice" className="action-button primary" style={{ marginRight: '1rem' }}>
                   start voice chat
+                </Link>
+                <Link to="/chat" className="action-button primary">
+                  start text chat
                 </Link>
               </>
             )}
@@ -486,14 +633,12 @@ const ChatHistoryPage = () => {
             <div className="modal-header">
               <h3 className="modal-title">delete conversations?</h3>
             </div>
-            
             <div className="modal-body">
               <p className="modal-message">
                 are you sure you want to delete {selectedConversations.size} conversation
                 {selectedConversations.size !== 1 ? 's' : ''}? this action cannot be undone.
               </p>
             </div>
-            
             <div className="modal-actions">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
@@ -502,7 +647,6 @@ const ChatHistoryPage = () => {
               >
                 cancel
               </button>
-              
               <button
                 onClick={handleDeleteSelected}
                 className="modal-button danger"
@@ -522,13 +666,11 @@ const ChatHistoryPage = () => {
             <div className="modal-header">
               <h3 className="modal-title">export chat history</h3>
             </div>
-            
             <div className="modal-body">
               <p className="modal-message">
                 export all your conversations as a JSON file for backup or analysis.
               </p>
             </div>
-            
             <div className="modal-actions">
               <button
                 onClick={() => setShowExportModal(false)}
@@ -536,7 +678,6 @@ const ChatHistoryPage = () => {
               >
                 cancel
               </button>
-              
               <button
                 onClick={handleExportHistory}
                 className="modal-button primary"
