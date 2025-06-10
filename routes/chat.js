@@ -1,11 +1,11 @@
 console.log('chat.js router loaded');
 const express = require('express');
 const router = express.Router();
-const Message = require('../../models/Message');
+const Message = require('../models/Message');
 const claudeService = require('../services/claudeService');
-const auth = require('../../middleware/auth');
+const auth = require('../middleware/auth');
 const mongoose = require('mongoose');
-const Conversation = require('../../models/Conversation');
+const Conversation = require('../models/Conversation');
 
 // GET /api/chat/messages/:conversationId - Get recent messages for a conversation
 router.get('/messages/:conversationId', auth, async (req, res) => {
