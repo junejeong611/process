@@ -1,7 +1,11 @@
 .conversation-detail-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .conversation-header {
@@ -41,6 +45,16 @@
   color: #dc3545;
   text-align: center;
   padding: 2rem;
+}
+
+.error-bg {
+  background: #e3edf7 !important;
+  min-height: 100vh;
+}
+
+/* Unify all backgrounds for loading and error states */
+html, body, #root, .conversation-detail-container, .error-bg {
+  background: #eaf2fa !important;
 }
 
 @media (max-width: 768px) {

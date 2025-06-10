@@ -19,7 +19,7 @@ const { initializeStripe } = require('./services/stripeService');
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const chatRoutes = require('./routes/chat');
+const chatRoutes = require('./server/routes/chat');
 const voiceRoutes = require('./routes/voice');
 const insightsRoutes = require('./routes/insights');
 const voiceRecordRoute = require('./routes/record');

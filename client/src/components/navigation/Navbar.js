@@ -17,7 +17,7 @@ const Navbar = () => {
         </svg>
       ),
       label: 'dashboard',
-      path: '/'
+      path: '/options'
     },
     {
       key: 'history',

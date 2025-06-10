@@ -128,26 +128,6 @@ const ConversationCard = ({
     }
   };
 
-  // Enhanced delete with confirmation and emotional support
-  const handleDeleteClick = async (e) => {
-    e.stopPropagation();
-    
-    const confirmMessage = `Are you sure you want to remove this conversation from your emotional journey?\n\nThis conversation from ${formatDate(conversation.lastMessageTime || conversation.updatedAt)} will be permanently deleted.\n\nYour growth and insights remain with you regardless.`;
-    
-    if (window.confirm(confirmMessage)) {
-      setIsDeleting(true);
-      try {
-        await onDelete(conversation.id);
-        announceToScreenReader('conversation removed from your journey');
-      } catch (error) {
-        console.error('Failed to delete conversation:', error);
-        announceToScreenReader('failed to remove conversation, please try again');
-      } finally {
-        setIsDeleting(false);
-      }
-    }
-  };
-
   // Screen reader announcements
   const announceToScreenReader = (message) => {
     const announcement = document.createElement('div');
@@ -276,32 +256,6 @@ const ConversationCard = ({
           )}
         </div>
       </div>
-
-      {/* Action buttons (only show when not in select mode) */}
-      {!isSelectMode && (
-        <div className="conversation-actions">
-          <button
-            className={`action-button delete-button ${isDeleting ? 'deleting' : ''}`}
-            onClick={handleDeleteClick}
-            disabled={isDeleting}
-            aria-label="Remove conversation from your journey"
-            title="Remove conversation from your journey"
-          >
-            {isDeleting ? (
-              <div className="loading-spinner-small" aria-hidden="true"></div>
-            ) : (
-              <span className="delete-icon" aria-hidden="true">🗑️</span>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Loading overlay for delete operation */}
-      {isDeleting && (
-        <div className="card-loading-overlay" aria-hidden="true">
-          <div className="card-loading-spinner"></div>
-        </div>
-      )}
     </article>
   );
 };
