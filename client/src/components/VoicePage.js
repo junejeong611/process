@@ -257,6 +257,7 @@ const VoicePage = () => {
         return;
       }
 
+      console.log("debug1")
       const response = await axiosWithRetry(() =>
         axios.post(
           '/api/chat/elevenlabs',
@@ -275,6 +276,7 @@ const VoicePage = () => {
       const audioUrl = URL.createObjectURL(audioBlob);
       audio = new Audio(audioUrl);
       audioRef.current = audio;
+      console.log("debug2")
 
       setIsSpeak(true);
       dispatch(actions.setAiReturn(aiResponse));
