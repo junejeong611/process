@@ -212,93 +212,88 @@ const OptionsPage = () => {
 
   return (
     <main className="options-main" role="main">
-      {/* User menu */}
-      <div className="user-menu-container" ref={userMenuRef}>
-        <button
-          className="user-menu-trigger"
-          onClick={() => setShowUserMenu(!showUserMenu)}
-          aria-expanded={showUserMenu}
-          aria-haspopup="true"
-          aria-label="user menu"
-          disabled={isLoggingOut}
-        >
-          <UserIcon />
-        </button>
-        
-        {showUserMenu && (
-          <div className="user-menu" role="menu">
-            <div className="user-menu-header">
-              <span className="user-name">Hello, {userName}!</span>
+      <div className="options-inner">
+        {/* User menu */}
+        <div className="user-menu-container" ref={userMenuRef}>
+          <button
+            className="user-menu-trigger"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            aria-expanded={showUserMenu}
+            aria-haspopup="true"
+            aria-label="user menu"
+            disabled={isLoggingOut}
+          >
+            <UserIcon />
+          </button>
+          {showUserMenu && (
+            <div className="user-menu" role="menu">
+              <div className="user-menu-header">
+                <span className="user-name">Hello, {userName}!</span>
+              </div>
+              <button
+                className="user-menu-item logout-button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                role="menuitem"
+              >
+                <LogoutIcon />
+                <span>{isLoggingOut ? 'logging out...' : 'logout'}</span>
+                {isLoggingOut && <div className="logout-spinner" />}
+              </button>
             </div>
-            <button
-              className="user-menu-item logout-button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              role="menuitem"
-            >
-              <LogoutIcon />
-              <span>{isLoggingOut ? 'logging out...' : 'logout'}</span>
-              {isLoggingOut && <div className="logout-spinner" />}
-            </button>
+          )}
+        </div>
+        <div className="options-center">
+          <div className="options-heart" aria-hidden="true">
+            <HeartIcon />
           </div>
-        )}
-      </div>
-
-      <div className="options-center">
-        <div className="options-heart" aria-hidden="true">
-          <HeartIcon />
-        </div>
-        
-        <div className="greeting-section">
-          <h1 className="options-greeting">{greeting}, {userName}</h1>
-          <p className="options-title">how are you feeling today?</p>
-        </div>
-        
-        <div className="options-cards">
-          {options.map((opt, index) => (
-            <div
-              key={opt.key}
-              className={`options-card ${loadingKey === opt.key ? 'loading' : ''}`}
-              tabIndex={0}
-              role="button"
-              aria-label={`${opt.title}: ${opt.subtitle}`}
-              aria-busy={loadingKey === opt.key}
-              aria-describedby={`card-desc-${opt.key}`}
-              onClick={() => handleCardClick(opt.key, opt.to)}
-              onKeyDown={(e) => handleKeyDown(e, opt.key, opt.to)}
-              style={{
-                '--card-color': opt.color,
-                '--card-gradient': opt.gradient,
-                animationDelay: `${index * 100}ms`
-              }}
-            >
-              <div className="options-card-icon">
-                {opt.icon}
+          <div className="greeting-section">
+            <h1 className="options-greeting">{greeting}, {userName}</h1>
+            <p className="options-title">how are you feeling today?</p>
+          </div>
+          <div className="options-cards">
+            {options.map((opt, index) => (
+              <div
+                key={opt.key}
+                className={`options-card ${loadingKey === opt.key ? 'loading' : ''}`}
+                tabIndex={0}
+                role="button"
+                aria-label={`${opt.title}: ${opt.subtitle}`}
+                aria-busy={loadingKey === opt.key}
+                aria-describedby={`card-desc-${opt.key}`}
+                onClick={() => handleCardClick(opt.key, opt.to)}
+                onKeyDown={(e) => handleKeyDown(e, opt.key, opt.to)}
+                style={{
+                  '--card-color': opt.color,
+                  '--card-gradient': opt.gradient,
+                  animationDelay: `${index * 100}ms`
+                }}
+              >
+                <div className="options-card-icon">
+                  {opt.icon}
+                </div>
+                <div className="options-card-content">
+                  <span className="options-card-title">{opt.title}</span>
+                  <span className="options-card-subtitle">{opt.subtitle}</span>
+                  <span className="options-card-description" id={`card-desc-${opt.key}`}>
+                    {opt.description}
+                  </span>
+                </div>
+                <div className="options-card-action">
+                  {loadingKey === opt.key ? (
+                    <div className="options-card-spinner" aria-label="loading" />
+                  ) : (
+                    <ChevronIcon />
+                  )}
+                </div>
               </div>
-              
-              <div className="options-card-content">
-                <span className="options-card-title">{opt.title}</span>
-                <span className="options-card-subtitle">{opt.subtitle}</span>
-                <span className="options-card-description" id={`card-desc-${opt.key}`}>
-                  {opt.description}
-                </span>
-              </div>
-              
-              <div className="options-card-action">
-                {loadingKey === opt.key ? (
-                  <div className="options-card-spinner" aria-label="loading" />
-                ) : (
-                  <ChevronIcon />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="options-footer">
-          <p className="support-text">
-            need immediate help? <Link to="/crisis-support" className="crisis-link">crisis support</Link>
-          </p>
+            ))}
+          </div>
+          <div className="options-footer">
+            <p className="support-text">
+              need immediate help? <Link to="/crisis-support" className="crisis-link">crisis support</Link>
+            </p>
+          </div>
         </div>
       </div>
     </main>

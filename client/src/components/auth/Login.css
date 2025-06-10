@@ -39,7 +39,8 @@ body {
   align-items: center;
   justify-content: center;
   background: #e3edf7;
-  padding: 2rem 1rem;
+  padding: 0;
+  box-sizing: border-box;
   position: relative;
   font-family: var(--font-family);
 }

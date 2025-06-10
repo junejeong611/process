@@ -20,26 +20,31 @@ body {
   overflow-x: hidden;
 }
 
+:root {
+  --sidebar-width: 280px;
+}
+
 .comingsoon-bg {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e3edf7;
-  padding: 2rem 1rem;
-  position: relative;
-  width: 100vw;
+  width: 100%;
   margin: 0;
+  margin-left: var(--sidebar-width);
+  background: #e3edf7;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .comingsoon-center {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
   max-width: 600px;
-  margin: 0 auto;
+  flex: 1;
+  margin: 0;
 }
 
 .comingsoon-card {
@@ -318,6 +323,9 @@ body {
   .comingsoon-card {
     margin-left: 0;
   }
+  .comingsoon-bg {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 600px) {
@@ -357,5 +365,19 @@ body {
 @media (max-width: 768px) {
   .comingsoon-bg {
     /* margin-left: 0; */
+  }
+}
+
+.insights-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1200px) {
+  .insights-inner {
+    max-width: 100%;
+    padding: 0 1rem;
   }
 } 

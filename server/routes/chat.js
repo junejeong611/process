@@ -1,9 +1,11 @@
+console.log('chat.js router loaded');
 const express = require('express');
 const router = express.Router();
-const Message = require('../models/Message');
+const Message = require('../../models/Message');
 const claudeService = require('../services/claudeService');
 const auth = require('../../middleware/auth');
 const mongoose = require('mongoose');
+const Conversation = require('../../models/Conversation');
 
 // GET /api/chat/messages/:conversationId - Get recent messages for a conversation
 router.get('/messages/:conversationId', auth, async (req, res) => {
@@ -70,20 +72,6 @@ router.post('/conversations', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/chat/conversations/:id - Delete a conversation
-router.delete('/conversations/:id', auth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid conversationId' });
-    }
-    await Message.deleteMany({ conversationId: id, userId: req.user._id });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
 // DELETE /api/chat/conversations/bulk-delete - Bulk delete conversations
 router.delete('/conversations/bulk-delete', auth, async (req, res) => {
   try {
@@ -92,6 +80,23 @@ router.delete('/conversations/bulk-delete', auth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'conversationIds required' });
     }
     await Message.deleteMany({ conversationId: { $in: conversationIds }, userId: req.user._id });
+    await Conversation.deleteMany({ _id: { $in: conversationIds }, userId: req.user._id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/chat/conversations/:id - Delete a conversation
+router.delete('/conversations/:id', auth, async (req, res) => {
+  console.log('DELETE /conversations/:id hit', req.params.id);
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid conversationId' });
+    }
+    await Message.deleteMany({ conversationId: id, userId: req.user._id });
+    await Conversation.deleteOne({ _id: id, userId: req.user._id });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -101,8 +106,8 @@ router.delete('/conversations/bulk-delete', auth, async (req, res) => {
 // GET /api/chat/conversations - List all conversations for the user
 router.get('/conversations', auth, async (req, res) => {
   try {
-    const Conversation = require('../models/Conversation');
-    const Message = require('../models/Message');
+    const Conversation = require('../../models/Conversation');
+    const Message = require('../../models/Message');
     // Get all conversations for the user
     const conversations = await Conversation.find({ userId: req.user._id }).lean();
     // For each conversation, get the last message
@@ -136,8 +141,15 @@ router.get('/conversations', auth, async (req, res) => {
     merged.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
     res.json({ success: true, conversations: merged });
   } catch (err) {
+    console.error('Error in /api/chat/conversations:', err, err?.stack);
     res.status(500).json({ success: false, message: err.message });
   }
+});
+
+// Catch-all for debugging unmatched routes in chat router
+router.use((req, res, next) => {
+  console.log('chat.js catch-all:', req.method, req.originalUrl);
+  next();
 });
 
 module.exports = router; 

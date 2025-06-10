@@ -76,7 +76,7 @@ const ChatHistoryPage = () => {
       
       if ((e.ctrlKey || e.metaKey) && e.key === 'a' && isSelectMode) {
         e.preventDefault();
-        const allIds = new Set(filteredAndSortedConversations.map(c => c.id));
+        const allIds = new Set(filteredAndSortedConversations.map(c => c._id));
         setSelectedConversations(allIds);
       }
       
@@ -138,6 +138,7 @@ const ChatHistoryPage = () => {
       
       if (data.success) {
         setConversations(data.conversations || []);
+        console.log('Loaded conversations:', data.conversations);
         setRetryCount(0);
       } else {
         throw new Error(data.message || 'Failed to load conversations');
@@ -204,7 +205,7 @@ const ChatHistoryPage = () => {
   };
 
   const selectAllConversations = () => {
-    const allIds = new Set(filteredAndSortedConversations.map(c => c.id));
+    const allIds = new Set(filteredAndSortedConversations.map(c => c._id));
     setSelectedConversations(allIds);
   };
 
@@ -213,12 +214,16 @@ const ChatHistoryPage = () => {
   };
 
   const handleDeleteSelected = async () => {
+    console.log('handleDeleteSelected called', Array.from(selectedConversations));
     if (selectedConversations.size === 0) return;
-    
+    console.log('1')
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      // Ensure we use _id everywhere
+      console.log('2')
       const conversationIds = Array.from(selectedConversations);
+      console.log('Deleting conversationIds:', conversationIds);
 
       const response = await fetch('/api/chat/conversations/bulk-delete', {
         method: 'DELETE',
@@ -228,12 +233,19 @@ const ChatHistoryPage = () => {
         },
         body: JSON.stringify({ conversationIds })
       });
-
-      const data = await response.json();
+      console.log('3')
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        console.error('Failed to parse JSON from bulk-delete response:', jsonErr);
+        data = { success: false, message: 'Invalid server response' };
+      }
+      console.log('Bulk delete API response:', data);
 
       if (data.success) {
         setConversations(prev => 
-          prev.filter(conv => !selectedConversations.has(conv.id))
+          prev.filter(conv => !selectedConversations.has(conv._id))
         );
         setSelectedConversations(new Set());
         setIsSelectMode(false);
@@ -275,7 +287,7 @@ const ChatHistoryPage = () => {
       const data = await response.json();
 
       if (data.success) {
-        setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+        setConversations(prev => prev.filter(conv => conv._id !== conversationId));
         toast.success('Conversation deleted successfully');
       } else {
         throw new Error(data.message || 'Failed to delete conversation');
@@ -312,35 +324,19 @@ const ChatHistoryPage = () => {
   // Enhanced loading state
   if (loading) {
     return (
-      <div className="chat-history-container">
-        <div className="loading-container">
-          <div className="loading-content">
-            <div className="loading-spinner" role="status" aria-label="Loading">
-              <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-                <circle
-                  cx="24"
-                  cy="24"
-                  r="18"
-                  fill="none"
-                  stroke="#1976d2"
-                  strokeWidth="5"
-                  strokeDasharray="28 56"
-                  strokeLinecap="round"
-                >
-                  <animateTransform
-                    attributeName="transform"
-                    type="rotate"
-                    from="0 24 24"
-                    to="360 24 24"
-                    dur="0.9s"
-                    repeatCount="indefinite"
-                  />
-                </circle>
-              </svg>
+      <div className="main-content-wrapper">
+        <div className="chat-history-container error-bg">
+          <div className="chat-history-inner">
+            <div className="loading-container">
+              <div className="loading-content">
+                <div className="loading-spinner" role="status" aria-label="Loading">
+                  <div className="spinner-circle"></div>
+                </div>
+                <p className="loading-text" aria-live="polite">
+                  {loadingMessages[loadingStage]}
+                </p>
+              </div>
             </div>
-            <p className="loading-text" aria-live="polite">
-              {loadingMessages[loadingStage]}
-            </p>
           </div>
         </div>
       </div>
@@ -394,57 +390,54 @@ const ChatHistoryPage = () => {
     const isOffline = !navigator.onLine;
 
     return (
-      <div className="chat-history-container">
-        <div className="error-container">
-          <div className="error-content">
-            <div className="error-icon" role="img" aria-label="Error">
-              {isOffline ? '📡' : errorConfig.icon}
-            </div>
-            <h2 className="error-title">
-              {isOffline ? 'You\'re Offline' : errorConfig.title}
-            </h2>
-            <p className="error-message">
-              {isOffline ? 'Please check your internet connection and try again.' : errorConfig.message}
-            </p>
-            
-            {/* Support message */}
-            <div className="error-support">
-              <div className="support-icon">💙</div>
-              <p className="support-text">
-                {isOffline ? 'Connection issues are common - don\'t worry.' : errorConfig.supportText}
-              </p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="error-actions">
-              {(canRetry || isOffline) && (
-                <button 
-                  onClick={isOffline ? () => window.location.reload() : handleRetry}
-                  className="retry-button"
-                  disabled={!canRetry && !isOffline}
-                >
-                  {retryCount > 0 && !isOffline && (
-                    <span className="retry-count">
-                      {retryCount + 1}/3
-                    </span>
-                  )}
-                  {isOffline ? 'Check Connection & Retry' : 'Try Again'}
-                </button>
-              )}
-              
-              <Link to="/options" className="back-button">
-                Back to Options
-              </Link>
-            </div>
-
-            {/* Retry limit message */}
-            {retryCount >= 3 && !isOffline && (
-              <div className="retry-limit-message">
-                <p>
-                  Maximum retry attempts reached. Try refreshing the page or contact support if the issue persists.
+      <div className="main-content-wrapper">
+        <div className="chat-history-container error-bg">
+          <div className="chat-history-inner">
+            <div className="error-container">
+              <div className="error-content">
+                <div className="error-icon" role="img" aria-label="Error">
+                  {isOffline ? '📡' : errorConfig.icon}
+                </div>
+                <h2 className="error-title">
+                  {isOffline ? 'You\'re Offline' : errorConfig.title}
+                </h2>
+                <p className="error-message">
+                  {isOffline ? 'Please check your internet connection and try again.' : errorConfig.message}
                 </p>
+                
+                <div className="error-support-actions-row">
+                  <div className="error-support">
+                    <div className="support-icon">💙</div>
+                    <p className="support-text">
+                      {isOffline ? 'Connection issues are common - don\'t worry.' : errorConfig.supportText}
+                    </p>
+                  </div>
+                  {(canRetry || isOffline) && (
+                    <button 
+                      onClick={isOffline ? () => window.location.reload() : handleRetry}
+                      className="retry-button"
+                      disabled={!canRetry && !isOffline}
+                    >
+                      {retryCount > 0 && !isOffline && (
+                        <span className="retry-count">
+                          {retryCount + 1}/3
+                        </span>
+                      )}
+                      {isOffline ? 'Check Connection & Retry' : 'Try Again'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Retry limit message */}
+                {retryCount >= 3 && !isOffline && (
+                  <div className="retry-limit-message">
+                    <p>
+                      Maximum retry attempts reached. Try refreshing the page or contact support if the issue persists.
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -452,242 +445,201 @@ const ChatHistoryPage = () => {
   }
 
   return (
-    <div className="chat-history-container">
-      {/* Header */}
-      <header className="chat-history-header">
-        <Link to="/options" className="back-link" aria-label="Back to options">
-          <span className="back-icon">←</span>
-          back
-        </Link>
-        <div className="header-center">
-          <h1 className="page-title">your conversations</h1>
-          <p className="page-subtitle">
-            {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <div className="header-actions">
-          <button
-            onClick={toggleSelectMode}
-            className={`action-button ${isSelectMode ? 'active' : ''}`}
-            aria-label={isSelectMode ? 'Exit select mode' : 'Enter select mode'}
-          >
-            {isSelectMode ? 'cancel' : 'select'}
-          </button>
-        </div>
-      </header>
-
-      {/* Controls */}
-      <div className="search-and-controls">
-        <div className="search-section">
-          <div className="search-input-wrapper">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="search conversations..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="search-input"
-              aria-label="Search conversations"
-            />
-            {searchQuery && (
+    <div className="main-content-wrapper">
+      <div className="chat-history-container">
+        <div className="chat-history-inner">
+          {/* Header */}
+          <header className="chat-history-header">
+            <Link to="/options" className="back-link" aria-label="Back to options">
+              <span className="back-icon">←</span>
+              back
+            </Link>
+            <div className="header-center">
+              <h1 className="page-title">your conversations</h1>
+              <p className="page-subtitle">
+                {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <div className="header-actions">
               <button
-                className="control-select clear-action"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear search"
+                onClick={toggleSelectMode}
+                className={`action-button ${isSelectMode ? 'active' : ''}`}
+                aria-label={isSelectMode ? 'Exit select mode' : 'Enter select mode'}
               >
-                ×
+                {isSelectMode ? 'cancel' : 'select'}
               </button>
+            </div>
+          </header>
+
+          {/* Controls */}
+          <div className="search-and-controls">
+            <div className="search-section">
+              <div className="search-input-wrapper">
+                <span className="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="search conversations..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="search-input"
+                  aria-label="Search conversations"
+                />
+                {searchQuery && (
+                  <button
+                    className="control-select clear-action"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="filter-controls">
+              <div className="control-group">
+                <label htmlFor="filter-type" className="control-label">filter:</label>
+                <select
+                  id="filter-type"
+                  value={filterType}
+                  onChange={handleFilterChange}
+                  className="control-select"
+                >
+                  <option value="all">all conversations</option>
+                  <option value="voice">voice only</option>
+                  <option value="text">text only</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label htmlFor="sort-order" className="control-label">sort:</label>
+                <select
+                  id="sort-order"
+                  value={sortOrder}
+                  onChange={handleSortChange}
+                  className="control-select"
+                >
+                  <option value="newest">newest first</option>
+                  <option value="oldest">oldest first</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Selection controls */}
+          {isSelectMode && (
+            <div className="selection-controls">
+              <div className="selection-actions">
+                <button
+                  onClick={selectAllConversations}
+                  className="action-button"
+                  disabled={selectedConversations.size === filteredAndSortedConversations.length}
+                >
+                  select all
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="action-button secondary"
+                  disabled={selectedConversations.size === 0}
+                >
+                  clear
+                </button>
+                <button
+                  onClick={handleDeleteSelected}
+                  className="action-button danger"
+                  disabled={selectedConversations.size === 0}
+                >
+                  delete
+                  <span className="selection-count-badge">{selectedConversations.size}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Conversations List */}
+          <main className="conversations-list">
+            {filteredAndSortedConversations.length === 0 ? (
+              <div className="empty-state">
+                {searchQuery.trim() ? (
+                  <>
+                    <div className="empty-icon">🔍</div>
+                    <h3 className="empty-title">no conversations found</h3>
+                    <p className="empty-message">
+                      try adjusting your search or filter criteria
+                    </p>
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setFilterType('all');
+                      }}
+                      className="control-select clear-action"
+                    >
+                      clear filters
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="empty-icon">💬</div>
+                    <h3 className="empty-title">no conversations yet</h3>
+                    <p className="empty-message">
+                      start your first conversation to see it here
+                    </p>
+                    <Link to="/voice" className="pill-button">
+                      start voice chat
+                    </Link>
+                    <Link to="/chat" className="pill-button">
+                      start text chat
+                    </Link>
+                  </>
+                )}
+              </div>
+            ) : (
+              filteredAndSortedConversations.map(conversation => (
+                <ConversationCard
+                  key={conversation._id}
+                  conversation={conversation}
+                  isSelected={selectedConversations.has(conversation._id)}
+                  isSelectMode={isSelectMode}
+                  onSelect={() => toggleConversationSelection(conversation._id)}
+                  onClick={() => {
+                    if (!isSelectMode) {
+                      navigate(`/chat-history/${conversation._id}`);
+                    }
+                  }}
+                />
+              ))
             )}
-          </div>
-        </div>
-        <div className="filter-controls">
-          <div className="control-group">
-            <label htmlFor="filter-type" className="control-label">filter:</label>
-            <select
-              id="filter-type"
-              value={filterType}
-              onChange={handleFilterChange}
-              className="control-select"
-            >
-              <option value="all">all conversations</option>
-              <option value="voice">voice only</option>
-              <option value="text">text only</option>
-            </select>
-          </div>
-          <div className="control-group">
-            <label htmlFor="sort-order" className="control-label">sort:</label>
-            <select
-              id="sort-order"
-              value={sortOrder}
-              onChange={handleSortChange}
-              className="control-select"
-            >
-              <option value="newest">newest first</option>
-              <option value="oldest">oldest first</option>
-            </select>
-          </div>
+          </main>
+
+          {/* Export Modal */}
+          {showExportModal && (
+            <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3 className="modal-title">export chat history</h3>
+                </div>
+                <div className="modal-body">
+                  <p className="modal-message">
+                    export all your conversations as a JSON file for backup or analysis.
+                  </p>
+                </div>
+                <div className="modal-actions">
+                  <button
+                    onClick={() => setShowExportModal(false)}
+                    className="modal-button secondary"
+                  >
+                    cancel
+                  </button>
+                  <button
+                    onClick={handleExportHistory}
+                    className="modal-button primary"
+                  >
+                    export
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Selection controls */}
-      {isSelectMode && (
-        <div className="selection-controls">
-          <div className="selection-info">
-            <span className="selected-count">
-              {selectedConversations.size} selected
-            </span>
-          </div>
-          <div className="selection-actions">
-            <button
-              onClick={selectAllConversations}
-              className="action-button"
-              disabled={selectedConversations.size === filteredAndSortedConversations.length}
-            >
-              select all
-            </button>
-            <button
-              onClick={clearSelection}
-              className="action-button secondary"
-              disabled={selectedConversations.size === 0}
-            >
-              clear
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="action-button danger"
-              disabled={selectedConversations.size === 0}
-            >
-              delete ({selectedConversations.size})
-            </button>
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="action-button secondary"
-              disabled={selectedConversations.size === 0}
-            >
-              export
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Conversations List */}
-      <main className="conversations-list">
-        {filteredAndSortedConversations.length === 0 ? (
-          <div className="empty-state">
-            {searchQuery.trim() ? (
-              <>
-                <div className="empty-icon">🔍</div>
-                <h3 className="empty-title">no conversations found</h3>
-                <p className="empty-message">
-                  try adjusting your search or filter criteria
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setFilterType('all');
-                  }}
-                  className="control-select clear-action"
-                >
-                  clear filters
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="empty-icon">💬</div>
-                <h3 className="empty-title">no conversations yet</h3>
-                <p className="empty-message">
-                  start your first conversation to see it here
-                </p>
-                <Link to="/voice" className="action-button primary" style={{ marginRight: '1rem' }}>
-                  start voice chat
-                </Link>
-                <Link to="/chat" className="action-button primary">
-                  start text chat
-                </Link>
-              </>
-            )}
-          </div>
-        ) : (
-          filteredAndSortedConversations.map(conversation => (
-            <ConversationCard
-              key={conversation.id}
-              conversation={conversation}
-              isSelected={selectedConversations.has(conversation.id)}
-              isSelectMode={isSelectMode}
-              onSelect={() => toggleConversationSelection(conversation.id)}
-              onClick={() => {
-                if (!isSelectMode) {
-                  navigate(`/chat-history/${conversation.id}`);
-                }
-              }}
-              onDelete={(conversationId) => handleDeleteSingle(conversationId)}
-            />
-          ))
-        )}
-      </main>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">delete conversations?</h3>
-            </div>
-            <div className="modal-body">
-              <p className="modal-message">
-                are you sure you want to delete {selectedConversations.size} conversation
-                {selectedConversations.size !== 1 ? 's' : ''}? this action cannot be undone.
-              </p>
-            </div>
-            <div className="modal-actions">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="modal-button secondary"
-                disabled={isDeleting}
-              >
-                cancel
-              </button>
-              <button
-                onClick={handleDeleteSelected}
-                className="modal-button danger"
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'deleting...' : 'delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Export Modal */}
-      {showExportModal && (
-        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">export chat history</h3>
-            </div>
-            <div className="modal-body">
-              <p className="modal-message">
-                export all your conversations as a JSON file for backup or analysis.
-              </p>
-            </div>
-            <div className="modal-actions">
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="modal-button secondary"
-              >
-                cancel
-              </button>
-              <button
-                onClick={handleExportHistory}
-                className="modal-button primary"
-              >
-                export
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
