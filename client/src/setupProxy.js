@@ -4,7 +4,7 @@ module.exports = function(app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://localhost:5001',
+      target: 'http://server:5001',
       changeOrigin: true,
       onError: (err, req, res) => {
         console.error('Proxy error:', err.message);
@@ -17,7 +17,7 @@ module.exports = function(app) {
         }));
       },
       onProxyReq: (proxyReq, req, res) => {
-        // Optionally log or modify proxy requests here
+        console.log('Proxying request:', req.url);
       },
       onProxyRes: (proxyRes, req, res) => {
         // Optionally log or modify proxy responses here

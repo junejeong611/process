@@ -1,5 +1,134 @@
 /* Enhanced ChatHistoryPage.css - Modern UI for Emotional Support App */
 
+/* Screen reader only class - hides content visually but keeps it for screen readers */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Force higher specificity for search help text */
+.chat-history-container #search-help,
+.chat-history-container #filter-help,
+.chat-history-container #sort-help {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Ensure the search input wrapper styling applies correctly */
+.chat-history-container .search-input-wrapper {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 450px !important;
+  background: var(--bg-overlay) !important;
+  border: 2px solid var(--border-light) !important;
+  border-radius: var(--radius-full) !important;
+  box-shadow: var(--shadow-medium) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  padding: 0 1.75rem !important;
+  transition: all var(--transition-normal) !important;
+  overflow: hidden !important;
+}
+
+/* Fix any export details styling that might be missing */
+.export-details {
+  background: rgba(123, 182, 250, 0.05);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border: 1px solid var(--border-light);
+}
+
+.export-details ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.export-details li {
+  padding: 0.25rem 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.export-details li::before {
+  content: '✓ ';
+  color: var(--primary-blue);
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+/* Force higher specificity for ChatHistoryPage */
+.chat-history-container {
+  /* All Primary Colors */
+  --primary-blue: #7bb6fa !important;
+  --primary-blue-dark: #5a8fd6 !important;
+  --primary-blue-light: #a8cdff !important;
+  --primary-blue-pale: #e8f2ff !important;
+  
+  /* All Background Colors */
+  --bg-primary: #eaf2fa !important;
+  --bg-secondary: #e3edf7 !important;
+  --bg-card: rgba(255, 255, 255, 0.85) !important;
+  --bg-glass: rgba(255, 255, 255, 0.7) !important;
+  --bg-overlay: rgba(255, 255, 255, 0.95) !important;
+  
+  /* All Text Colors */
+  --text-primary: #2a3a4d !important;
+  --text-secondary: #6b7a90 !important;
+  --text-muted: #8ca0b8 !important;
+  --text-light: #a8b5c7 !important;
+  
+  /* All Border Colors */
+  --border-light: rgba(123, 182, 250, 0.15) !important;
+  --border-medium: rgba(123, 182, 250, 0.25) !important;
+  --border-strong: rgba(123, 182, 250, 0.4) !important;
+  
+  /* All Shadows */
+  --shadow-light: 0 2px 12px rgba(123, 182, 250, 0.08) !important;
+  --shadow-medium: 0 4px 20px rgba(60, 90, 130, 0.12) !important;
+  --shadow-strong: 0 8px 32px rgba(60, 90, 130, 0.15) !important;
+  --shadow-glow: 0 0 0 4px rgba(123, 182, 250, 0.15) !important;
+  
+  /* All Border Radius */
+  --radius-xs: 4px !important;
+  --radius-sm: 8px !important;
+  --radius-md: 12px !important;
+  --radius-lg: 16px !important;
+  --radius-xl: 20px !important;
+  --radius-2xl: 24px !important;
+  --radius-full: 999px !important;
+  
+  /* All Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  
+  /* All Spacing */
+  --space-xs: 0.25rem !important;
+  --space-sm: 0.5rem !important;
+  --space-md: 1rem !important;
+  --space-lg: 1.5rem !important;
+  --space-xl: 2rem !important;
+  --space-2xl: 3rem !important;
+}
+
 :root {
   --sidebar-width: 280px;
   
@@ -94,6 +223,7 @@ body {
   min-height: 100vh;
   padding: 0;
   transition: margin-left var(--transition-normal);
+  background: purple !important;
 }
 
 @media (max-width: 900px) {
@@ -136,6 +266,8 @@ body {
   position: relative;
   z-index: 100;
   transition: all var(--transition-normal);
+  background: red !important;
+  border: 5px solid yellow !important;
 }
 
 .chat-history-header::before {
@@ -410,6 +542,8 @@ body {
   padding: 0 1.75rem;
   transition: all var(--transition-normal);
   overflow: hidden;
+  background: lime !important;
+  border: 3px solid blue !important;
 }
 
 .search-input-wrapper::before {
@@ -1427,4 +1561,86 @@ body {
     color: black !important;
     border: 1px solid #ccc !important;
   }
+}
+
+/* Enhanced ChatHistoryPage Styles with Higher Specificity */
+
+/* Force enhanced variables */
+.main-content-wrapper .chat-history-container,
+.main-content-wrapper .chat-history-container * {
+  --primary-blue: #7bb6fa !important;
+  --primary-blue-dark: #5a8fd6 !important;
+  --primary-blue-light: #a8cdff !important;
+  --bg-primary: #eaf2fa !important;
+  --bg-secondary: #e3edf7 !important;
+  --bg-card: rgba(255, 255, 255, 0.85) !important;
+  --bg-glass: rgba(255, 255, 255, 0.7) !important;
+  --bg-overlay: rgba(255, 255, 255, 0.95) !important;
+  --text-primary: #2a3a4d !important;
+  --text-secondary: #6b7a90 !important;
+  --text-muted: #8ca0b8 !important;
+  --border-light: rgba(123, 182, 250, 0.15) !important;
+  --border-medium: rgba(123, 182, 250, 0.25) !important;
+  --shadow-light: 0 2px 12px rgba(123, 182, 250, 0.08) !important;
+  --shadow-medium: 0 4px 20px rgba(60, 90, 130, 0.12) !important;
+  --shadow-strong: 0 8px 32px rgba(60, 90, 130, 0.15) !important;
+  --radius-lg: 16px !important;
+  --radius-xl: 20px !important;
+  --radius-2xl: 24px !important;
+  --radius-full: 999px !important;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Enhanced Header with Glassmorphism */
+.main-content-wrapper .chat-history-header {
+  background: var(--bg-overlay) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-radius: var(--radius-2xl) !important;
+  box-shadow: var(--shadow-medium), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid var(--border-light) !important;
+  padding: 1.5rem 2.25rem !important;
+  margin-bottom: 2.5rem !important;
+}
+
+/* Enhanced Search Input */
+.main-content-wrapper .search-input-wrapper {
+  background: var(--bg-overlay) !important;
+  border: 2px solid var(--border-light) !important;
+  border-radius: var(--radius-full) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  box-shadow: var(--shadow-medium) !important;
+  transition: all var(--transition-normal) !important;
+}
+
+.main-content-wrapper .search-input-wrapper:focus-within {
+  border-color: var(--primary-blue) !important;
+  box-shadow: 0 0 0 4px rgba(123, 182, 250, 0.15), var(--shadow-medium) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Enhanced Action Buttons */
+.main-content-wrapper .action-button {
+  background: var(--bg-glass) !important;
+  border: 1px solid var(--border-light) !important;
+  color: var(--primary-blue-dark) !important;
+  border-radius: var(--radius-full) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: var(--shadow-light) !important;
+  transition: all var(--transition-normal) !important;
+}
+
+.main-content-wrapper .action-button:hover {
+  background: rgba(123, 182, 250, 0.12) !important;
+  border-color: var(--border-medium) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 28px rgba(123, 182, 250, 0.22) !important;
+}
+
+.main-content-wrapper .action-button.active {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%) !important;
+  color: white !important;
+  border-color: var(--primary-blue) !important;
 }

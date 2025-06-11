@@ -18,7 +18,6 @@ const ChatHistoryPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
@@ -48,43 +47,6 @@ const ChatHistoryPage = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  // Enhanced export function with error handling
-  const exportHistory = useCallback(async () => {
-    try {
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        totalConversations: conversations.length,
-        conversations: conversations.map(conv => ({
-          ...conv,
-          // Remove any sensitive data if needed
-          exportedAt: new Date().toISOString()
-        }))
-      };
-      
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `chat-history-${new Date().toISOString().split('T')[0]}.json`;
-      
-      // Ensure download works on different browsers
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      URL.revokeObjectURL(url);
-      
-      // Analytics tracking (if needed)
-      console.log('Chat history exported successfully');
-      
-    } catch (error) {
-      console.error('Export failed:', error);
-      throw new Error('Failed to export chat history. Please try again.');
-    }
-  }, [conversations]);
 
   // Initialize component
   useEffect(() => {
@@ -122,9 +84,8 @@ const ChatHistoryPage = () => {
     const handleKeyPress = (e) => {
       // Escape key handling
       if (e.key === 'Escape') {
-        if (showDeleteConfirm || showExportModal) {
+        if (showDeleteConfirm) {
           setShowDeleteConfirm(false);
-          setShowExportModal(false);
         } else if (isSelectMode) {
           setIsSelectMode(false);
           setSelectedConversations(new Set());
@@ -168,7 +129,7 @@ const ChatHistoryPage = () => {
     
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isSelectMode, selectedConversations, showDeleteConfirm, showExportModal, searchQuery]);
+  }, [isSelectMode, selectedConversations, showDeleteConfirm, searchQuery]);
 
   // Enhanced fetch with better error handling and retry logic
   const fetchConversations = useCallback(async () => {
@@ -251,13 +212,13 @@ const ChatHistoryPage = () => {
         throw new Error(data.message || 'Failed to load conversations');
       }
     } catch (err) {
-      console.error('Fetch Error:', err);
-      
-      // Enhanced error categorization with user-friendly messages
       if (err.name === 'AbortError') {
-        setErrorType('timeout');
-        setError('Request timed out. Please check your connection and try again.');
-      } else if (err.message.includes('Failed to fetch') || !isOnline) {
+        // Ignore abort errors caused by cleanup/unmount
+        return;
+      }
+      console.error('Fetch Error:', err);
+      // Enhanced error categorization with user-friendly messages
+      if (err.message.includes('Failed to fetch') || !isOnline) {
         setErrorType('network');
         setError('Network error. Please check your internet connection.');
       } else if (err.message.includes('429')) {
@@ -368,7 +329,7 @@ const ChatHistoryPage = () => {
       console.log('Deleting conversations:', conversationIds);
 
       const response = await fetch('/api/chat/conversations/bulk-delete', {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -415,47 +376,6 @@ const ChatHistoryPage = () => {
       setShowDeleteConfirm(false);
     }
   }, [selectedConversations, fetchConversations]);
-
-  // Enhanced export handler
-  const handleExportHistory = useCallback(async () => {
-    try {
-      setShowExportModal(false);
-      toast.info('Preparing your chat history for export...');
-      
-      await exportHistory();
-      toast.success('Chat history exported successfully!');
-    } catch (err) {
-      console.error('Export Error:', err);
-      toast.error(err.message || 'Failed to export chat history. Please try again.');
-    }
-  }, [exportHistory]);
-
-  // Enhanced single conversation delete
-  const handleDeleteSingle = useCallback(async (conversationId) => {
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      const response = await fetch(`/api/chat/conversations/${conversationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setConversations(prev => prev.filter(conv => conv._id !== conversationId));
-        toast.success('Conversation deleted successfully');
-      } else {
-        throw new Error(data.message || 'Failed to delete conversation');
-      }
-    } catch (err) {
-      console.error('Delete Error:', err);
-      toast.error(err.message || 'Failed to delete conversation. Please try again.');
-    }
-  }, []);
 
   // Enhanced conversation navigation
   const handleConversationClick = useCallback((conversationId) => {
@@ -684,15 +604,6 @@ const ChatHistoryPage = () => {
               >
                 {isSelectMode ? 'cancel' : 'select'}
               </button>
-              {conversations.length > 0 && (
-                <button
-                  onClick={() => setShowExportModal(true)}
-                  className="action-button secondary"
-                  aria-label="Export chat history"
-                >
-                  export
-                </button>
-              )}
             </div>
           </header>
 
@@ -907,56 +818,6 @@ const ChatHistoryPage = () => {
                     aria-label={`Confirm deletion of ${selectedConversations.size} conversations`}
                   >
                     {isDeleting ? 'deleting...' : 'delete'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Enhanced Export Modal */}
-          {showExportModal && (
-            <div 
-              className="modal-overlay" 
-              onClick={() => setShowExportModal(false)}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="export-modal-title"
-              aria-describedby="export-modal-description"
-            >
-              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h3 id="export-modal-title" className="modal-title">
-                    export chat history
-                  </h3>
-                </div>
-                <div className="modal-body">
-                  <p id="export-modal-description" className="modal-message">
-                    Export all your conversations as a JSON file for backup or personal analysis. 
-                    Your privacy is protected - this file stays with you.
-                  </p>
-                  <div className="export-details">
-                    <ul>
-                      <li>{conversations.length} total conversations</li>
-                      <li>Includes conversation content and metadata</li>
-                      <li>File format: JSON (human-readable)</li>
-                      <li>Your data remains private and secure</li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="modal-actions">
-                  <button
-                    onClick={() => setShowExportModal(false)}
-                    className="modal-button secondary"
-                    aria-label="Cancel export"
-                  >
-                    cancel
-                  </button>
-                  <button
-                    onClick={handleExportHistory}
-                    className="modal-button primary"
-                    aria-label="Export chat history"
-                  >
-                    export
                   </button>
                 </div>
               </div>
