@@ -1,155 +1,208 @@
-console.log('chat.js router loaded');
 const express = require('express');
 const router = express.Router();
+const Anthropic = require('@anthropic-ai/sdk');
 const Message = require('../models/Message');
-const claudeService = require('../services/claudeService');
-const auth = require('../middleware/auth');
-const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
+const auth = require('../middleware/auth');
+const claudeService = require('../services/claudeService');
+const axios = require('axios');
+const { ElevenLabsClient, play } = require('@elevenlabs/elevenlabs-js');
+require("dotenv").config();
 
-// GET /api/chat/messages/:conversationId - Get recent messages for a conversation
-router.get('/messages/:conversationId', auth, async (req, res) => {
+
+// Initialize Claude API client
+const anthropic = new Anthropic({
+  apiKey: process.env.CLAUDE_API_KEY
+});
+
+
+
+// @route   POST /api/chat/conversations
+// @desc    Create a new conversation
+// @access  Private
+router.post('/conversations', auth, async (req, res) => {
   try {
-    const { conversationId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-      return res.status(400).json({ success: false, message: 'Invalid conversationId' });
-    }
-    const messages = await Message.find({ conversationId, userId: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-    res.json({ success: true, messages: messages.reverse() });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const conversation = new Conversation({
+      userId: req.user._id,
+      title: 'New Conversation'
+    });
+    await conversation.save();
+
+    // AI's first message
+    const aiFirstMessage = "Hello! How can I help you today?";
+
+    const aiMessage = new Message({
+      userId: req.user._id,
+      content: aiFirstMessage,
+      sender: 'ai',
+      conversationId: conversation._id
+    });
+    await aiMessage.save();
+
+    // Update conversation's lastMessageTime and messageCount
+    conversation.lastMessageTime = new Date();
+    conversation.messageCount = 1;
+    await conversation.save();
+
+    res.status(201).json(conversation);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// POST /api/chat/send - Send a message and get AI reply
+// @route   GET /api/chat/conversations
+// @desc    Get all conversations for the authenticated user
+// @access  Private
+router.get('/conversations', auth, async (req, res) => {
+  try {
+    const conversations = await Conversation.find({ userId: req.user._id })
+      .sort({ updatedAt: -1 });
+
+    // Get the last message for each conversation
+    const conversationsWithLastMessage = await Promise.all(conversations.map(async (conversation) => {
+      const lastMessage = await Message.findOne({ 
+        conversationId: conversation._id 
+      }).sort({ createdAt: -1 });
+
+      return {
+        ...conversation.toObject(),
+        lastMessage: lastMessage ? lastMessage.content : null,
+        lastMessageTime: lastMessage ? lastMessage.createdAt : conversation.updatedAt
+      };
+    }));
+
+    res.json({
+      success: true,
+      conversations: conversationsWithLastMessage
+    });
+  } catch (error) {
+    console.error('Error fetching conversations:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to load conversations',
+      error: error.message 
+    });
+  }
+});
+
+// @route   GET /api/chat/messages/:conversationId
+// @desc    Get all messages for a specific conversation
+// @access  Private
+router.get('/messages/:conversationId', auth, async (req, res) => {
+  try {
+    const messages = await Message.find({ 
+      userId: req.user._id,
+      conversationId: req.params.conversationId 
+    })
+      .sort({ createdAt: 1 });
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// @route   POST /api/chat/send
+// @desc    Send a message, get Claude reply, store both
+// @access  Private
 router.post('/send', auth, async (req, res) => {
   try {
     const { content, conversationId } = req.body;
+
     if (!content || !conversationId) {
-      return res.status(400).json({ success: false, message: 'Content and conversationId are required' });
+      return res.status(400).json({ error: 'Message content and conversation ID are required' });
     }
-    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-      return res.status(400).json({ success: false, message: 'Invalid conversationId' });
+
+    // Verify conversation exists and belongs to user
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      userId: req.user._id
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
     }
+
     // Save user message
-    const userMessage = await Message.create({
-      conversationId,
+    const userMessage = new Message({
       userId: req.user._id,
       content,
       sender: 'user',
+      conversationId
     });
-    // Get AI reply
-    const aiResponse = await claudeService.sendMessage(content);
-    // Save AI message
-    const aiMessage = await Message.create({
-      conversationId,
-      userId: req.user._id,
-      content: aiResponse.content,
-      sender: 'bot',
-    });
-    res.json({ success: true, message: aiMessage });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+    
+    await userMessage.save();
 
-// POST /api/chat/conversations - Create a new conversation
-router.post('/conversations', auth, async (req, res) => {
-  try {
-    const { type = 'text', title } = req.body;
-    const conversation = new (require('../models/Conversation'))({
+    // Get Claude's response using claudeService
+    const claudeResponse = await claudeService.sendMessage(content);
+
+    // Save assistant's response
+    const assistantMessage = new Message({
       userId: req.user._id,
-      type,
-      title: title || 'New Conversation'
+      content: claudeResponse.content,
+      sender: 'ai',
+      conversationId
     });
+    await assistantMessage.save();
+
+    // Update conversation's last message timestamp and increment message count
+    conversation.lastMessageTime = new Date();
+    conversation.messageCount = (conversation.messageCount || 0) + 2; // Increment by 2 for both user and AI messages
     await conversation.save();
-    res.json({ success: true, id: conversation._id });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
 
-// DELETE /api/chat/conversations/bulk-delete - Bulk delete conversations
-router.delete('/conversations/bulk-delete', auth, async (req, res) => {
-  try {
-    const { conversationIds } = req.body;
-    if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
-      return res.status(400).json({ success: false, message: 'conversationIds required' });
-    }
-    await Message.deleteMany({ conversationId: { $in: conversationIds }, userId: req.user._id });
-    await Conversation.deleteMany({ _id: { $in: conversationIds }, userId: req.user._id });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+    console.log(assistantMessage)
 
-// DELETE /api/chat/conversations/:id - Delete a conversation
-router.delete('/conversations/:id', auth, async (req, res) => {
-  console.log('DELETE /conversations/:id hit', req.params.id);
-  try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid conversationId' });
-    }
-    await Message.deleteMany({ conversationId: id, userId: req.user._id });
-    await Conversation.deleteOne({ _id: id, userId: req.user._id });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// GET /api/chat/conversations - List all conversations for the user
-router.get('/conversations', auth, async (req, res) => {
-  try {
-    const Conversation = require('../../models/Conversation');
-    const Message = require('../../models/Message');
-    // Get all conversations for the user
-    const conversations = await Conversation.find({ userId: req.user._id }).lean();
-    // For each conversation, get the last message
-    const conversationIds = conversations.map(c => c._id);
-    const lastMessages = await Message.aggregate([
-      { $match: { conversationId: { $in: conversationIds }, userId: req.user._id } },
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: '$conversationId',
-          lastMessage: { $first: '$content' },
-          lastMessageTime: { $first: '$createdAt' }
-        }
-      }
-    ]);
-    // Map lastMessages by conversationId
-    const lastMessageMap = {};
-    lastMessages.forEach(m => {
-      lastMessageMap[m._id.toString()] = m;
+    res.json({
+      message: assistantMessage
     });
-    // Merge last message info into conversations
-    const merged = conversations.map(conv => {
-      const lm = lastMessageMap[conv._id.toString()] || {};
-      return {
-        ...conv,
-        lastMessage: lm.lastMessage || null,
-        lastMessageTime: lm.lastMessageTime || conv.updatedAt
-      };
-    });
-    // Sort by lastMessageTime descending
-    merged.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
-    res.json({ success: true, conversations: merged });
-  } catch (err) {
-    console.error('Error in /api/chat/conversations:', err, err?.stack);
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    console.error('[/api/chat/send] uncaught error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Catch-all for debugging unmatched routes in chat router
-router.use((req, res, next) => {
-  console.log('chat.js catch-all:', req.method, req.originalUrl);
-  next();
+
+// @route   POST /api/chat/elevenlabs
+// @desc    get a audio file from elevenlabs
+// @access  Private
+router.post('/elevenlabs', auth, async (req, res) => {
+  try {
+    const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+
+    const voiceId = 'cgSgspJ2msm6clMCkdW9'; // Replace with your actual voice ID
+
+    console.log(text)
+
+    const audio = await elevenlabs.textToSpeech.convert(voiceId, {
+      text,
+      voiceId,
+      modelId: 'eleven_multilingual_v2',
+      outputFormat: 'mp3_44100_128',
+    });
+
+
+
+    const chunks = [];
+    for await (const chunk of audio) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    console.log("Final audio buffer size:", buffer.length); // Should be > 1000
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.send(buffer);
+
+  } catch (err) {
+    console.error('ElevenLabs error:', err.message);
+    res.status(500).json({ error: 'Failed to generate audio' });
+  }
 });
 
-module.exports = router; 
+
+
+module.exports = router;
