@@ -68,8 +68,8 @@ const userSchema = new mongoose.Schema({
   },
   subscriptionStatus: {
     type: String,
-    enum: ['trial', 'active', 'canceled', 'past_due'],
-    default: 'trial'
+    enum: ['inactive', 'trialing', 'active', 'canceled', 'past_due'],
+    default: 'inactive'
   },
   stripeCustomerId: {
     type: String
@@ -79,6 +79,15 @@ const userSchema = new mongoose.Schema({
   },
   currentPlan: {
     type: String
+  },
+  currentPeriodStart: {
+    type: Date
+  },
+  currentPeriodEnd: {
+    type: Date
+  },
+  cancelAtPeriodEnd: {
+    type: Boolean
   }
 }, {
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },

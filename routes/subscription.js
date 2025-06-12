@@ -1,71 +1,117 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
-const {
-  createCustomer,
-  createCheckoutSession,
-  createPortalSession,
-  verifyWebhookSignature
-} = require('../services/stripeService');
+const stripe = require('../services/stripeService');
 
-// POST /api/subscription/create-checkout-session
-router.post('/create-checkout-session', auth, async (req, res) => {
+// GET /api/subscription/status
+router.get('/status', authenticateToken, async (req, res) => {
+  console.log('📊 Fetching subscription status for user:', req.user.email);
   try {
-    const user = req.user;
-    // If user does not have a Stripe customer ID, create one
-    let stripeCustomerId = user.stripeCustomerId;
-    if (!stripeCustomerId) {
-      const customer = await createCustomer(user.email, { userId: user._id.toString() });
-      stripeCustomerId = customer.id;
-      user.stripeCustomerId = stripeCustomerId;
-      await user.save();
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      console.error('❌ User not found');
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // Create Stripe Checkout session
-    const session = await createCheckoutSession({
-      customerId: stripeCustomerId,
-      priceId: process.env.STRIPE_PRICE_ID,
-      successUrl: req.body.successUrl || 'http://localhost:3000/subscription/success',
-      cancelUrl: req.body.cancelUrl || 'http://localhost:3000/subscription/cancel'
+    console.log('Current subscription status:', {
+      status: user.subscriptionStatus,
+      stripeCustomerId: user.stripeCustomerId,
+      stripeSubscriptionId: user.stripeSubscriptionId,
+      currentPlan: user.currentPlan,
+      trialEnd: user.trialEnd,
+      currentPeriodEnd: user.currentPeriodEnd
     });
 
+    res.json({
+      subscriptionStatus: user.subscriptionStatus,
+      stripeCustomerId: user.stripeCustomerId,
+      stripeSubscriptionId: user.stripeSubscriptionId,
+      currentPlan: user.currentPlan,
+      trialEnd: user.trialEnd,
+      currentPeriodEnd: user.currentPeriodEnd,
+      cancelAtPeriodEnd: user.cancelAtPeriodEnd
+    });
+  } catch (error) {
+    console.error('❌ Error fetching subscription status:', error);
+    res.status(500).json({ error: 'Error fetching subscription status' });
+  }
+});
+
+// POST /api/subscription/create-checkout-session
+router.post('/create-checkout-session', authenticateToken, async (req, res) => {
+  console.log('🔑 Creating Stripe Checkout session for user:', req.user.email);
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      console.error('❌ User not found');
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Create or get Stripe customer
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      console.log('Creating new Stripe customer for user:', user.email);
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          userId: user._id.toString()
+        }
+      });
+      customerId = customer.id;
+      user.stripeCustomerId = customerId;
+      await user.save();
+      console.log('✅ New Stripe customer created:', customerId);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: process.env.STRIPE_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${process.env.CLIENT_URL}/subscribe?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_URL}/subscribe`,
+      allow_promotion_codes: true,
+      billing_address_collection: 'required',
+      metadata: {
+        userId: user._id.toString()
+      }
+    });
+
+    console.log('✅ Checkout session created successfully');
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe checkout session error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error creating checkout session:', error);
+    res.status(500).json({ error: 'Error creating checkout session' });
   }
 });
 
 // POST /api/subscription/create-portal-session
-router.post('/create-portal-session', auth, async (req, res) => {
+router.post('/create-portal-session', authenticateToken, async (req, res) => {
+  console.log('🔑 Creating Stripe Customer Portal session for user:', req.user.email);
   try {
-    const user = req.user;
-    if (!user.stripeCustomerId) {
-      return res.status(400).json({ error: 'No Stripe customer ID found for user.' });
+    const user = await User.findById(req.user.id);
+    if (!user || !user.stripeCustomerId) {
+      console.error('❌ User or Stripe customer ID not found');
+      return res.status(400).json({ error: 'No subscription found' });
     }
-    const returnUrl = req.body.returnUrl || 'http://localhost:3000/subscription/manage';
-    const session = await createPortalSession({
-      customerId: user.stripeCustomerId,
-      returnUrl
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${process.env.CLIENT_URL}/subscribe`, // Return to subscription page
     });
+
+    console.log('✅ Portal session created successfully');
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe portal session error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error creating portal session:', error);
+    res.status(500).json({ error: 'Error creating portal session' });
   }
-});
-
-// GET /api/subscription/status
-router.get('/status', auth, async (req, res) => {
-  // TODO: Implement logic to return current user's subscription status
-  res.json({ message: 'Not implemented yet' });
-});
-
-// POST /api/webhooks/stripe
-router.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
-  // TODO: Implement logic to verify and handle Stripe webhook events
-  res.json({ message: 'Not implemented yet' });
 });
 
 module.exports = router; 

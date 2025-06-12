@@ -19,7 +19,7 @@ const ConversationDetailPage = () => {
         }
       });
       const data = await response.json();
-
+      
       // data is an array of messages
       if (Array.isArray(data)) {
         setConversation({ messages: data });
