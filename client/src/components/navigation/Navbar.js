@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
 import './Navbar.css';
 
 const Navbar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const { status, loading } = useSubscriptionStatus();
+
+  // Debug logs
+  console.log('Navbar - Subscription Status:', status);
+  console.log('Navbar - Loading:', loading);
+
   const navItems = [
     {
       key: 'dashboard',
@@ -63,9 +69,31 @@ const Navbar = () => {
   };
 
   const activeKey = getActiveItem();
+  const isOptionsPage = location.pathname === '/options';
+  
+  // Check if user has premium access
+  const hasPremiumAccess = status && (
+    status.subscriptionStatus === 'active' ||
+    status.subscriptionStatus === 'trialing'
+  ) && status.subscriptionStatus !== 'inactive';
+
+  // Debug log for premium access
+  console.log('Navbar - Has Premium Access:', hasPremiumAccess);
+  console.log('Navbar - Current Status:', status?.subscriptionStatus);
+
+  const handlePremiumClick = (e) => {
+    if (!hasPremiumAccess) {
+      e.preventDefault();
+      navigate('/subscribe');
+    }
+  };
 
   const handleNavigation = (item) => {
     try {
+      if (!hasPremiumAccess && item.path !== '/options') {
+        navigate('/subscribe');
+        return;
+      }
       navigate(item.path);
     } catch (error) {
       console.error('Navigation error:', error);
@@ -78,6 +106,23 @@ const Navbar = () => {
       handleNavigation(item);
     }
   };
+
+  // If still loading, show a simpler navbar
+  if (loading) {
+    return (
+      <nav className="navbar">
+        <div className="navbar-brand">
+          <Link to="/options">
+            <img src="/logo.svg" alt="Company Logo" className="navbar-logo" />
+            <span className="sr-only">Emotional Support Chat</span>
+          </Link>
+        </div>
+        <div className="navbar-links">
+          <Link to="/subscribe" className="nav-link">Subscribe</Link>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className={`navbar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -145,6 +190,11 @@ const Navbar = () => {
             )}
           </button>
         ))}
+        {!isCollapsed && !hasPremiumAccess && (
+          <Link to="/subscribe" className="subscribe-button">
+            Subscribe
+          </Link>
+        )}
       </div>
     </nav>
   );
