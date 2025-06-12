@@ -77,7 +77,7 @@ const Register = () => {
       if (data.success) {
         localStorage.setItem('token', data.token);
         setSuccess('Registration successful! Redirecting...');
-        setTimeout(() => navigate('/options'), 1200);
+        setTimeout(() => navigate('/subscribe'), 1200);
       } else {
         setError(data.message || 'Failed to register. Please try again.');
       }

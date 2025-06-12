@@ -92,10 +92,18 @@ const Login = () => {
         
         toast.success('Login successful!');
         
-        // Add a slight delay for the success animation
-        setTimeout(() => {
+        // After login, check subscription status
+        fetch('/api/subscription/status', {
+          headers: { Authorization: `Bearer ${data.token}` }
+        })
+          .then(res => res.json())
+          .then(subStatus => {
+            if (subStatus.subscriptionStatus === 'inactive') {
+              navigate('/subscribe');
+            } else {
           navigate('/options');
-        }, 1200);
+            }
+          });
       } else {
         setError(data.message || 'Invalid email or password. Please try again.');
         toast.error(data.message || 'Invalid email or password. Please try again.');

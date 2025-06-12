@@ -9,19 +9,25 @@ export function useSubscriptionStatus() {
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
+    
+    console.log('useSubscriptionStatus - Starting API call');
+    
     getSubscriptionStatus()
       .then(data => {
+        console.log('useSubscriptionStatus - API Response:', data);
         if (isMounted) {
           setStatus(data);
           setLoading(false);
         }
       })
       .catch(err => {
+        console.error('useSubscriptionStatus - API Error:', err);
         if (isMounted) {
           setError(err);
           setLoading(false);
         }
       });
+      
     return () => { isMounted = false; };
   }, []);
 
