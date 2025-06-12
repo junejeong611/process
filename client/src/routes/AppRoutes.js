@@ -9,50 +9,59 @@ import ForgotPassword from '../components/auth/ForgotPassword';
 import ResetPassword from '../components/auth/ResetPassword';
 import ChatHistoryPage from '../components/history/ChatHistoryPage';
 import ConversationDetailPage from '../components/history/ConversationDetailPage';
-import OptionsPage from '../components/OptionsPage';
-import InsightsPage from '../components/InsightsPage';
+import OptionsPage from '../components/options/OptionsPage';
+import InsightsPage from '../components/insights/InsightsPage';
 import VoicePage from '../components/VoicePage';
 import ExitThankYouPage from '../components/ExitThankYouPage';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-import SupportPage from '../components/SupportPage';
+import SubscriptionPage from '../components/subscription/SubscriptionPage';
+import { useAuth } from '../contexts/AuthContext';
+import { useSubscriptionStatus } from '../hooks/useSubscriptionStatus';
 import './AppRoutes.css';
 
-// Dummy authentication check (replace with real logic)
-const isAuthenticated = () => {
-  return !!(localStorage.getItem('token') || sessionStorage.getItem('token'));
+const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
+  const { status, loading } = useSubscriptionStatus();
+
+  // Check if user has premium access
+  const hasPremiumAccess = status && (
+    status.subscriptionStatus === 'active' ||
+    status.subscriptionStatus === 'trialing'
+  ) && status.subscriptionStatus !== 'inactive';
+
+  // Protected route component that checks for premium access
+  const ProtectedRoute = ({ children, requirePremium = false }) => {
+    if (!isAuthenticated) {
+      return <Navigate to="/login" />;
+    }
+
+    if (requirePremium && !hasPremiumAccess) {
+      return <Navigate to="/subscribe" />;
+    }
+
+    return children;
+  };
+
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/chat" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ChatInterface /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
+      <Route path="/chat-history" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ChatHistoryPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
+      <Route path="/chat-history/:id" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ConversationDetailPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><DashboardLayout><UserProfile /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/options" element={<ProtectedRoute><DashboardLayout><PremiumRoute><OptionsPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
+      <Route path="/insights" element={<ProtectedRoute><DashboardLayout><PremiumRoute><InsightsPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
+      <Route path="/conversation" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ChatInterface /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
+      <Route path="/voice" element={<ProtectedRoute><DashboardLayout><PremiumRoute><VoicePage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
+      <Route path="/exit-thanks" element={<ProtectedRoute><ExitThankYouPage /></ProtectedRoute>} />
+      <Route path="/subscribe" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 };
-
-const ProtectedRoute = ({ children }) => {
-  return isAuthenticated() ? children : <Navigate to="/login" />;
-};
-
-const ChatLayout = () => (
-  <div className="dashboard-container">
-    <div className="chat-container">
-      <ChatInterface />
-    </div>
-  </div>
-);
-
-const AppRoutes = () => (
-  <Routes>
-    <Route path="/login" element={<Login />} />
-    <Route path="/register" element={<Register />} />
-    <Route path="/forgot-password" element={<ForgotPassword />} />
-    <Route path="/reset-password/:token" element={<ResetPassword />} />
-    <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/chat" element={<ProtectedRoute><DashboardLayout><ChatLayout /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/chat-history" element={<ProtectedRoute><DashboardLayout><ChatHistoryPage /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/chat-history/:id" element={<ProtectedRoute><DashboardLayout><ConversationDetailPage /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/profile" element={<ProtectedRoute><DashboardLayout><UserProfile /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/options" element={<ProtectedRoute><DashboardLayout><OptionsPage /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/insights" element={<ProtectedRoute><DashboardLayout><InsightsPage /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/conversation" element={<ProtectedRoute><DashboardLayout><ChatInterface /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/voice" element={<ProtectedRoute><DashboardLayout><VoicePage /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/exit-thanks" element={<ProtectedRoute><ExitThankYouPage /></ProtectedRoute>} />
-    <Route path="/crisis-support" element={<SupportPage />} />
-    <Route path="*" element={<Navigate to="/login" />} />
-  </Routes>
-);
 
 export default AppRoutes; 
