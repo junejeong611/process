@@ -377,6 +377,42 @@ const ChatHistoryPage = () => {
     }
   }, [selectedConversations, fetchConversations]);
 
+  // Delete a single conversation by ID
+  const handleDeleteSingle = useCallback(async (conversationId) => {
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        console.error('Failed to parse JSON from delete response:', jsonErr);
+        data = { success: false, message: 'Invalid server response' };
+      }
+      if (response.ok && data.success) {
+        setConversations(prev => prev.filter(conv => conv._id !== conversationId));
+        toast.success('Conversation deleted successfully');
+      } else {
+        throw new Error(data.message || 'Failed to delete conversation');
+      }
+    } catch (err) {
+      console.error('Delete Error:', err);
+      toast.error(err.message || 'Failed to delete conversation. Please try again.');
+      setTimeout(() => {
+        fetchConversations();
+      }, 1000);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [fetchConversations]);
+
   // Enhanced conversation navigation
   const handleConversationClick = useCallback((conversationId) => {
     if (!isSelectMode) {

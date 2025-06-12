@@ -47,15 +47,16 @@ body {
 
 .login-content {
   width: 100%;
-  max-width: 400px;
+  max-width: 520px;
 }
 
 .login-card {
   background: #fff;
   border-radius: var(--border-radius-large);
-  box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
-  padding: 2.5rem 2rem 2rem 2rem;
-  max-width: 400px;
+  border: 3.5px solid var(--border-light);
+  box-shadow: 0 8px 40px var(--shadow-medium), 0 3px 12px rgba(60, 90, 130, 0.08);
+  padding: 2.5rem 2rem;
+  max-width: 520px;
   width: 100%;
   transition: all var(--transition-medium);
   outline: none;
@@ -240,6 +241,9 @@ body {
 .is-invalid {
   border-color: var(--error-red);
   background: rgba(255, 246, 246, 0.9);
+}
+
+.shake {
   animation: shake 0.2s ease-in-out;
 }
 
@@ -277,67 +281,51 @@ body {
 
 /* Enhanced error message styles with icons - consistent with ResetPassword */
 .error-message {
-  background: rgba(255, 246, 246, 0.95);
-  color: var(--error-red);
-  border: 1px solid rgba(243, 188, 188, 0.8);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
-  font-size: 0.88rem;
+  background: linear-gradient(90deg, #fff6f6 80%, #f7fafd 100%) !important;
+  color: var(--error-red) !important;
+  border: 2.5px solid var(--error-red) !important;
+  border-radius: var(--border-radius-large) !important;
+  padding: 1.25rem 1.5rem !important;
+  margin-bottom: 1.2rem;
+  font-size: 0.95rem;
   text-align: left;
-  animation: errorSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   position: relative;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+  box-shadow: 0 8px 32px rgba(229, 115, 115, 0.10) !important;
   overflow: hidden;
-}
-
-@keyframes errorSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  font-family: var(--font-family);
 }
 
 .error-content {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center;
+  gap: 1rem;
 }
 
 .error-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 1.75rem;
-  width: 1.75rem;
-  font-size: 1.2rem;
-  line-height: 1;
-  vertical-align: middle;
-  position: relative;
-  top: -1px;
-}
-
-.error-text {
-  flex: 1;
-  line-height: 1.4;
-  font-weight: 500;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  height: 2.2rem;
+  width: 2.2rem;
+  font-size: 1.3rem;
+  background: #ffeaea !important;
+  color: var(--error-red) !important;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(229, 115, 115, 0.08);
 }
 
 .error-title {
   font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 0.3rem;
-  color: #b91c1c;
+  font-size: 1.08rem;
+  margin-bottom: 0.2rem;
+  color: var(--error-red) !important;
   text-transform: lowercase;
+  letter-spacing: 0.2px;
+  text-align: center;
 }
 
 /* Error type specific styles - enhanced and consistent with ResetPassword */
@@ -622,10 +610,15 @@ body {
   outline: none;
 }
 
-.support-text {
-  font-size: 0.85rem;
-  color: var(--light-gray);
-  margin-top: 0.5rem;
+.login-footer .support-text {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 1rem;
+  color: var(--text-gray);
+  margin: 1.2rem 0 0.5rem 0;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 /* Accessibility helper */
