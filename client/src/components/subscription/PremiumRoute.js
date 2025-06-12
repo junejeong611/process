@@ -10,8 +10,8 @@ const PremiumRoute = ({ children }) => {
   const isPremium =
     status &&
     (status.subscriptionStatus === 'active' ||
-      status.subscriptionStatus === 'trial' ||
-      status.subscriptionStatus === 'trialing');
+      status.subscriptionStatus === 'trialing') &&
+    status.subscriptionStatus !== 'inactive';
 
   if (isPremium) {
     return <>{children}</>;

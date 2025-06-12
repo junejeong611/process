@@ -7,7 +7,7 @@ const TrialBanner = () => {
   if (loading || !status) return null;
 
   if (
-    (status.subscriptionStatus === 'trial' || status.subscriptionStatus === 'trialing') &&
+    status.subscriptionStatus === 'trialing' &&
     status.trialEnd
   ) {
     const daysLeft = Math.ceil(

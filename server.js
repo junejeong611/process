@@ -15,7 +15,6 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression'); // Add compression for better performance
 const getSecrets = require('./load');
-const { initializeStripe } = require('./services/stripeService');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -24,16 +23,19 @@ const voiceRoutes = require('./routes/voice');
 const insightsRoutes = require('./routes/insights');
 const voiceRecordRoute = require('./routes/record');
 const subscriptionRoutes = require('./routes/subscription');
+const stripeWebhook = require('./routes/stripeWebhook');
 
 //collect secrets from secrets manager
 (async () => {
   try {
     // Load secrets from AWS Secrets Manager
+    console.log('🔐 Loading secrets from AWS Secrets Manager...');
     const secrets = await getSecrets('process-it/dev/secrets');
+    console.log('✅ Secrets loaded successfully');
 
     // Set them as environment variables
+    console.log(secrets);
     process.env.MONGODB_URI = secrets.MONGODB_URI;
-    console.warn(process.env.MONGODB_URI)
     process.env.ELEVENLABS_API_KEY = secrets.ELEVENLABS_API_KEY;
     process.env.CLAUDE_API_KEY = secrets.CLAUDE_API_KEY;
     process.env.JWT_SECRET = secrets.JWT_SECRET;
@@ -41,27 +43,23 @@ const subscriptionRoutes = require('./routes/subscription');
     process.env.EMAIL_USER = secrets.EMAIL_USER;
     process.env.EMAIL_PASS = secrets.EMAIL_PASS;
     process.env.EMAIL_FROM = secrets.EMAIL_FROM;
-    // Stripe secrets
+    process.env.CLIENT_URL = secrets.CLIENT_URL;
+    process.env.STRIPE_WEBHOOK_SECRET = secrets.STRIPE_WEBHOOK_SECRET;
+    process.env.STRIPE_PRODUCT_ID = secrets.STRIPE_PRODUCT_ID;
     process.env.STRIPE_SECRET_KEY = secrets.STRIPE_SECRET_KEY;
     process.env.STRIPE_PUBLISHABLE_KEY = secrets.STRIPE_PUBLISHABLE_KEY;
-    process.env.STRIPE_WEBHOOK_SECRET = secrets.STRIPE_WEBHOOK_SECRET;
     process.env.STRIPE_PRICE_ID = secrets.STRIPE_PRICE_ID;
+    console.log('✅ Stripe secrets set successfully');
 
-    // Initialize Stripe
-    if (process.env.STRIPE_SECRET_KEY) {
-      initializeStripe(process.env.STRIPE_SECRET_KEY);
-    } else {
-      console.warn('STRIPE_SECRET_KEY not found in environment variables!');
-    }
-
-    console.warn("HELLO!")
-    console.warn(process.env.JWT_SECRET)
-    console.warn(process.env.COOKIE_SECRET)
+    // Initialize Stripe after secrets are loaded
+    console.log('🔄 Initializing Stripe service...');
+    const stripeService = require('./services/stripeService');
+    console.log('✅ Stripe service initialized');
 
     // Start server after secrets are loaded
     startServer();
   } catch (err) {
-    console.error('Failed to load secrets:', err.message);
+    console.error('❌ Failed to load secrets:', err.message);
     process.exit(1);
   }
 })();
@@ -100,6 +98,9 @@ function startServer() {
     maxAge: 86400 // Cache preflight request for 1 day
   };
   app.use(cors(corsOptions));
+
+  // For webhooks, mount the raw route directly BEFORE body parsers
+  app.use('/api/webhooks/stripe', stripeWebhook);
 
   // Request parsing middleware
   app.use(express.json({ limit: '2mb' })); // Parse JSON request bodies with size limit
@@ -181,10 +182,10 @@ function startServer() {
   app.get('/api/health', (req, res) => {
     console.log('Health check called. serverReady:', serverReady);
     try {
-      if (serverReady) {
-        res.status(200).json({ status: 'ok' });
-      } else {
-        res.status(503).json({ status: 'starting' });
+    if (serverReady) {
+      res.status(200).json({ status: 'ok' });
+    } else {
+      res.status(503).json({ status: 'starting' });
       }
     } catch (err) {
       console.error('Health check error:', err);
@@ -261,9 +262,9 @@ function startServer() {
       console.log('Server closed');
       mongoose.connection.close(false)
         .then(() => {
-          console.log('MongoDB connection closed');
-          process.exit(0);
-        });
+        console.log('MongoDB connection closed');
+        process.exit(0);
+      });
     });
   });
 
