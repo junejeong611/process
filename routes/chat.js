@@ -72,7 +72,6 @@ router.get('/conversations', auth, async (req, res) => {
       };
     }));
 
-    console.log('[DEBUG] /api/chat/conversations called. Sending response with success wrapper. Count:', conversationsWithLastMessage.length);
     res.json({
       success: true,
       conversations: conversationsWithLastMessage

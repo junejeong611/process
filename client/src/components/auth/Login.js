@@ -107,6 +107,11 @@ const Login = () => {
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const [lastSubmitTime, setLastSubmitTime] = useState(null);
   const [emailBlurred, setEmailBlurred] = useState(false);
+  const [passwordBlurred, setPasswordBlurred] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [shakePassword, setShakePassword] = useState(false);
+  const [shakeEmail, setShakeEmail] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -206,13 +211,7 @@ const Login = () => {
   // Enhanced keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e) => {
-      // Enter key to submit form
-      if (e.key === 'Enter' && !isLoading && !loginSuccess && countdown === 0) {
-        e.preventDefault();
-        handleSubmit(e);
-      }
-      
-      // Escape key to clear errors
+      // Only handle Escape key globally
       if (e.key === 'Escape') {
         if (error) {
           setError('');
@@ -224,7 +223,7 @@ const Login = () => {
     
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isLoading, loginSuccess, countdown, error]);
+  }, [error]);
 
   // Cleanup function
   useEffect(() => {
@@ -249,6 +248,7 @@ const Login = () => {
       setError('');
       setErrorCategory(null);
     }
+    setHasSubmitted(false);
   }, [emailError, error]);
 
   const handlePasswordChange = useCallback((e) => {
@@ -259,6 +259,7 @@ const Login = () => {
       setError('');
       setErrorCategory(null);
     }
+    setHasSubmitted(false);
   }, [passwordError, error]);
 
   const togglePasswordVisibility = useCallback(() => {
@@ -281,6 +282,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setHasSubmitted(true);
     
     // Check for rapid successive submissions
     const now = Date.now();
@@ -321,6 +323,8 @@ const Login = () => {
           passwordInputRef.current?.focus();
         }
       }, 100);
+      if (emailErr) setShakeEmail(true);
+      if (passwordErr) setShakePassword(true);
       return;
     }
     
@@ -569,7 +573,7 @@ const Login = () => {
                   ref={emailInputRef}
                   id="email"
                   type="email"
-                  className={`form-control ${(emailError && emailBlurred) ? 'is-invalid' : ''}`}
+                  className={`form-control${(emailError && (emailBlurred || hasSubmitted)) ? ' is-invalid' : ''}${shakeEmail ? ' shake' : ''}`}
                   value={email}
                   onChange={handleEmailChange}
                   onBlur={() => setEmailBlurred(true)}
@@ -582,6 +586,7 @@ const Login = () => {
                   autoComplete="username"
                   spellCheck="false"
                   maxLength="254"
+                  onAnimationEnd={() => setShakeEmail(false)}
                 />
               </div>
               {emailError && (
@@ -601,9 +606,11 @@ const Login = () => {
                   ref={passwordInputRef}
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  className={`form-control ${passwordError ? 'is-invalid' : ''}`}
+                  className={`form-control${(passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused ? ' is-invalid' : '')}${shakePassword && (passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused) ? ' shake' : ''}`}
                   value={password}
                   onChange={handlePasswordChange}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => { setPasswordBlurred(true); setPasswordFocused(false); }}
                   required
                   aria-required="true"
                   aria-invalid={!!passwordError}
@@ -612,6 +619,7 @@ const Login = () => {
                   disabled={isLoading || loginSuccess}
                   autoComplete="current-password"
                   maxLength="128"
+                  onAnimationEnd={() => setShakePassword(false)}
                 />
                 <button 
                   type="button"
@@ -624,7 +632,7 @@ const Login = () => {
                   {showPassword ? "hide" : "show"}
                 </button>
               </div>
-              {passwordError && (
+              {passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused && (
                 <div className="invalid-feedback" id="password-error" role="alert">
                   {passwordError}
                 </div>
