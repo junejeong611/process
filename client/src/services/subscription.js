@@ -20,9 +20,14 @@ export async function getSubscriptionStatus() {
 
 export async function createCheckoutSession() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  const successUrl = window.location.origin + '/subscribe';
+  const cancelUrl = window.location.origin + '/subscribe';
+  
+  console.log('Creating checkout session with URLs:', { successUrl, cancelUrl });
+  
   const response = await axios.post('/api/subscription/create-checkout-session', {
-    successUrl: window.location.origin + '/subscribe',
-    cancelUrl: window.location.origin + '/subscribe',
+    successUrl,
+    cancelUrl
   }, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -33,7 +38,10 @@ export async function createCheckoutSession() {
 
 export async function createPortalSession() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  const response = await axios.post('/api/subscription/create-portal-session', {}, {
+  const returnUrl = window.location.origin + '/subscribe';
+  const response = await axios.post('/api/subscription/create-portal-session', {
+    returnUrl,
+  }, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

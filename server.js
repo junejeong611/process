@@ -51,6 +51,12 @@ const stripeWebhook = require('./routes/stripeWebhook');
     process.env.STRIPE_PRICE_ID = secrets.STRIPE_PRICE_ID;
     console.log('✅ Stripe secrets set successfully');
 
+    // Debug logs for Stripe secrets
+    console.log('Stripe Secret Key:', process.env.STRIPE_SECRET_KEY);
+    console.log('Stripe Publishable Key:', process.env.STRIPE_PUBLISHABLE_KEY);
+    console.log('Stripe Webhook Secret:', process.env.STRIPE_WEBHOOK_SECRET);
+    console.log('Stripe Price ID:', process.env.STRIPE_PRICE_ID);
+
     // Initialize Stripe after secrets are loaded
     console.log('🔄 Initializing Stripe service...');
     const stripeService = require('./services/stripeService');

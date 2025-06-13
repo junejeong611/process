@@ -28,6 +28,32 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
   try {
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const customerId = session.customer;
+        console.log('🔄 Handling completed checkout session for customer:', customerId);
+        
+        const user = await User.findOne({ stripeCustomerId: customerId });
+        if (user) {
+          console.log('👤 Found user:', user.email);
+          
+          // Set subscription status to trialing for new subscriptions
+          user.subscriptionStatus = 'trialing';
+          user.stripeSubscriptionId = session.subscription;
+          user.currentPlan = session.metadata?.priceId || null;
+          
+          // Set trial dates
+          const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+          user.trialStart = new Date();
+          user.trialEnd = trialEnd;
+          
+          await user.save();
+          console.log('✅ User subscription status set to trialing');
+        } else {
+          console.error('❌ No user found for customer:', customerId);
+        }
+        break;
+      }
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
@@ -40,8 +66,8 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
           console.log('👤 Found user:', user.email);
           console.log('Updating subscription status to:', subscription.status);
           
-          user.stripeSubscriptionId = subscription.id;
           user.subscriptionStatus = subscription.status;
+          user.stripeSubscriptionId = subscription.id;
           user.currentPlan = subscription.items.data[0]?.price?.id || null;
           user.subscriptionRenewal = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
           user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
@@ -50,9 +76,11 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
           
           if (subscription.trial_start) {
             user.trialStart = new Date(subscription.trial_start * 1000);
+            console.log('✅ Setting trial start date');
           }
           if (subscription.trial_end) {
             user.trialEnd = new Date(subscription.trial_end * 1000);
+            console.log('✅ Setting trial end date');
           }
           
           await user.save();
