@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const authenticateToken = require('../middleware/auth');
 const User = require('../models/User');
-const stripe = require('../services/stripeService');
+const {
+  createCustomer,
+  createCheckoutSession,
+  createPortalSession
+} = require('../services/stripeService');
 
 // GET /api/subscription/status
 router.get('/status', authenticateToken, async (req, res) => {
@@ -64,6 +68,9 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
       console.log('✅ New Stripe customer created:', customerId);
     }
 
+    const { successUrl, cancelUrl } = req.body;
+    console.log('Using URLs:', { successUrl, cancelUrl });
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
@@ -74,8 +81,8 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.CLIENT_URL}/subscribe?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/subscribe`,
+      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       metadata: {
@@ -101,9 +108,9 @@ router.post('/create-portal-session', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No subscription found' });
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
-      return_url: `${process.env.CLIENT_URL}/subscribe`, // Return to subscription page
+    const session = await createPortalSession({
+      customerId: user.stripeCustomerId,
+      returnUrl: req.body.returnUrl
     });
 
     console.log('✅ Portal session created successfully');
