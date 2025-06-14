@@ -56,11 +56,8 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
     let customerId = user.stripeCustomerId;
     if (!customerId) {
       console.log('Creating new Stripe customer for user:', user.email);
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          userId: user._id.toString()
-        }
+      const customer = await createCustomer(user.email, {
+        userId: user._id.toString()
       });
       customerId = customer.id;
       user.stripeCustomerId = customerId;
@@ -71,23 +68,11 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
     const { successUrl, cancelUrl } = req.body;
     console.log('Using URLs:', { successUrl, cancelUrl });
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl,
-      allow_promotion_codes: true,
-      billing_address_collection: 'required',
-      metadata: {
-        userId: user._id.toString()
-      }
+    const session = await createCheckoutSession({
+      customerId,
+      priceId: process.env.STRIPE_PRICE_ID,
+      successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl
     });
 
     console.log('✅ Checkout session created successfully');
