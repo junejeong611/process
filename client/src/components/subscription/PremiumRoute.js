@@ -5,7 +5,12 @@ import SubscriptionActions from './SubscriptionActions';
 const PremiumRoute = ({ children }) => {
   const { status, loading } = useSubscriptionStatus();
 
-  if (loading) return null;
+  if (loading) return (
+    <div style={{ padding: 24, textAlign: 'center' }}>
+      <div className="spinner" style={{ margin: '32px auto', width: 40, height: 40, border: '4px solid #eee', borderTop: '4px solid #3a5a8c', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <div style={{ marginTop: 16, color: '#888' }}>Checking subscription status...</div>
+    </div>
+  );
 
   const isPremium =
     status &&
