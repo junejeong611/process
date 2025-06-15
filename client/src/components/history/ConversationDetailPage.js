@@ -10,6 +10,21 @@ const ConversationDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Loading stages with better messaging (copied from ChatHistoryPage)
+  const loadingMessages = {
+    initial: "loading your conversation...",
+    processing: "organizing your messages...",
+    finalizing: "almost ready..."
+  };
+  const [loadingStage, setLoadingStage] = useState('initial');
+
+  // Enhanced loading sequence (copied from ChatHistoryPage)
+  const simulateLoadingStages = () => {
+    setLoadingStage('initial');
+    setTimeout(() => setLoadingStage('processing'), 800);
+    setTimeout(() => setLoadingStage('finalizing'), 1600);
+  };
+
   const fetchConversation = useCallback(async () => {
     try {
       setLoading(true);
@@ -35,20 +50,44 @@ const ConversationDetailPage = () => {
 
   useEffect(() => {
     fetchConversation();
+    simulateLoadingStages();
   }, [fetchConversation]);
 
   if (loading) {
     return (
-      <div className="conversation-detail-container">
-        <div className="loading-spinner">Loading conversation...</div>
+      <div className="main-content-wrapper">
+        <div className="chat-history-container error-bg">
+          <div className="chat-history-inner">
+            <div className="loading-container">
+              <div className="loading-content">
+                <div className="loading-spinner" role="status" aria-label="Loading">
+                  <div className="spinner-circle"></div>
+                </div>
+                <p className="loading-text" aria-live="polite">
+                  {loadingMessages[loadingStage]}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="conversation-detail-container">
-        <div className="error-message">{error}</div>
+      <div className="main-content-wrapper">
+        <div className="chat-history-container error-bg">
+          <div className="chat-history-inner">
+            <div className="error-container">
+              <div className="error-content">
+                <div className="error-icon" role="img" aria-label="Error">❌</div>
+                <h2 className="error-title">Failed to load conversation</h2>
+                <p className="error-message">{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

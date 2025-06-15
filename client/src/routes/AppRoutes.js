@@ -16,6 +16,7 @@ import ExitThankYouPage from '../components/ExitThankYouPage';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import SubscriptionPage from '../components/SubscriptionPage';
 import PremiumRoute from '../components/subscription/PremiumRoute';
+import SupportPage from '../components/SupportPage';
 import './AppRoutes.css';
 
 // Dummy authentication check (replace with real logic)
@@ -37,23 +38,118 @@ const ChatLayout = () => (
 
 const AppRoutes = () => (
   <Routes>
+    {/* Public routes */}
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password/:token" element={<ResetPassword />} />
-    <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/chat" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ChatLayout /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
-    <Route path="/chat-history" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ChatHistoryPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
-    <Route path="/chat-history/:id" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ConversationDetailPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
-    <Route path="/profile" element={<ProtectedRoute><DashboardLayout><UserProfile /></DashboardLayout></ProtectedRoute>} />
-    <Route path="/options" element={<ProtectedRoute><DashboardLayout><PremiumRoute><OptionsPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
-    <Route path="/insights" element={<ProtectedRoute><DashboardLayout><PremiumRoute><InsightsPage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
-    <Route path="/conversation" element={<ProtectedRoute><DashboardLayout><PremiumRoute><ChatInterface /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
-    <Route path="/voice" element={<ProtectedRoute><DashboardLayout><PremiumRoute><VoicePage /></PremiumRoute></DashboardLayout></ProtectedRoute>} />
-    <Route path="/exit-thanks" element={<ProtectedRoute><ExitThankYouPage /></ProtectedRoute>} />
-    <Route path="/subscribe" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+    <Route path="/crisis-support" element={<SupportPage />} />
+    
+    {/* Protected routes */}
+    <Route path="/dashboard" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <Dashboard />
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    {/* Options page - accessible to all authenticated users */}
+    <Route path="/options" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <OptionsPage />
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    {/* Premium routes - require subscription */}
+    <Route path="/chat" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <PremiumRoute>
+            <ChatLayout />
+          </PremiumRoute>
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    <Route path="/chat-history" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <PremiumRoute>
+            <ChatHistoryPage />
+          </PremiumRoute>
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    <Route path="/chat-history/:id" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <PremiumRoute>
+            <ConversationDetailPage />
+          </PremiumRoute>
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    <Route path="/insights" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <PremiumRoute>
+            <InsightsPage />
+          </PremiumRoute>
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    <Route path="/conversation" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <PremiumRoute>
+            <ChatInterface />
+          </PremiumRoute>
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    <Route path="/voice" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <PremiumRoute>
+            <VoicePage />
+          </PremiumRoute>
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    {/* Profile and other authenticated routes */}
+    <Route path="/profile" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <UserProfile />
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
+    {/* Subscription page - accessible to all authenticated users */}
+    <Route path="/subscribe" element={
+      <ProtectedRoute>
+        <SubscriptionPage />
+      </ProtectedRoute>
+    } />
+    
+    {/* Exit page */}
+    <Route path="/exit-thanks" element={
+      <ProtectedRoute>
+        <ExitThankYouPage />
+      </ProtectedRoute>
+    } />
+    
+    {/* Default redirect */}
     <Route path="*" element={<Navigate to="/login" />} />
   </Routes>
 );
 
-export default AppRoutes; 
+export default AppRoutes;

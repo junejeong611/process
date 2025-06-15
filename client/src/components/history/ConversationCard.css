@@ -1,52 +1,521 @@
+/* ConversationCard.css - Matching Blue Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .conversation-card {
-  background-color: white;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(219, 230, 243, 0.8);
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.25s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  box-shadow: 0 2px 8px rgba(60, 90, 130, 0.05);
 }
 
 .conversation-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-color: #7bb6fa;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(123, 182, 250, 0.15);
+}
+
+.conversation-card:focus {
+  outline: none;
+  border-color: #7bb6fa;
+  box-shadow: 0 0 0 3px rgba(123, 182, 250, 0.15);
+}
+
+.conversation-card.selected {
+  background: rgba(123, 182, 250, 0.08);
+  border-color: #7bb6fa;
+  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.2);
+  transform: translateY(-1px);
+}
+
+.conversation-card.select-mode {
+  padding-left: 1rem;
+}
+
+/* Selection Checkbox */
+.selection-checkbox {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.3rem;
+}
+
+.selection-checkbox input[type="checkbox"] {
+  width: 1.2em;
+  height: 1.2em;
+  accent-color: #7bb6fa;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: transform 0.1s;
+}
+
+.selection-checkbox input[type="checkbox"]:focus {
+  outline: 2px solid rgba(123, 182, 250, 0.4);
+  outline-offset: 2px;
+}
+
+.selection-checkbox input[type="checkbox"]:hover {
+  transform: scale(1.1);
+}
+
+/* Content */
+.conversation-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .conversation-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 0.75rem;
+  gap: 1rem;
 }
 
-.conversation-title {
-  margin: 0;
-  font-size: 1.25rem;
-  color: #333;
+.conversation-type {
+  flex-shrink: 0;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+
+.type-badge.voice {
+  background: rgba(123, 182, 250, 0.12);
+  color: #3a5a8c;
+  border: 1px solid rgba(123, 182, 250, 0.25);
+}
+
+.type-badge.text {
+  background: rgba(107, 163, 245, 0.12);
+  color: #2a3a4d;
+  border: 1px solid rgba(107, 163, 245, 0.25);
 }
 
 .conversation-date {
-  font-size: 0.875rem;
-  color: #666;
+  color: #6b7a90;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.conversation-title {
+  color: #3a5a8c;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 .conversation-preview {
-  margin: 0;
-  color: #666;
-  font-size: 1rem;
-  line-height: 1.5;
+  color: #2a3a4d;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0 0 1rem 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  opacity: 0.9;
 }
 
+.conversation-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  color: #8ca0b8;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.message-count,
+.conversation-duration,
+.conversation-mood {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.conversation-mood {
+  background: rgba(123, 182, 250, 0.08);
+  color: #3a5a8c;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+/* Actions */
+.conversation-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  padding-top: 0.25rem;
+}
+
+.conversation-card:hover .conversation-actions {
+  opacity: 1;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-button {
+  color: #8ca0b8;
+}
+
+.delete-button:hover {
+  background: rgba(229, 115, 115, 0.1);
+  color: #e57373;
+  transform: scale(1.1);
+}
+
+.delete-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(229, 115, 115, 0.3);
+}
+
+.delete-icon {
+  font-size: 1rem;
+  transition: transform 0.1s;
+}
+
+.delete-button:active .delete-icon {
+  transform: scale(0.9);
+}
+
+/* Enhanced hover effects with blue theme */
+.conversation-card:hover .conversation-title {
+  color: #2a3a4d;
+}
+
+.conversation-card:hover .conversation-preview {
+  opacity: 1;
+}
+
+.conversation-card:hover .type-badge.voice {
+  background: rgba(123, 182, 250, 0.15);
+  border-color: rgba(123, 182, 250, 0.3);
+}
+
+.conversation-card:hover .type-badge.text {
+  background: rgba(107, 163, 245, 0.15);
+  border-color: rgba(107, 163, 245, 0.3);
+}
+
+/* Enhanced conversation themes/mood indicators with blue theme */
+.conversation-themes {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.theme-tag {
+  background: rgba(123, 182, 250, 0.1);
+  color: #3a5a8c;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid rgba(123, 182, 250, 0.2);
+}
+
+.theme-more {
+  background: rgba(107, 163, 245, 0.1);
+  color: #6b7a90;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid rgba(107, 163, 245, 0.2);
+}
+
+/* Mood indicator with blue theme variations */
+.mood-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.mood-indicator.anxious {
+  background: rgba(255, 182, 193, 0.2);
+  color: #8b5a5a;
+  border-color: rgba(255, 182, 193, 0.3);
+}
+
+.mood-indicator.peaceful {
+  background: rgba(123, 182, 250, 0.15);
+  color: #3a5a8c;
+  border-color: rgba(123, 182, 250, 0.25);
+}
+
+.mood-indicator.excited {
+  background: rgba(240, 230, 140, 0.2);
+  color: #8b7a3d;
+  border-color: rgba(240, 230, 140, 0.3);
+}
+
+.mood-indicator.reflective {
+  background: rgba(173, 216, 230, 0.2);
+  color: #4a6b7c;
+  border-color: rgba(173, 216, 230, 0.3);
+}
+
+.mood-indicator.grateful {
+  background: rgba(152, 251, 152, 0.2);
+  color: #4a7c4a;
+  border-color: rgba(152, 251, 152, 0.3);
+}
+
+/* Breakthrough indicator with blue theme */
+.breakthrough-indicator {
+  background: linear-gradient(135deg, rgba(123, 182, 250, 0.8) 0%, rgba(107, 163, 245, 0.8) 100%);
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 2px 6px rgba(123, 182, 250, 0.2);
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .conversation-card {
-    padding: 1rem;
+    padding: 1.2rem 1rem;
+    gap: 0.8rem;
   }
-
+  
+  .conversation-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .conversation-date {
+    align-self: flex-end;
+    margin-top: -0.25rem;
+  }
+  
   .conversation-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
-
+  
   .conversation-preview {
     font-size: 0.9rem;
+    -webkit-line-clamp: 3;
   }
-} 
+  
+  .conversation-meta {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .conversation-actions {
+    opacity: 1;
+  }
+  
+  .type-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .conversation-card {
+    padding: 1rem 0.8rem;
+  }
+  
+  .conversation-card.select-mode {
+    padding-left: 0.6rem;
+  }
+  
+  .conversation-title {
+    font-size: 1rem;
+  }
+  
+  .conversation-preview {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+  
+  .conversation-meta {
+    font-size: 0.75rem;
+  }
+  
+  .type-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+  
+  .selection-checkbox input[type="checkbox"] {
+    width: 1.1em;
+    height: 1.1em;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .conversation-card {
+    border: 2px solid #3a5a8c;
+    background: #fff;
+  }
+  
+  .conversation-card:hover,
+  .conversation-card.selected {
+    border-color: #2a3a4d;
+    background: #f8fbff;
+  }
+  
+  .type-badge {
+    border: 2px solid currentColor;
+    background: transparent;
+  }
+  
+  .conversation-title {
+    color: #000;
+  }
+  
+  .conversation-preview {
+    color: #333;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .conversation-card {
+    transition: none;
+  }
+  
+  .conversation-card:hover {
+    transform: none;
+  }
+  
+  .delete-button:hover {
+    transform: none;
+  }
+  
+  .selection-checkbox input[type="checkbox"]:hover {
+    transform: none;
+  }
+  
+  .action-button:active .delete-icon {
+    transform: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .conversation-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e1e8f0;
+  }
+  
+  .conversation-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #6BA3F5;
+  }
+  
+  .conversation-title {
+    color: #e1e8f0;
+  }
+  
+  .conversation-preview {
+    color: #b8c5d1;
+  }
+  
+  .conversation-date,
+  .conversation-meta {
+    color: #8ca0b8;
+  }
+  
+  .type-badge.voice {
+    background: rgba(107, 163, 245, 0.2);
+    color: #6BA3F5;
+  }
+  
+  .type-badge.text {
+    background: rgba(123, 182, 250, 0.2);
+    color: #7bb6fa;
+  }
+  
+  .theme-tag {
+    background: rgba(123, 182, 250, 0.15);
+    color: #6BA3F5;
+    border-color: rgba(123, 182, 250, 0.3);
+  }
+  
+  .theme-more {
+    background: rgba(107, 163, 245, 0.15);
+    color: #8ca0b8;
+    border-color: rgba(107, 163, 245, 0.3);
+  }
+  
+  .conversation-mood {
+    background: rgba(123, 182, 250, 0.15);
+    color: #6BA3F5;
+  }
+}
+
+/* Print styles */
+@media print {
+  .conversation-card {
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  
+  .conversation-actions,
+  .selection-checkbox {
+    display: none;
+  }
+  
+  .conversation-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
