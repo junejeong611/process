@@ -115,6 +115,7 @@ const VoicePage = () => {
     isRecording,
     currentTranscript,
     aiResponse,
+    aiReturn,
     error,
     loading,
     dispatch,
@@ -128,11 +129,14 @@ const VoicePage = () => {
   const timersRef = useRef([]);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
   const [showExitModal, setShowExitModal] = useState(false);
   const [pendingExit, setPendingExit] = useState(false);
   const [showMicTooltip, setShowMicTooltip] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [speechResult, setSpeechResult] = useState(null);
+  const [isSpeak, setIsSpeak] = useState(false);
+  
 
   const navigate = useNavigate();
 
@@ -151,7 +155,7 @@ const VoicePage = () => {
         const res = await fetch('/api/chat/conversations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`} ,
-          body: JSON.stringify({}),
+          body: JSON.stringify({ type: 'voice' }),
         });
         const data = await res.json();
         setConversationId(data.id);
@@ -215,68 +219,106 @@ const VoicePage = () => {
   
     if (status === VOICE_STATUSES.IDLE) {
       dispatch(actions.setAiResponse(''));
+      dispatch(actions.setAiReturn(''));
       dispatch(actions.setTranscript(''));
       setSpokenIndex(0);
     }
   }, [status, currentTranscript, dispatch, actions]);
   
+  //play audio
+  async function playAndWait(audio) {
+    return new Promise((resolve) => {
+      audio.onended = () => resolve();
+      audio.play();
+    });
+  }
+
+  useEffect(() => {
+  return () => {
+    // Clean FSM when navigating away
+    dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+    dispatch(actions.setAiResponse(''));
+    dispatch(actions.setAiReturn(''));
+    dispatch(actions.setTranscript(''));
+    setIsSpeak(false);
+  };
+}, []);
+
 
   // CallElevenLabs
   useEffect(() => {
-    const speakWithElevenLabs = async () => {
-      try {
-        const token = getToken();
-        if (!token) {
-          console.warn("No token available");
-          return;
-        }
-  
-        const response = await axiosWithRetry(() =>
-          axios.post(
-            '/api/chat/elevenlabs',
-            { text: aiResponse },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              responseType: 'blob', // Important to get audio data
-            }
-          )
-        );
-       
-        const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-      
-        await audio.play();
-  
-        audio.onended = () => {
-          dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
-        };
-        dispatch(actions.setAiResponse(''));
-        dispatch(actions.setTranscript(''));
-      } catch (err) {
-        console.error("TTS playback failed", err);
-        dispatch(actions.setError(err.message || 'TTS failed', 'AUDIO_ERROR', true));
-        dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
-        dispatch(actions.setAiResponse(''));
-        dispatch(actions.setTranscript(''));
+  let audio;
+
+  const speakWithElevenLabs = async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        console.warn("No token available");
+        return;
       }
-    };
-  
-    if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
-      speakWithElevenLabs();
+
+      console.log("debug1")
+      const response = await axiosWithRetry(() =>
+        axios.post(
+          '/api/chat/elevenlabs',
+          { text: aiResponse },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            responseType: 'blob',
+          }
+        )
+      );
+
+      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      console.log("debug2")
+
+      setIsSpeak(true);
+      dispatch(actions.setAiReturn(aiResponse));
+      await playAndWait(audio);
+
+      dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+      setIsSpeak(false);
+      dispatch(actions.setAiResponse(''));
+      dispatch(actions.setAiReturn(''));
+      dispatch(actions.setTranscript(''));
+    } catch (err) {
+      console.error("TTS playback failed", err);
+      setIsSpeak(false);
+      dispatch(actions.setError(err.message || 'TTS failed', 'AUDIO_ERROR', true));
+      dispatch(actions.setStatus(VOICE_STATUSES.IDLE));
+      dispatch(actions.setAiResponse(''));
+      dispatch(actions.setAiReturn(''));
+      dispatch(actions.setTranscript(''));
     }
-  }, [status, aiResponse, dispatch, actions]);
+  };
+
+  if (status === VOICE_STATUSES.SPEAKING && aiResponse) {
+    speakWithElevenLabs();
+  }
+
+  // Cleanup function
+  return () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
+}, [status, aiResponse, dispatch, actions]);
+
   
 
   // Update live region for accessibility
   useEffect(() => {
-    if (liveRegionRef.current && aiResponse) {
-      liveRegionRef.current.textContent = aiResponse;
+    if (liveRegionRef.current && aiReturn) {
+      liveRegionRef.current.textContent = aiReturn;
     }
-  }, [aiResponse]);
+  }, [aiReturn]);
 
   // Start recording function
   const startRecording = async () => {
@@ -350,8 +392,18 @@ const VoicePage = () => {
   // Main mic toggle handler
   const handleMicToggle = () => {
     if (isTransitioning) return;
-    
-    if (status === VOICE_STATUSES.IDLE || status === VOICE_STATUSES.ERROR) {
+
+    if (status === VOICE_STATUSES.IDLE || status === VOICE_STATUSES.ERROR || (status === VOICE_STATUSES.SPEAKING && isSpeak)) {
+      if(status === VOICE_STATUSES.SPEAKING && isSpeak) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+        setIsSpeak(false);
+        dispatch(actions.setAiResponse(''));
+        dispatch(actions.setAiReturn(''));
+        dispatch(actions.setTranscript(''));
+      }
       startRecording();
     } else if (status === VOICE_STATUSES.LISTENING) {
       stopRecording();
@@ -402,7 +454,15 @@ const VoicePage = () => {
     setShowExitModal(false);
     setPendingExit(false);
   };
+  
+  const getHeartState = (status, isSpeak) => {
+    if (status === VOICE_STATUSES.SPEAKING) {
+      return isSpeak ? VOICE_STATUSES.SPEAKING : VOICE_STATUSES.PROCESSING;
+    }
+    return status;
+  };
 
+  
   // Render AI response with word highlighting
   // const renderAiText = () => {
   //   if (loading || status === VOICE_STATUSES.PROCESSING) {
@@ -443,7 +503,10 @@ const VoicePage = () => {
       case VOICE_STATUSES.PROCESSING:
         return 'Processing...';
       case VOICE_STATUSES.SPEAKING:
-        return 'Speaking...';
+        if(isSpeak)
+          return 'Speaking...';
+        else
+          return 'Processing...';
       case VOICE_STATUSES.ERROR:
         return 'Something went wrong. Tap to try again.';
       default:
@@ -454,7 +517,7 @@ const VoicePage = () => {
   return (
     <VoiceErrorBoundary>
       <div className="voice-bg">
-        <Navbar />
+        {/* <Navbar /> Removed to prevent duplicate navbars */}
         <main className="voice-main" role="main">
           <section className="voice-center" aria-label="Voice interaction area">
             {/* Status Message */}
@@ -464,8 +527,8 @@ const VoicePage = () => {
   
             {/* Pulsing Heart */}
             <PulsingHeart
-              key={status} // force remount on state change
-              state={status}
+              key={getHeartState(status,isSpeak)} // force remount on state change
+              state={getHeartState(status,isSpeak)}
               onClick={handleMicToggle}
               size={typeof window !== 'undefined' && window.innerWidth < 600 ? 150 : 200}
               disabled={isTransitioning}

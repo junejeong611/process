@@ -5,6 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import BackendConnectionCheck from './components/BackendConnectionCheck';
 import { BrowserRouter } from 'react-router-dom';
+import './components/history/ChatHistoryPage.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

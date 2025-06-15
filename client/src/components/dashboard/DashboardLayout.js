@@ -1,10 +1,10 @@
 import React from 'react';
 import Navbar from '../navigation/Navbar';
-import '../dashboard/Dashboard.css';
+import './Dashboard.css';
 
 const DashboardLayout = ({ children }) => {
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-layout">
       <Navbar />
       <div className="main-content">
         {children}
@@ -13,4 +13,4 @@ const DashboardLayout = ({ children }) => {
   );
 };
 
-export default DashboardLayout; 
+export default DashboardLayout;

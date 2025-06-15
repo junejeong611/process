@@ -32,6 +32,7 @@ const stripeWebhook = require('./routes/stripeWebhook');
     console.log('🔐 Loading secrets from AWS Secrets Manager...');
     const secrets = await getSecrets('process-it/dev/secrets');
     console.log('✅ Secrets loaded successfully');
+    console.log('Loaded secrets:', secrets);
 
     // Set them as environment variables
     console.log(secrets);

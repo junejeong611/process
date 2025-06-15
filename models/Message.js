@@ -1,15 +1,14 @@
-// Message Schema for Emotional Support App
-// Includes validation, references, and flexible metadata
-// Example usage:
-//   const messages = await Message.find({ conversationId });
-
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
+  conversationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Conversation',
+    required: true
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
   content: {
     type: String,
@@ -17,16 +16,13 @@ const messageSchema = new mongoose.Schema({
   },
   sender: {
     type: String,
-    enum: ['user', 'ai'],
+    enum: ['user', 'ai', 'bot'],
     required: true
   },
-  conversationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Conversation',
-    required: true
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
-}, {
-  timestamps: true
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.model('Message', messageSchema); 

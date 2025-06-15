@@ -56,7 +56,8 @@ router.post('/conversations', auth, async (req, res) => {
 router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await Conversation.find({ userId: req.user._id })
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .limit(20); // Limit to 20 for testing
 
     // Get the last message for each conversation
     const conversationsWithLastMessage = await Promise.all(conversations.map(async (conversation) => {
@@ -169,13 +170,13 @@ router.post('/elevenlabs', auth, async (req, res) => {
     const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
     const { text } = req.body;
 
-    console.log(process.env.ELEVENLABS_API_KEY)
-
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
     }
 
-    const voiceId = 'JBFqnCBsd6RMkjVDRZzb'; // Replace with your actual voice ID
+    const voiceId = 'cgSgspJ2msm6clMCkdW9'; // Replace with your actual voice ID
+
+    console.log(text)
 
     const audio = await elevenlabs.textToSpeech.convert(voiceId, {
       text,
@@ -200,6 +201,27 @@ router.post('/elevenlabs', auth, async (req, res) => {
   } catch (err) {
     console.error('ElevenLabs error:', err.message);
     res.status(500).json({ error: 'Failed to generate audio' });
+  }
+});
+
+// @route   POST /api/chat/conversations/bulk-delete
+// @desc    Bulk delete conversations for the authenticated user
+// @access  Private
+router.post('/conversations/bulk-delete', auth, async (req, res) => {
+  try {
+    const { conversationIds } = req.body; // expects an array of IDs
+    if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
+      return res.status(400).json({ error: 'No conversation IDs provided' });
+    }
+
+    // Delete conversations belonging to the user
+    await Conversation.deleteMany({ _id: { $in: conversationIds }, userId: req.user._id });
+    // Optionally, delete related messages as well
+    await Message.deleteMany({ conversationId: { $in: conversationIds }, userId: req.user._id });
+
+    res.status(200).json({ success: true, deleted: conversationIds.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
