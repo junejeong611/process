@@ -73,16 +73,19 @@ const PulsingHeart = React.forwardRef(({
     listening: '#6BA3F5',
     processing: '#4A90E2',
     speaking: '#4A90E2',
-    error: '#FF6B6B'
+    error: '#4A90E2'
   }[state] || '#4A90E2';
 
   // Determine if heart should be considered "active"
   const isActive = state === 'listening' || state === 'speaking';
 
+  // Only apply error class for accessibility, not for color/animation
+  const visualState = state === 'error' ? 'idle' : state;
+
   return (
     <div
       ref={buttonRef}
-      className={`pulsing-heart-root ${state} ${disabled ? 'disabled' : ''} ${className}`}
+      className={`pulsing-heart-root ${visualState} ${disabled ? 'disabled' : ''} ${className}`}
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-label={disabled ? 'Voice interaction disabled' : ariaLabel}
@@ -97,7 +100,7 @@ const PulsingHeart = React.forwardRef(({
       }}
     >
       <svg
-        className={`pulsing-heart-svg ${state}`}
+        className={`pulsing-heart-svg ${visualState}`}
         width={size}
         height={size}
         viewBox="0 0 200 200"
@@ -107,11 +110,11 @@ const PulsingHeart = React.forwardRef(({
         focusable="false"
       >
         <defs>
-          <linearGradient id={`heartGradient-${state}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`heartGradient-${visualState}`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={heartColor} stopOpacity="0.9" />
             <stop offset="100%" stopColor={heartColor} stopOpacity="1" />
           </linearGradient>
-          <filter id={`heartGlow-${state}`} x="-25%" y="-25%" width="150%" height="150%">
+          <filter id={`heartGlow-${visualState}`} x="-25%" y="-25%" width="150%" height="150%">
             <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
             <feMerge> 
               <feMergeNode in="coloredBlur"/>
@@ -121,8 +124,8 @@ const PulsingHeart = React.forwardRef(({
         </defs>
         <path
           d="M100,160 C75,135 25,105 25,65 C25,40 45,20 70,20 C82,20 92,26 100,38 C108,26 118,20 130,20 C155,20 175,40 175,65 C175,105 125,135 100,160 Z"
-          fill={`url(#heartGradient-${state})`}
-          filter={state !== 'idle' ? `url(#heartGlow-${state})` : 'none'}
+          fill={`url(#heartGradient-${visualState})`}
+          filter={visualState !== 'idle' ? `url(#heartGlow-${visualState})` : 'none'}
           className="heart-path"
         />
       </svg>

@@ -15,24 +15,36 @@
   border: none;
   padding: 0;
   position: relative;
+  z-index: 1;
   /* Ensure minimum touch target size */
   min-width: 44px;
   min-height: 44px;
 }
 
+.pulsing-heart-root:focus,
 .pulsing-heart-root:focus-visible {
-  outline: 2px solid #4A90E2;
-  outline-offset: 4px;
+  outline: none;
+  box-shadow: none;
 }
 
 .pulsing-heart-root:hover:not(:disabled):not([aria-disabled="true"]) {
-  transform: translateY(-2px);
-  filter: brightness(1.05);
+  transform: scale(1.04) translateY(-2px);
+  filter: brightness(1.08);
+  z-index: 2;
 }
 
 .pulsing-heart-root:active:not(:disabled):not([aria-disabled="true"]) {
   transform: scale(0.98) translateY(0);
   transition: transform 0.1s ease;
+  /* Micro-interaction for the heart button */
+  animation: heart-tap 0.2s ease-out;
+}
+
+/* Heart tap animation */
+@keyframes heart-tap {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 
 .pulsing-heart-svg {
@@ -51,7 +63,7 @@
 
 /* Animation States with heart-specific shadows */
 .pulsing-heart-root.idle .pulsing-heart-svg {
-  animation: ph-pulse 2s ease-in-out infinite;
+  animation: ph-pulse 3s ease-in-out infinite;
 }
 
 .pulsing-heart-root.idle .heart-path {
@@ -60,7 +72,7 @@
 }
 
 .pulsing-heart-root.listening .pulsing-heart-svg {
-  animation: ph-pulse-fast 1s ease-in-out infinite;
+  animation: ph-pulse-fast 1.6s ease-in-out infinite;
 }
 
 .pulsing-heart-root.listening .heart-path {
@@ -70,7 +82,7 @@
 }
 
 .pulsing-heart-root.processing .pulsing-heart-svg {
-  animation: ph-processing 1.5s ease-in-out infinite;
+  animation: ph-processing 2.2s ease-in-out infinite;
 }
 
 .pulsing-heart-root.processing .heart-path {
@@ -80,7 +92,7 @@
 }
 
 .pulsing-heart-root.speaking .pulsing-heart-svg {
-  animation: ph-speaking 1.8s ease-in-out infinite;
+  animation: ph-speaking 2.7s ease-in-out infinite;
 }
 
 .pulsing-heart-root.speaking .heart-path {
@@ -90,7 +102,7 @@
 }
 
 .pulsing-heart-root.error .pulsing-heart-svg {
-  animation: ph-error 0.6s ease-in-out 3;
+  animation: ph-error 0.9s ease-in-out 3;
 }
 
 .pulsing-heart-root.error .heart-path {
@@ -101,21 +113,23 @@
 
 /* Enhanced Keyframe Animations */
 @keyframes ph-pulse {
-  0%, 100% { 
-    transform: scale(1);
-  }
-  50% { 
-    transform: scale(1.05);
-  }
+  0%, 100% { transform: scale(1); }
+  10% { transform: scale(1.10); }
+  20% { transform: scale(0.97); }
+  30% { transform: scale(1.06); }
+  50% { transform: scale(1.13); }
+  70% { transform: scale(0.96); }
+  80% { transform: scale(1.03); }
 }
 
 @keyframes ph-pulse-fast {
-  0%, 100% { 
-    transform: scale(1.02);
-  }
-  50% { 
-    transform: scale(1.1);
-  }
+  0%, 100% { transform: scale(1.01); }
+  12% { transform: scale(1.13); }
+  24% { transform: scale(0.98); }
+  36% { transform: scale(1.08); }
+  50% { transform: scale(1.16); }
+  70% { transform: scale(0.97); }
+  80% { transform: scale(1.04); }
 }
 
 @keyframes ph-processing {
@@ -137,15 +151,11 @@
 }
 
 @keyframes ph-speaking {
-  0%, 100% { 
-    transform: scale(1.01);
-  }
-  33% { 
-    transform: scale(1.06);
-  }
-  66% { 
-    transform: scale(1.03);
-  }
+  0%, 100% { transform: scale(1.01); }
+  20% { transform: scale(1.10); }
+  40% { transform: scale(0.98); }
+  60% { transform: scale(1.08); }
+  80% { transform: scale(1.13); }
 }
 
 @keyframes ph-error {
@@ -190,7 +200,11 @@
   animation: none;
 }
 
-/* Loading State Enhancement */
+/* Enhanced processing state with subtle rotation */
+.pulsing-heart-root.processing {
+  position: relative;
+}
+
 .pulsing-heart-root.processing::after {
   content: '';
   position: absolute;
@@ -201,13 +215,15 @@
   border: 2px solid transparent;
   border-top: 2px solid rgba(74, 144, 226, 0.6);
   border-radius: 50%;
-  animation: ph-loading-ring 1s linear infinite;
+  /* Enhanced loading ring with gentler animation */
+  animation: ph-loading-ring 2s linear infinite;
   pointer-events: none;
 }
 
 @keyframes ph-loading-ring {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { transform: rotate(360deg); opacity: 0.8; }
 }
 
 /* Responsive Design */
@@ -240,9 +256,82 @@
     animation: none !important;
   }
   
+  .heart-tap {
+    animation: none !important;
+  }
+  
   .pulsing-heart-root,
   .pulsing-heart-svg,
   .heart-path {
     transition: none !important;
   }
+}
+
+/* Animated Glow Behind Heart */
+.pulsing-heart-root::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90%;
+  height: 90%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.7;
+  filter: blur(24px);
+  transition: background 0.3s, opacity 0.3s;
+  background: radial-gradient(circle, #6BA3F5 0%, #4A90E2 80%, transparent 100%);
+  animation: heart-glow-idle 3s infinite;
+}
+
+.pulsing-heart-root.listening::before {
+  background: radial-gradient(circle, #7bb6fa 0%, #4A90E2 80%, transparent 100%);
+  opacity: 0.85;
+  animation: heart-glow-listening 1.7s infinite;
+}
+
+.pulsing-heart-root.speaking::before {
+  background: radial-gradient(circle, #4A90E2 0%, #6BA3F5 80%, transparent 100%);
+  opacity: 0.8;
+  animation: heart-glow-speaking 2.3s infinite;
+}
+
+.pulsing-heart-root.processing::before {
+  background: radial-gradient(circle, #4A90E2 0%, #6BA3F5 80%, transparent 100%);
+  opacity: 0.7;
+  animation: heart-glow-processing 2.2s infinite;
+}
+
+.pulsing-heart-root.error::before {
+  background: radial-gradient(circle, #FF6B6B 0%, #FFBABA 80%, transparent 100%);
+  opacity: 0.8;
+  animation: heart-glow-error 1.05s 3;
+}
+
+/* Modern Heartbeat Keyframes (double beat) */
+@keyframes heart-glow-idle {
+  0%, 100% { opacity: 0.7; filter: blur(24px); }
+  50% { opacity: 1; filter: blur(32px); }
+}
+
+@keyframes heart-glow-listening {
+  0%, 100% { opacity: 0.85; filter: blur(28px); }
+  50% { opacity: 1; filter: blur(40px); }
+}
+
+@keyframes heart-glow-speaking {
+  0%, 100% { opacity: 0.8; filter: blur(24px); }
+  50% { opacity: 1; filter: blur(36px); }
+}
+
+@keyframes heart-glow-processing {
+  0%, 100% { opacity: 0.7; filter: blur(20px); }
+  50% { opacity: 0.95; filter: blur(32px); }
+}
+
+@keyframes heart-glow-error {
+  0%, 100% { opacity: 0.8; filter: blur(20px); }
+  50% { opacity: 1; filter: blur(36px); }
 }

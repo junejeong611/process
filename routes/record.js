@@ -1,12 +1,19 @@
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs/promises');
+const fsSync = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const recordAndTranscribe = require('../utils/voicerecord');
 
 const router = express.Router();
 const upload = multer(); // memory storage by default
+
+// Ensure the temp directory exists
+const tempDir = path.join(__dirname, '../temp');
+if (!fsSync.existsSync(tempDir)) {
+  fsSync.mkdirSync(tempDir, { recursive: true });
+}
 
 router.post('/', upload.single('audio'), async (req, res) => {
   console.log('🔊 /voicerecord hit');
@@ -18,6 +25,9 @@ router.post('/', upload.single('audio'), async (req, res) => {
   try {
     // Save the uploaded buffer to a temp file
     await fs.writeFile(inputPath, req.file.buffer);
+    // Log the file size for debugging
+    const stats = await fs.stat(inputPath);
+    console.log('Saved input file size:', stats.size);
 
     // Convert to WAV using ffmpeg
     await new Promise((resolve, reject) => {
