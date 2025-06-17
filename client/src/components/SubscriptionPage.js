@@ -1,19 +1,19 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSubscriptionStatus } from '../hooks/useSubscriptionStatus';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import SubscriptionStatusBanner from './subscription/SubscriptionStatusBanner';
 import TrialBanner from './subscription/TrialBanner';
 import SubscriptionActions from './subscription/SubscriptionActions';
 import Navbar from './navigation/Navbar';
 
 const SubscriptionPage = () => {
-  const { status, loading } = useSubscriptionStatus();
+  const { status, loading, setStatus } = useSubscription();
   const navigate = useNavigate();
 
   useEffect(() => {
     let interval;
     let timeout;
-    if (status?.subscriptionStatus === 'inactive') {
+    if (status === 'inactive') {
       interval = setInterval(async () => {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const res = await fetch('/api/subscription/status', {
@@ -21,6 +21,7 @@ const SubscriptionPage = () => {
         });
         const data = await res.json();
         if (data.subscriptionStatus === 'trialing' || data.subscriptionStatus === 'active') {
+          setStatus(data.subscriptionStatus);
           clearInterval(interval);
           clearTimeout(timeout);
           navigate('/options');
@@ -32,11 +33,11 @@ const SubscriptionPage = () => {
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [status, navigate]);
+  }, [status, navigate, setStatus]);
 
   if (loading) return <div>Loading subscription status...</div>;
 
-  if (status?.subscriptionStatus === 'inactive') {
+  if (status === 'inactive') {
     return (
       <div>
         <Navbar />

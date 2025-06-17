@@ -1,8 +1,8 @@
 import React from 'react';
-import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 
 const SubscriptionStatusBanner = () => {
-  const { status, loading, error } = useSubscriptionStatus();
+  const { status, loading, error } = useSubscription();
 
   if (loading) return <div>Loading subscription status...</div>;
   if (error) return <div>Error loading subscription status</div>;

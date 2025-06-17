@@ -1,8 +1,8 @@
 import React from 'react';
-import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 
 const TrialBanner = () => {
-  const { status, loading } = useSubscriptionStatus();
+  const { status, loading } = useSubscription();
 
   if (loading || !status) return null;
 
