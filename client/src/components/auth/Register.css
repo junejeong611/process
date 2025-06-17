@@ -20,18 +20,17 @@
 }
 
 .register-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  background: #fff;
+  border-radius: var(--border-radius-large);
   box-shadow: 0 8px 32px rgba(60, 90, 130, 0.12), 0 2px 8px rgba(60, 90, 130, 0.08);
   padding: 2.5rem 2rem;
   width: 100%;
+  max-width: 520px;
   transition: all 0.3s cubic-bezier(.4,0,.2,1);
   outline: none;
   position: relative;
   overflow: hidden;
   animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -73,14 +72,14 @@
 /* Header */
 .register-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .register-title {
   color: #3a5a8c;
   font-size: 2.2rem;
   font-weight: 700;
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 0.25rem 0;
   text-align: center;
   line-height: 1.2;
   text-transform: lowercase;
@@ -89,12 +88,10 @@
 .register-subtitle {
   color: #6b7a90;
   font-size: 1rem;
-  margin: 0;
+  margin-bottom: 0;
   text-align: center;
   line-height: 1.5;
-  max-width: 300px;
-  margin-left: auto;
-  margin-right: auto;
+  white-space: nowrap;
   text-transform: lowercase;
 }
 
