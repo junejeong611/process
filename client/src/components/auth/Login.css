@@ -811,3 +811,24 @@ body {
   color: #1565c0;
   outline: none;
 }
+
+/* Hide the built-in eye icon in Edge/IE */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* Hide the built-in eye icon in Chrome (experimental, not always needed) */
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
+/* Remove default appearance for password fields (for Chrome/Safari) */
+input[type="password"] {
+  appearance: none;
+  -webkit-appearance: none;
+}
