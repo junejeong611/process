@@ -32,22 +32,19 @@ body {
 /* Main container */
 .options-main {
   min-height: 100vh;
-  width: 100%;
-  margin: 0;
+  width: calc(100vw - 280px);
+  margin-left: 280px;
   background: #e3edf7;
   padding: 0;
   box-sizing: border-box;
   font-family: var(--font-family);
   position: relative;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 @media (max-width: 900px) {
   .options-main {
+    width: 100vw;
     margin-left: 0;
   }
 }
@@ -184,16 +181,15 @@ body {
 
 /* Center content */
 .options-center {
+  max-width: 400px;
+  margin: 0 auto;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  max-width: 400px;
-  flex: 1;
-  margin: 0;
   animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
 }
 
 @keyframes slideInUp {
@@ -709,13 +705,10 @@ body {
 }
 
 .options-inner {
-  max-width: 1000px;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  justify-content: center;
+  display: block;
+  padding: 0;
+  max-width: none;
 }
 
 @media (max-width: 1200px) {

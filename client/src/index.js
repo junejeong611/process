@@ -6,13 +6,16 @@ import reportWebVitals from './reportWebVitals';
 import BackendConnectionCheck from './components/BackendConnectionCheck';
 import { BrowserRouter } from 'react-router-dom';
 import './components/history/ChatHistoryPage.css';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <BrowserRouter>
       <BackendConnectionCheck>
-        <App />
+        <SubscriptionProvider>
+          <App />
+        </SubscriptionProvider>
       </BackendConnectionCheck>
     </BrowserRouter>
   </React.StrictMode>

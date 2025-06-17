@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { status, loading } = useSubscriptionStatus();
+  const { status, loading } = useSubscription();
 
   // Debug logs
   console.log('Navbar - Subscription Status:', status);
@@ -165,28 +165,29 @@ const Navbar = () => {
       {/* Navigation Items */}
       <div className="navbar-items">
         {navItems.map((item) => {
-          const isDisabled = !hasPremiumAccess && item.key !== 'subscribe';
+          // Only show premium-required state if loading is false
+          const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
+          const isDisabled = isPremiumRequired && item.key !== 'subscribe';
           return (
             <button
               key={item.key}
-              className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${
-                item.requiresPremium && !hasPremiumAccess ? 'premium-required' : ''
-              }${isDisabled ? ' disabled' : ''}`}
+              className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}${isDisabled ? ' disabled' : ''}`}
               onClick={() => {
                 if (!isDisabled) handleNavigation(item);
               }}
               onKeyDown={(e) => {
                 if (!isDisabled) handleKeyDown(e, item);
               }}
-              aria-label={`Navigate to ${item.label}${item.requiresPremium && !hasPremiumAccess ? ' (Premium required)' : ''}`}
-              title={isCollapsed ? `${item.label}${item.requiresPremium && !hasPremiumAccess ? ' (Premium required)' : ''}` : undefined}
+              aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
+              title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
               disabled={isDisabled}
               style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
             >
               {activeKey === item.key && <div className="navbar-item-indicator" />}
-              <div className="navbar-item-icon">
+              <div className="navbar-item-icon" style={{ position: 'relative' }}>
                 {item.icon}
-                {item.requiresPremium && !hasPremiumAccess && (
+                {/* Only show orange icon if loading is false and premium is required */}
+                {isPremiumRequired && (
                   <svg 
                     width="10" 
                     height="10" 
@@ -199,14 +200,7 @@ const Navbar = () => {
                   </svg>
                 )}
               </div>
-              {!isCollapsed && (
-                <span className="navbar-item-label">
-                  {item.label}
-                  {item.requiresPremium && !hasPremiumAccess && (
-                    <span style={{ fontSize: '0.7rem', opacity: 0.7 }}> (premium)</span>
-                  )}
-                </span>
-              )}
+              {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
             </button>
           );
         })}

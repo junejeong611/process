@@ -1,9 +1,9 @@
 import React from 'react';
-import { useSubscriptionStatus } from '../../hooks/useSubscriptionStatus';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { createCheckoutSession, createPortalSession } from '../../services/subscription';
 
 const SubscriptionActions = () => {
-  const { status, loading } = useSubscriptionStatus();
+  const { status, loading } = useSubscription();
 
   const handleCheckout = async () => {
     const url = await createCheckoutSession();

@@ -553,7 +553,7 @@ const ForgotPassword = () => {
             <p>remember your password? <Link to="/login">sign in</Link></p>
             <p>don't have an account? <Link to="/register">sign up</Link></p>
             <p className="support-text">
-              having trouble? <Link to="/contact" className="support-link">contact our support team</Link>
+              having trouble? <Link to="/contact" className="support-link">contact support</Link>
             </p>
           </footer>
         </div>
