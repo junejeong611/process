@@ -5,6 +5,7 @@ import './Navbar.css';
 
 const Navbar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { status, loading } = useSubscription();
@@ -117,95 +118,215 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`navbar ${isCollapsed ? 'collapsed' : ''}`}>
-      {/* Header */}
-      <div className="navbar-header">
-        <button
-          className="navbar-toggle"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <svg 
-            width="16" 
-            height="16" 
-            fill="none" 
-            viewBox="0 0 24 24"
-            className={`toggle-icon ${isCollapsed ? 'rotated' : ''}`}
-          >
-            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <div 
-          className="navbar-logo"
-          onClick={() => navigate('/options')}
-          style={{ cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              navigate('/options');
-            }
-          }}
-          aria-label="Go to options page"
-        >
-          <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
-            <path d="M24 41s-13-8.35-13-17.5C11 15.57 15.57 11 21 11c2.54 0 4.99 1.19 6.5 3.09C29.99 12.19 32.44 11 35 11c5.43 0 10 4.57 10 12.5C47 32.65 34 41 24 41z" fill="white"/>
-          </svg>
-        </div>
-        {!isCollapsed && (
-          <div className="navbar-brand">
-            <h1 className="navbar-title">process</h1>
-            <p className="navbar-subtitle">emotional support</p>
-          </div>
-        )}
-      </div>
+    <>
+      {/* Hamburger icon for mobile */}
+      <button
+        className="navbar-hamburger"
+        onClick={() => setMobileMenuOpen(true)}
+        aria-label="Open navigation menu"
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </button>
 
-      {/* Navigation Items */}
-      <div className="navbar-items">
-        {navItems.map((item) => {
-          // Only show premium-required state if loading is false
-          const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
-          const isDisabled = isPremiumRequired && item.key !== 'subscribe';
-          return (
+      {/* Overlay menu for mobile */}
+      {mobileMenuOpen && (
+        <div className="navbar-overlay">
+          <nav className="navbar mobile open">
             <button
-              key={item.key}
-              className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}${isDisabled ? ' disabled' : ''}`}
-              onClick={() => {
-                if (!isDisabled) handleNavigation(item);
-              }}
-              onKeyDown={(e) => {
-                if (!isDisabled) handleKeyDown(e, item);
-              }}
-              aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
-              title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
-              disabled={isDisabled}
-              style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              className="navbar-close"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close navigation menu"
             >
-              {activeKey === item.key && <div className="navbar-item-indicator" />}
-              <div className="navbar-item-icon" style={{ position: 'relative' }}>
-                {item.icon}
-                {/* Only show orange icon if loading is false and premium is required */}
-                {isPremiumRequired && (
-                  <svg 
-                    width="10" 
-                    height="10" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    style={{ position: 'absolute', top: '-2px', right: '-2px' }}
-                  >
-                    <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
-                    <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-              </div>
-              {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
             </button>
-          );
-        })}
-      </div>
-    </nav>
+            {/* Header */}
+            <div className="navbar-header">
+              <button
+                className="navbar-toggle"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <svg 
+                  width="16" 
+                  height="16" 
+                  fill="none" 
+                  viewBox="0 0 24 24"
+                  className={`toggle-icon ${isCollapsed ? 'rotated' : ''}`}
+                >
+                  <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <div 
+                className="navbar-logo"
+                onClick={() => navigate('/options')}
+                style={{ cursor: 'pointer' }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/options');
+                  }
+                }}
+                aria-label="Go to options page"
+              >
+                <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+                  <path d="M24 41s-13-8.35-13-17.5C11 15.57 15.57 11 21 11c2.54 0 4.99 1.19 6.5 3.09C29.99 12.19 32.44 11 35 11c5.43 0 10 4.57 10 12.5C47 32.65 34 41 24 41z" fill="white"/>
+                </svg>
+              </div>
+              {!isCollapsed && (
+                <div className="navbar-brand">
+                  <h1 className="navbar-title">process</h1>
+                  <p className="navbar-subtitle">emotional support</p>
+                </div>
+              )}
+            </div>
+
+            {/* Navigation Items */}
+            <div className="navbar-items">
+              {navItems.map((item) => {
+                // Only show premium-required state if loading is false
+                const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
+                const isDisabled = isPremiumRequired && item.key !== 'subscribe';
+                return (
+                  <button
+                    key={item.key}
+                    className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}${isDisabled ? ' disabled' : ''}`}
+                    onClick={() => {
+                      if (!isDisabled) handleNavigation(item);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!isDisabled) handleKeyDown(e, item);
+                    }}
+                    aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
+                    title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
+                    disabled={isDisabled}
+                    style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  >
+                    {activeKey === item.key && <div className="navbar-item-indicator" />}
+                    <div className="navbar-item-icon" style={{ position: 'relative' }}>
+                      {item.icon}
+                      {/* Only show orange icon if loading is false and premium is required */}
+                      {isPremiumRequired && (
+                        <svg 
+                          width="10" 
+                          height="10" 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          style={{ position: 'absolute', top: '-2px', right: '-2px' }}
+                        >
+                          <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
+                          <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+          {/* Click outside to close */}
+          <div className="navbar-overlay-bg" onClick={() => setMobileMenuOpen(false)} />
+        </div>
+      )}
+
+      {/* Desktop sidebar (unchanged) */}
+      <nav className={`navbar${isCollapsed ? ' collapsed' : ''}`}> 
+        {/* Header */}
+        <div className="navbar-header">
+          <button
+            className="navbar-toggle"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg 
+              width="16" 
+              height="16" 
+              fill="none" 
+              viewBox="0 0 24 24"
+              className={`toggle-icon ${isCollapsed ? 'rotated' : ''}`}
+            >
+              <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <div 
+            className="navbar-logo"
+            onClick={() => navigate('/options')}
+            style={{ cursor: 'pointer' }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/options');
+              }
+            }}
+            aria-label="Go to options page"
+          >
+            <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+              <path d="M24 41s-13-8.35-13-17.5C11 15.57 15.57 11 21 11c2.54 0 4.99 1.19 6.5 3.09C29.99 12.19 32.44 11 35 11c5.43 0 10 4.57 10 12.5C47 32.65 34 41 24 41z" fill="white"/>
+            </svg>
+          </div>
+          {!isCollapsed && (
+            <div className="navbar-brand">
+              <h1 className="navbar-title">process</h1>
+              <p className="navbar-subtitle">emotional support</p>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Items */}
+        <div className="navbar-items">
+          {navItems.map((item) => {
+            // Only show premium-required state if loading is false
+            const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
+            const isDisabled = isPremiumRequired && item.key !== 'subscribe';
+            return (
+              <button
+                key={item.key}
+                className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}${isDisabled ? ' disabled' : ''}`}
+                onClick={() => {
+                  if (!isDisabled) handleNavigation(item);
+                }}
+                onKeyDown={(e) => {
+                  if (!isDisabled) handleKeyDown(e, item);
+                }}
+                aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
+                title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
+                disabled={isDisabled}
+                style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              >
+                {activeKey === item.key && <div className="navbar-item-indicator" />}
+                <div className="navbar-item-icon" style={{ position: 'relative' }}>
+                  {item.icon}
+                  {/* Only show orange icon if loading is false and premium is required */}
+                  {isPremiumRequired && (
+                    <svg 
+                      width="10" 
+                      height="10" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      style={{ position: 'absolute', top: '-2px', right: '-2px' }}
+                    >
+                      <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
+                      <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 };
 

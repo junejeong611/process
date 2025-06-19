@@ -12,13 +12,30 @@ export const SubscriptionProvider = ({ children }) => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('token') || sessionStorage.getItem('token'));
+
+  // Watch for token changes (e.g., after login)
+  useEffect(() => {
+    const checkToken = () => {
+      const newToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+      setToken(newToken);
+    };
+    window.addEventListener('storage', checkToken);
+    // Also poll for token changes in this tab
+    const interval = setInterval(checkToken, 1000);
+    return () => {
+      window.removeEventListener('storage', checkToken);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Debug logging
   useEffect(() => {
     console.log('[SubscriptionContext] status:', status);
     console.log('[SubscriptionContext] loading:', loading);
     console.log('[SubscriptionContext] error:', error);
-  }, [status, loading, error]);
+    console.log('[SubscriptionContext] token:', token);
+  }, [status, loading, error, token]);
 
   // Helper to load from cache
   const loadFromCache = () => {
@@ -64,8 +81,13 @@ export const SubscriptionProvider = ({ children }) => {
     }
   }, []);
 
-  // On mount, try cache first
+  // On mount and when token changes, try cache first, then fetch
   useEffect(() => {
+    if (!token) {
+      setStatus(null);
+      setLoading(false);
+      return;
+    }
     const cachedStatus = loadFromCache();
     if (cachedStatus) {
       setStatus(cachedStatus);
@@ -74,7 +96,7 @@ export const SubscriptionProvider = ({ children }) => {
       fetchStatus();
     }
     // eslint-disable-next-line
-  }, [fetchStatus]);
+  }, [fetchStatus, token]);
 
   // Allow manual refresh (e.g., after checkout)
   const forceRefresh = async () => {

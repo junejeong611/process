@@ -113,4 +113,310 @@ router.get('/:userId', auth, async (req, res) => {
   }
 });
 
+// GET /api/insights/:userId/trigger-frequency?period=week|month
+router.get('/:userId/trigger-frequency', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { period } = req.query;
+
+    // Only allow access if the authenticated user matches the requested userId
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied.' });
+    }
+
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid userId format.' });
+    }
+
+    let startDate = new Date();
+    if (period === 'week') {
+      // Set to start of this week (Monday)
+      const day = startDate.getDay() || 7;
+      if (day !== 1) startDate.setDate(startDate.getDate() - (day - 1));
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      // Set to start of this month
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      // Default: last 7 days
+      startDate.setDate(startDate.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    const pipeline = [
+      { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: startDate } } },
+      { $unwind: "$triggers" },
+      { $group: { _id: "$triggers", count: { $sum: 1 } } },
+      { $project: { trigger: "$_id", count: 1, _id: 0 } },
+      { $sort: { count: -1 } }
+    ];
+
+    const results = await Message.aggregate(pipeline);
+    res.json({ success: true, data: results });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch trigger frequency' });
+  }
+});
+
+// GET /api/insights/:userId/emotional-timeline?period=week|month
+router.get('/:userId/emotional-timeline', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { period } = req.query;
+
+    // Only allow access if the authenticated user matches the requested userId
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied.' });
+    }
+
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid userId format.' });
+    }
+
+    let startDate = new Date();
+    if (period === 'week') {
+      // Set to start of this week (Monday)
+      const day = startDate.getDay() || 7;
+      if (day !== 1) startDate.setDate(startDate.getDate() - (day - 1));
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      // Set to start of this month
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      // Default: last 7 days
+      startDate.setDate(startDate.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    const pipeline = [
+      { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: startDate } } },
+      { $group: {
+        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+        anger: { $avg: '$emotions.anger' },
+        sadness: { $avg: '$emotions.sadness' },
+        fear: { $avg: '$emotions.fear' },
+        shame: { $avg: '$emotions.shame' },
+        disgust: { $avg: '$emotions.disgust' }
+      } },
+      { $project: {
+        _id: 0,
+        date: '$_id',
+        anger: { $ifNull: ['$anger', 0] },
+        sadness: { $ifNull: ['$sadness', 0] },
+        fear: { $ifNull: ['$fear', 0] },
+        shame: { $ifNull: ['$shame', 0] },
+        disgust: { $ifNull: ['$disgust', 0] }
+      } },
+      { $sort: { date: 1 } }
+    ];
+
+    const results = await Message.aggregate(pipeline);
+    res.json({ success: true, data: results });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch emotional timeline' });
+  }
+});
+
+// GET /api/insights/:userId/weekly-summary
+router.get('/:userId/weekly-summary', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Only allow access if the authenticated user matches the requested userId
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied.' });
+    }
+
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid userId format.' });
+    }
+
+    // Helper to get start of week (Monday)
+    function getStartOfWeek(date) {
+      const d = new Date(date);
+      const day = d.getDay() || 7;
+      if (day !== 1) d.setDate(d.getDate() - (day - 1));
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    // Dates for current and previous week
+    const now = new Date();
+    const startOfThisWeek = getStartOfWeek(now);
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+    const endOfLastWeek = new Date(startOfThisWeek);
+    endOfLastWeek.setMilliseconds(-1);
+
+    // Aggregate for this week
+    const thisWeekMessages = await Message.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      createdAt: { $gte: startOfThisWeek }
+    });
+    // Aggregate for last week
+    const lastWeekMessages = await Message.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      createdAt: { $gte: startOfLastWeek, $lt: startOfThisWeek }
+    });
+
+    // Total conversations/messages
+    const totalConversations = thisWeekMessages.length;
+
+    // Average mood score (average of all emotion values, per message, then averaged)
+    function avgMood(messages) {
+      if (!messages.length) return 0;
+      let total = 0, count = 0;
+      for (const msg of messages) {
+        if (msg.emotions) {
+          const vals = [msg.emotions.anger, msg.emotions.sadness, msg.emotions.fear, msg.emotions.shame, msg.emotions.disgust];
+          total += vals.reduce((a, b) => a + b, 0) / vals.length;
+          count++;
+        }
+      }
+      return count ? +(total / count).toFixed(2) : 0;
+    }
+    const averageMoodScore = avgMood(thisWeekMessages);
+    const lastWeekMoodScore = avgMood(lastWeekMessages);
+    const improvementFromLastWeek = lastWeekMoodScore ? +(((averageMoodScore - lastWeekMoodScore) / lastWeekMoodScore) * 100).toFixed(1) : 0;
+
+    // Most active day
+    const dayCounts = {};
+    for (const msg of thisWeekMessages) {
+      const day = new Date(msg.createdAt).toLocaleDateString('en-US', { weekday: 'long' });
+      dayCounts[day] = (dayCounts[day] || 0) + 1;
+    }
+    const mostActiveDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+    // Dominant emotion (highest average across all messages)
+    const emotionSums = { anger: 0, sadness: 0, fear: 0, shame: 0, disgust: 0 };
+    let emotionCount = 0;
+    for (const msg of thisWeekMessages) {
+      if (msg.emotions) {
+        for (const key of Object.keys(emotionSums)) {
+          emotionSums[key] += msg.emotions[key] || 0;
+        }
+        emotionCount++;
+      }
+    }
+    let dominantEmotion = null;
+    if (emotionCount) {
+      const avgEmotions = Object.entries(emotionSums).map(([k, v]) => [k, v / emotionCount]);
+      dominantEmotion = avgEmotions.sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    // Trigger reduction (compare number of triggers this week vs last week)
+    function countTriggers(messages) {
+      let count = 0;
+      for (const msg of messages) {
+        if (msg.triggers && msg.triggers.length) count += msg.triggers.length;
+      }
+      return count;
+    }
+    const thisWeekTriggers = countTriggers(thisWeekMessages);
+    const lastWeekTriggers = countTriggers(lastWeekMessages);
+    const triggerReduction = lastWeekTriggers ? +(((lastWeekTriggers - thisWeekTriggers) / lastWeekTriggers) * 100).toFixed(1) : 0;
+
+    // Insights (simple templated for now)
+    const insights = [];
+    if (improvementFromLastWeek > 0) insights.push(`Your mood score improved by ${improvementFromLastWeek}% compared to last week.`);
+    if (triggerReduction > 0) insights.push(`You experienced ${triggerReduction}% fewer triggers than last week.`);
+    if (dominantEmotion) insights.push(`Your dominant emotion this week was ${dominantEmotion}.`);
+    if (!insights.length) insights.push('Keep chatting to unlock more weekly insights!');
+
+    res.json({
+      success: true,
+      data: {
+        totalConversations,
+        averageMoodScore,
+        improvementFromLastWeek,
+        mostActiveDay,
+        dominantEmotion,
+        triggerReduction,
+        insights
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch weekly summary' });
+  }
+});
+
+// GET /api/insights/:userId/emotional-distribution?period=week|month
+router.get('/:userId/emotional-distribution', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { period } = req.query;
+
+    // Only allow access if the authenticated user matches the requested userId
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied.' });
+    }
+
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid userId format.' });
+    }
+
+    let startDate = new Date();
+    if (period === 'week') {
+      // Set to start of this week (Monday)
+      const day = startDate.getDay() || 7;
+      if (day !== 1) startDate.setDate(startDate.getDate() - (day - 1));
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      // Set to start of this month
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      // Default: last 7 days
+      startDate.setDate(startDate.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    // Aggregate emotion sums
+    const pipeline = [
+      { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: startDate } } },
+      { $group: {
+        _id: null,
+        anger: { $sum: '$emotions.anger' },
+        sadness: { $sum: '$emotions.sadness' },
+        fear: { $sum: '$emotions.fear' },
+        shame: { $sum: '$emotions.shame' },
+        disgust: { $sum: '$emotions.disgust' }
+      } }
+    ];
+
+    const [result] = await Message.aggregate(pipeline);
+    if (!result) {
+      // No data
+      return res.json({ success: true, data: [
+        { emotion: 'anger', value: 0 },
+        { emotion: 'sadness', value: 0 },
+        { emotion: 'fear', value: 0 },
+        { emotion: 'shame', value: 0 },
+        { emotion: 'disgust', value: 0 }
+      ] });
+    }
+    const total = result.anger + result.sadness + result.fear + result.shame + result.disgust;
+    const data = [
+      { emotion: 'anger', value: total ? Math.round((result.anger / total) * 100) : 0 },
+      { emotion: 'sadness', value: total ? Math.round((result.sadness / total) * 100) : 0 },
+      { emotion: 'fear', value: total ? Math.round((result.fear / total) * 100) : 0 },
+      { emotion: 'shame', value: total ? Math.round((result.shame / total) * 100) : 0 },
+      { emotion: 'disgust', value: total ? Math.round((result.disgust / total) * 100) : 0 }
+    ];
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Failed to fetch emotional distribution' });
+  }
+});
+
 module.exports = router;

@@ -618,10 +618,6 @@ const ChatHistoryPage = () => {
         <div className="chat-history-inner">
           {/* Enhanced Header */}
           <header className="chat-history-header">
-            <Link to="/options" className="back-link" aria-label="Back to options">
-              <span className="back-icon">←</span>
-              <span className="back-text">back</span>
-            </Link>
             <div className="header-center">
               <h1 className="page-title">your conversations</h1>
               <p className="page-subtitle">

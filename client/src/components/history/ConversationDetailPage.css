@@ -35,10 +35,36 @@
   font-size: 2rem;
 }
 
-.loading-spinner {
+/* Loading state */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-3xl);
   text-align: center;
-  padding: 2rem;
-  color: #666;
+  background: transparent !important;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(107, 155, 215, 0.2);
+  border-top-color: var(--light-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-xl);
+}
+
+.loading-state p {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .error-message {

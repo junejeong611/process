@@ -31,9 +31,12 @@ body {
 
 /* Main container */
 .options-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
   width: calc(100vw - 280px);
-  margin-left: 280px;
+  margin-left: 0;
   background: #e3edf7;
   padding: 0;
   box-sizing: border-box;
@@ -706,9 +709,12 @@ body {
 
 .options-inner {
   width: 100%;
-  display: block;
+  max-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
   padding: 0;
-  max-width: none;
 }
 
 @media (max-width: 1200px) {
