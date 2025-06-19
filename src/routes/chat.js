@@ -1,0 +1,1 @@
+const aiFirstMessage = "Hello! I'm here to listen and support you. How are you feeling today?"; 

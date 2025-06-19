@@ -102,6 +102,33 @@ router.get('/messages/:conversationId', auth, async (req, res) => {
   }
 });
 
+// Helper to get triggers from Claude
+async function getTriggersFromClaude(text) {
+  const prompt = `\nExtract the emotional triggers from the following message. \nReturn ONLY a JSON array of trigger keywords (e.g., [\"perfectionism\", \"fear of failure\"]).\n\nMessage: \"${text}\"\n`;
+  const aiResponse = await claudeService.sendMessage(prompt);
+  try {
+    const triggers = JSON.parse(aiResponse.content);
+    if (Array.isArray(triggers)) return triggers;
+  } catch (e) {}
+  return [];
+}
+
+// Helper to get emotions from Claude
+async function getEmotionsFromClaude(text) {
+  const prompt = `\nAnalyze the following message and rate the intensity of each emotion (anger, sadness, fear, shame, disgust) on a scale from 0 (not present) to 10 (very strong).\nReturn ONLY a JSON object like {\"anger\": 0, \"sadness\": 0, \"fear\": 0, \"shame\": 0, \"disgust\": 0}.\n\nMessage: \"${text}\"\n`;
+  console.log('Claude prompt:', prompt);
+  const aiResponse = await claudeService.sendMessage(prompt);
+  console.log('Claude response:', aiResponse.content);
+  try {
+    const emotions = JSON.parse(aiResponse.content);
+    // Validate structure
+    const keys = ['anger', 'sadness', 'fear', 'shame', 'disgust'];
+    if (keys.every(k => typeof emotions[k] === 'number')) return emotions;
+  } catch (e) {}
+  // Default if parsing fails
+  return { anger: 0, sadness: 0, fear: 0, shame: 0, disgust: 0 };
+}
+
 // @route   POST /api/chat/send
 // @desc    Send a message, get Claude reply, store both
 // @access  Private
@@ -123,12 +150,19 @@ router.post('/send', auth, async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    // Save user message
+    // Extract triggers from user's message using Claude
+    const triggers = await getTriggersFromClaude(content);
+    // Extract emotions from user's message using Claude
+    const emotions = await getEmotionsFromClaude(content);
+
+    // Save user message with triggers and emotions
     const userMessage = new Message({
       userId: req.user._id,
       content,
       sender: 'user',
-      conversationId
+      conversationId,
+      triggers,
+      emotions
     });
     
     await userMessage.save();
