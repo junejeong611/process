@@ -1,3 +1,16 @@
+/* Reset default margins and padding */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .App {
   text-align: center;
 }
@@ -40,27 +53,22 @@
 .app {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
-  /* background-color: #f5f5f5; */
   background: none;
 }
 
 .main-content {
   flex: 1;
-  padding-top: 0;
+  display: flex;
 }
 
 /* Override chat container height to account for navbar */
 .chat-container {
-  height: calc(100vh - 80px) !important;
+  flex: 1;
+  height: 100vh;
 }
 
 @media (max-width: 768px) {
-  .main-content {
-    padding-top: 0.5rem;
-  }
-
   .chat-container {
-    height: calc(100vh - 70px) !important;
+    width: 100%;
   }
 }

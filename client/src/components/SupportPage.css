@@ -107,10 +107,15 @@
 .support-back-btn-row {
   display: block;
   position: fixed;
-  top: 2rem;
-  left: 2rem;
+  top: 1.5rem;
+  left: 1.5rem;
   z-index: 100;
   margin-bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.25rem;
+  border-radius: 12px;
 }
 
 .support-back-btn {

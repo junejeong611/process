@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import ConversationCard from './ConversationCard';
 import './ChatHistoryPage.css';
 import { toast } from 'react-toastify';
 
+// Cache for conversations data
+let conversationsCache = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 30000; // 30 seconds
+
 const ChatHistoryPage = () => {
   // State management
-  const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [conversations, setConversations] = useState(conversationsCache || []);
+  const [loading, setLoading] = useState(!conversationsCache);
   const [loadingStage, setLoadingStage] = useState('initial');
   const [error, setError] = useState('');
   const [errorType, setErrorType] = useState('');
@@ -23,6 +28,7 @@ const ChatHistoryPage = () => {
   
   // Refs
   const navigate = useNavigate();
+  const location = useLocation();
   const deleteTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -33,6 +39,34 @@ const ChatHistoryPage = () => {
     processing: "organizing your history...",
     finalizing: "almost ready..."
   };
+
+  // Memoized filtered and sorted conversations for performance
+  const filteredAndSortedConversations = React.useMemo(() => {
+    return conversations
+      .filter(conversation => {
+        // Type filter
+        if (filterType === 'voice' && conversation.type !== 'voice') return false;
+        if (filterType === 'text' && conversation.type !== 'text') return false;
+        
+        // Search filter
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase();
+          return (
+            conversation.title?.toLowerCase().includes(query) ||
+            conversation.lastMessage?.toLowerCase().includes(query) ||
+            conversation.summary?.toLowerCase().includes(query) ||
+            conversation.tags?.some(tag => tag.toLowerCase().includes(query))
+          );
+        }
+        
+        return true;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.lastMessageTime || a.updatedAt || a.createdAt);
+        const dateB = new Date(b.lastMessageTime || b.updatedAt || b.createdAt);
+        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+      });
+  }, [conversations, filterType, searchQuery, sortOrder]);
 
   // Network status monitoring
   useEffect(() => {
@@ -50,7 +84,15 @@ const ChatHistoryPage = () => {
 
   // Initialize component
   useEffect(() => {
-    fetchConversations();
+    const shouldFetch = !conversationsCache || (Date.now() - lastFetchTime > CACHE_DURATION);
+    
+    if (shouldFetch) {
+      fetchConversations();
+    } else {
+      setLoading(false);
+      setConversations(conversationsCache);
+    }
+
     document.title = 'Chat History - Your Safe Space';
     
     // Focus management for accessibility
@@ -64,7 +106,7 @@ const ChatHistoryPage = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, []);
+  }, [location.key]); // Re-run when navigation occurs
 
   // Enhanced loading sequence with realistic timing
   const simulateLoadingStages = useCallback(() => {
@@ -131,7 +173,7 @@ const ChatHistoryPage = () => {
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [isSelectMode, selectedConversations, showDeleteConfirm, searchQuery]);
 
-  // Enhanced fetch with better error handling and retry logic
+  // Enhanced fetch with better error handling
   const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
@@ -158,8 +200,7 @@ const ChatHistoryPage = () => {
       const response = await fetch('/api/chat/conversations', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Content-Type': 'application/json'
         },
         signal: abortControllerRef.current.signal
       });
@@ -167,80 +208,40 @@ const ChatHistoryPage = () => {
       clearTimeout(timeoutId);
       cleanupLoading();
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Handle authentication error
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('token');
-          navigate('/login');
-          return;
-        }
-        
-        // Enhanced error type detection
-        if (response.status >= 500) {
-          setErrorType('server');
-        } else if (response.status === 429) {
-          setErrorType('rateLimit');
-        } else if (response.status === 403) {
-          setErrorType('forbidden');
-        } else if (response.status === 404) {
-          setErrorType('notFound');
-        } else {
-          setErrorType('general');
-        }
-        
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
-      }
-
       const data = await response.json();
-      console.log('API Response:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}`);
+      }
       
       if (data.success) {
-        const conversationsData = data.conversations || [];
-        setConversations(conversationsData);
-        console.log(`Loaded ${conversationsData.length} conversations`);
+        setConversations(data.conversations || []);
+        setError('');
+        setErrorType('');
         setRetryCount(0);
-        
-        // Success feedback for screen readers
-        if (conversationsData.length === 0) {
-          toast.info('No conversations found. Start your first chat!');
-        } else {
-          console.log(`Successfully loaded ${conversationsData.length} conversations`);
-        }
       } else {
         throw new Error(data.message || 'Failed to load conversations');
       }
     } catch (err) {
       if (err.name === 'AbortError') {
-        // Ignore abort errors caused by cleanup/unmount
         return;
       }
+      
       console.error('Fetch Error:', err);
-      // Enhanced error categorization with user-friendly messages
-      if (err.message.includes('Failed to fetch') || !isOnline) {
+      
+      if (!navigator.onLine) {
         setErrorType('network');
         setError('Network error. Please check your internet connection.');
-      } else if (err.message.includes('429')) {
-        setErrorType('rateLimit');
-        setError('Too many requests. Please wait a moment before trying again.');
-      } else if (err.message.includes('5')) {
-        setErrorType('server');
-        setError('Our servers are temporarily unavailable. Please try again in a moment.');
-      } else if (err.message.includes('403')) {
-        setErrorType('forbidden');
-        setError('Access denied. Please log in again.');
-      } else if (err.message.includes('404')) {
-        setErrorType('notFound');
-        setError('Conversations not found. This might be a new account.');
+      } else if (err.message.includes('401')) {
+        navigate('/login');
       } else {
         setErrorType('general');
-        setError(err.message || 'Something went wrong loading your conversations.');
+        setError('Something went wrong. Please try refreshing the page.');
       }
     } finally {
       setLoading(false);
     }
-  }, [navigate, isOnline, simulateLoadingStages]);
+  }, [navigate]);
 
   // Enhanced retry with exponential backoff
   const handleRetry = useCallback(() => {
@@ -303,10 +304,17 @@ const ChatHistoryPage = () => {
   }, [selectedConversations]);
 
   const selectAllConversations = useCallback(() => {
-    const allIds = new Set(filteredAndSortedConversations.map(c => c._id));
-    setSelectedConversations(allIds);
-    toast.success(`Selected all ${allIds.size} conversations`);
-  }, []);
+    if (selectedConversations.size === filteredAndSortedConversations.length) {
+      // If all are selected, clear selection
+      setSelectedConversations(new Set());
+      toast.info('Selection cleared');
+    } else {
+      // Otherwise select all
+      const allIds = new Set(filteredAndSortedConversations.map(c => c._id));
+      setSelectedConversations(allIds);
+      toast.success(`Selected all ${allIds.size} conversations`);
+    }
+  }, [filteredAndSortedConversations, selectedConversations]);
 
   const clearSelection = useCallback(() => {
     setSelectedConversations(new Set());
@@ -420,33 +428,29 @@ const ChatHistoryPage = () => {
     }
   }, [isSelectMode, navigate]);
 
-  // Memoized filtered and sorted conversations for performance
-  const filteredAndSortedConversations = React.useMemo(() => {
-    return conversations
-      .filter(conversation => {
-        // Type filter
-        if (filterType === 'voice' && conversation.type !== 'voice') return false;
-        if (filterType === 'text' && conversation.type !== 'text') return false;
-        
-        // Search filter
-        if (searchQuery.trim()) {
-          const query = searchQuery.toLowerCase();
-          return (
-            conversation.title?.toLowerCase().includes(query) ||
-            conversation.lastMessage?.toLowerCase().includes(query) ||
-            conversation.summary?.toLowerCase().includes(query) ||
-            conversation.tags?.some(tag => tag.toLowerCase().includes(query))
-          );
-        }
-        
-        return true;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.lastMessageTime || a.updatedAt || a.createdAt);
-        const dateB = new Date(b.lastMessageTime || b.updatedAt || b.createdAt);
-        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-      });
-  }, [conversations, filterType, searchQuery, sortOrder]);
+  // Get appropriate error icon based on category
+  const getErrorIcon = (errorType) => {
+    switch (errorType) {
+      case 'network': return '⚡';
+      case 'rateLimit': return '⏰';
+      case 'server': return '🔧';
+      case 'forbidden': return '🔐';
+      case 'notFound': return '🔍';
+      default: return '⚠';
+    }
+  };
+
+  // Get error title based on type
+  const getErrorTitle = (errorType) => {
+    switch (errorType) {
+      case 'network': return 'connection problem';
+      case 'rateLimit': return 'too many attempts';
+      case 'server': return 'server error';
+      case 'forbidden': return 'access denied';
+      case 'notFound': return 'not found';
+      default: return 'something went wrong';
+    }
+  };
 
   // Enhanced loading state with better UX and proper centering
   if (loading) {
@@ -477,140 +481,24 @@ const ChatHistoryPage = () => {
   }
 
   // Enhanced error state with better support messaging
-  if (error) {
-    const getErrorConfig = () => {
-      switch (errorType) {
-        case 'network':
-          return {
-            icon: '🌐',
-            title: 'Connection Issue',
-            message: 'Having trouble connecting. Your conversations are safe and secure.',
-            supportText: 'Network issues happen - this isn\'t your fault. Your data is protected.',
-            actionText: 'Check Connection & Retry'
-          };
-        case 'server':
-          return {
-            icon: '⚠️',
-            title: 'Server Temporarily Unavailable',
-            message: 'Our servers are taking a quick break. Please try again in a moment.',
-            supportText: 'Technical difficulties are temporary. Your conversations remain safe.',
-            actionText: 'Try Again'
-          };
-        case 'timeout':
-          return {
-            icon: '⏱️',
-            title: 'Request Timed Out',
-            message: 'The request took longer than expected. Let\'s try again.',
-            supportText: 'Sometimes connections need a little more time. Your patience is appreciated.',
-            actionText: 'Retry Now'
-          };
-        case 'rateLimit':
-          return {
-            icon: '🛑',
-            title: 'Taking a Moment',
-            message: 'Please wait a moment before trying again. We\'re protecting your data.',
-            supportText: 'Taking breaks is important for both you and our systems.',
-            actionText: 'Wait & Retry'
-          };
-        case 'forbidden':
-          return {
-            icon: '🔒',
-            title: 'Access Issue',
-            message: 'Please log in again to access your conversations.',
-            supportText: 'Your privacy and security are our top priorities.',
-            actionText: 'Log In Again'
-          };
-        case 'notFound':
-          return {
-            icon: '🆕',
-            title: 'Fresh Start',
-            message: 'No conversations found yet. Ready to begin your journey?',
-            supportText: 'Every conversation starts somewhere. You\'re in the right place.',
-            actionText: 'Start First Chat'
-          };
-        default:
-          return {
-            icon: '💙',
-            title: 'Something Unexpected Happened',
-            message: error,
-            supportText: 'Technical problems don\'t affect your progress or wellbeing.',
-            actionText: 'Try Again'
-          };
-      }
-    };
-
-    const errorConfig = getErrorConfig();
-    const canRetry = retryCount < 3 && errorType !== 'forbidden' && errorType !== 'notFound';
-    const isOfflineError = !isOnline;
-
+  const renderError = () => {
     return (
-      <div className="main-content-wrapper">
-        <div className="chat-history-container">
-          <div className="chat-history-inner">
-            <div className="error-container">
-              <div className="error-content" role="alert">
-                <div className="error-icon" role="img" aria-label="Error indication">
-                  {isOfflineError ? '📡' : errorConfig.icon}
-                </div>
-                <h2 className="error-title">
-                  {isOfflineError ? 'You\'re Offline' : errorConfig.title}
-                </h2>
-                <p className="error-message">
-                  {isOfflineError ? 
-                    'Please check your internet connection and try again.' : 
-                    errorConfig.message
-                  }
-                </p>
-                
-                <div className="error-support-actions-row">
-                  <div className="error-support">
-                    <div className="support-icon">💙</div>
-                    <p className="support-text">
-                      {isOfflineError ? 
-                        'Connection issues are common - your wellbeing matters more than perfect connectivity.' : 
-                        errorConfig.supportText
-                      }
-                    </p>
-                  </div>
-                  
-                  {(canRetry || isOfflineError || errorType === 'forbidden') && (
-                    <button 
-                      onClick={
-                        isOfflineError ? () => window.location.reload() :
-                        errorType === 'forbidden' ? () => navigate('/login') :
-                        errorType === 'notFound' ? () => navigate('/chat') :
-                        handleRetry
-                      }
-                      className="retry-button"
-                      disabled={!canRetry && !isOfflineError && errorType !== 'forbidden' && errorType !== 'notFound'}
-                      aria-label={`${errorConfig.actionText}${retryCount > 0 ? ` (Attempt ${retryCount + 1}/3)` : ''}`}
-                    >
-                      {retryCount > 0 && !isOfflineError && errorType !== 'forbidden' && errorType !== 'notFound' && (
-                        <span className="retry-count">
-                          {retryCount + 1}/3
-                        </span>
-                      )}
-                      <span>{errorConfig.actionText}</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Retry limit message */}
-                {retryCount >= 3 && !isOfflineError && errorType !== 'forbidden' && errorType !== 'notFound' && (
-                  <div className="retry-limit-message">
-                    <p>
-                      Maximum retry attempts reached. Try refreshing the page or contact our support team if the issue persists. 
-                      Your conversations are safe.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+      <div className="error-message-container">
+        <div className="error-message">
+          <div className="error-content">
+            <span className="error-icon">⚠</span>
+            <h3 className="error-title">application error</h3>
+            <p className="error-text">
+              we encountered an error while loading your conversations. please try refreshing the page.
+            </p>
+            <button onClick={() => window.location.reload()} className="retry-button">
+              refresh page
+            </button>
           </div>
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <div className="main-content-wrapper">
@@ -719,11 +607,10 @@ const ChatHistoryPage = () => {
                 )}
                 <button
                   onClick={selectAllConversations}
-                  className="action-button"
-                  disabled={selectedConversations.size === filteredAndSortedConversations.length}
-                  aria-label={`Select all ${filteredAndSortedConversations.length} conversations`}
+                  className={`action-button select-all ${selectedConversations.size === filteredAndSortedConversations.length ? 'active' : ''}`}
+                  aria-label={`${selectedConversations.size === filteredAndSortedConversations.length ? 'Deselect' : 'Select'} all ${filteredAndSortedConversations.length} conversations`}
                 >
-                  select all
+                  {selectedConversations.size === filteredAndSortedConversations.length ? 'deselect all' : 'select all'}
                 </button>
                 <button
                   onClick={clearSelection}

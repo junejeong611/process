@@ -10,42 +10,62 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
+// Helper to count words in a string
+const countWords = (str) => str.trim().split(/\s+/).length;
+
 // Simple test function
 async function testIntegration() {
   try {
     console.log("Testing Claude + 11labs integration...");
     
-    // Call the integration function directly
-    console.time('Integration time');
-    const result = await getClaudeAndSpeechWithCache(
-      "Hello, this is a test message for the emotional support app.",
-      [], // history
-      null, // systemPrompt
-      { tts: {} }
-    );
-    console.timeEnd('Integration time');
-    
-    // Log Claude's response
-    console.log("\n----- Claude Response -----");
-    console.log(result.text);
-    console.log("--------------------------\n");
-    
-    // Handle audio
-    if (result.audio) {
-      console.log(`Audio buffer received: ${result.audio.length} bytes`);
+    // Test cases with different emotional scenarios
+    const testCases = [
+      "I'm feeling really anxious about my upcoming presentation.",
+      "Today was a tough day at work, feeling overwhelmed.",
+      "I just got some great news and wanted to share!"
+    ];
+
+    for (const testMessage of testCases) {
+      console.log(`\nTesting message: "${testMessage}"`);
+      console.time('Response time');
       
-      // Save the audio to a file for manual listening
-      const outputFile = path.join(outputDir, `test-output-${Date.now()}.mp3`);
-      fs.writeFileSync(outputFile, result.audio);
-      console.log(`Audio saved to: ${outputFile}`);
-    } else {
-      console.log("⚠️ No audio returned.");
+      const result = await getClaudeAndSpeechWithCache(
+        testMessage,
+        [], // history
+        null, // systemPrompt
+        { tts: {} }
+      );
+      
+      console.timeEnd('Response time');
+      
+      // Log Claude's response
+      console.log("\n----- Claude Response -----");
+      console.log(result.text);
+      console.log("--------------------------");
+      
+      // Verify response length
+      const wordCount = countWords(result.text);
+      console.log(`Response word count: ${wordCount}`);
+      if (wordCount > 100) {
+        console.warn(`⚠️ Response exceeds target length (${wordCount} words)`);
+      } else {
+        console.log("✅ Response length within target range");
+      }
+      
+      // Handle audio
+      if (result.audio) {
+        const filename = testMessage.substring(0, 20).replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        const outputFile = path.join(outputDir, `${filename}-${Date.now()}.mp3`);
+        fs.writeFileSync(outputFile, result.audio);
+        console.log(`Audio saved to: ${outputFile} (${result.audio.length} bytes)`);
+      } else {
+        console.log("⚠️ No audio returned.");
+      }
     }
     
-    console.log("\n✅ Test completed successfully!");
+    console.log("\n✅ All tests completed!");
   } catch (error) {
     console.error("\n❌ Test failed:", error);
-    // If there's a response property, it might contain more error details
     if (error.response) {
       console.error("Response status:", error.response.status);
       console.error("Response data:", error.response.data);

@@ -194,10 +194,6 @@ const ChatInterface = () => {
         // Add initial AI message with delay for better UX
         setTimeout(() => {
           if (isMounted) {
-            addMessage(
-              "Hello! I'm here to listen and support you. How are you feeling today?",
-              'bot'
-            );
             setUiReady(true);
           }
         }, UI_READY_DELAY);
