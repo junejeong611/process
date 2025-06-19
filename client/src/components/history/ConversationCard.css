@@ -38,16 +38,13 @@
   transform: translateY(-1px);
 }
 
-.conversation-card.select-mode {
-  padding-left: 1rem;
-}
-
 /* Selection Checkbox */
 .selection-checkbox {
   flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   padding-top: 0.3rem;
+  margin-right: 0.5rem;
 }
 
 .selection-checkbox input[type="checkbox"] {
@@ -366,10 +363,6 @@
 @media (max-width: 480px) {
   .conversation-card {
     padding: 1rem 0.8rem;
-  }
-  
-  .conversation-card.select-mode {
-    padding-left: 0.6rem;
   }
   
   .conversation-title {

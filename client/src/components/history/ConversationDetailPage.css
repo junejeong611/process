@@ -6,33 +6,66 @@
   border: none !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
+  background: #eaf2fa !important;
+  min-height: 100vh;
+  position: relative;
+  padding-top: 5rem !important; /* Add padding to account for back button */
 }
 
-.conversation-header {
-  margin-bottom: 2rem;
+/* Support-style back button */
+.support-back-btn-row {
+  display: block;
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 100;
+  margin-bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.25rem;
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }
 
-.back-button {
-  background: none;
-  border: none;
-  color: #007bff;
-  font-size: 1rem;
-  padding: 0.5rem 0;
-  cursor: pointer;
-  display: flex;
+.support-back-btn {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  color: #6b7a90;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  text-transform: lowercase;
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
 }
 
-.back-button:hover {
-  color: #0056b3;
+.support-back-btn:hover,
+.support-back-btn:focus {
+  color: #3a5a8c;
 }
 
-.conversation-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 2rem;
+.support-back-btn-row:hover {
+  background: rgba(123, 182, 250, 0.15);
+  transform: translateX(-3px);
+}
+
+.support-back-icon {
+  font-size: 1.2rem;
+  transition: transform 0.2s ease;
+  margin-right: 0;
+}
+
+.support-back-btn:hover .support-back-icon {
+  transform: translateX(-3px);
 }
 
 /* Loading state */
@@ -78,17 +111,18 @@
   min-height: 100vh;
 }
 
-/* Unify all backgrounds for loading and error states */
-html, body, #root, .conversation-detail-container, .error-bg {
-  background: #eaf2fa !important;
-}
-
 @media (max-width: 768px) {
   .conversation-detail-container {
     padding: 1rem;
   }
 
-  .conversation-header h1 {
-    font-size: 1.5rem;
+  .support-back-btn-row {
+    top: 1rem;
+    left: 1rem;
+  }
+
+  .support-back-btn {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.5rem;
   }
 } 

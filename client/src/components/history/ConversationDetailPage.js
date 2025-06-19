@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import MessageThread from './MessageThread';
 import './ConversationDetailPage.css';
 
@@ -10,7 +10,7 @@ const ConversationDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Loading stages with better messaging (copied from ChatHistoryPage)
+  // Loading stages with better messaging
   const loadingMessages = {
     initial: "loading your conversation...",
     processing: "organizing your messages...",
@@ -18,7 +18,7 @@ const ConversationDetailPage = () => {
   };
   const [loadingStage, setLoadingStage] = useState('initial');
 
-  // Enhanced loading sequence (copied from ChatHistoryPage)
+  // Enhanced loading sequence
   const simulateLoadingStages = () => {
     setLoadingStage('initial');
     setTimeout(() => setLoadingStage('processing'), 800);
@@ -55,20 +55,14 @@ const ConversationDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="main-content-wrapper">
-        <div className="chat-history-container error-bg">
-          <div className="chat-history-inner">
-            <div className="loading-container">
-              <div className="loading-content">
-                <div className="loading-spinner" role="status" aria-label="Loading">
-                  <div className="spinner-circle"></div>
-                </div>
-                <p className="loading-text" aria-live="polite">
-                  {loadingMessages[loadingStage]}
-                </p>
-              </div>
-            </div>
+      <div className="conversation-detail-container">
+        <div className="loading-state">
+          <div className="loading-spinner" role="status" aria-label="Loading">
+            <div className="spinner-circle"></div>
           </div>
+          <p className="loading-text" aria-live="polite">
+            {loadingMessages[loadingStage]}
+          </p>
         </div>
       </div>
     );
@@ -76,17 +70,9 @@ const ConversationDetailPage = () => {
 
   if (error) {
     return (
-      <div className="main-content-wrapper">
-        <div className="chat-history-container error-bg">
-          <div className="chat-history-inner">
-            <div className="error-container">
-              <div className="error-content">
-                <div className="error-icon" role="img" aria-label="Error">❌</div>
-                <h2 className="error-title">Failed to load conversation</h2>
-                <p className="error-message">{error}</p>
-              </div>
-            </div>
-          </div>
+      <div className="conversation-detail-container error-bg">
+        <div className="error-message">
+          {error}
         </div>
       </div>
     );
@@ -94,16 +80,11 @@ const ConversationDetailPage = () => {
 
   return (
     <div className="conversation-detail-container">
-      <div className="conversation-header">
-        <button 
-          className="back-button"
-          onClick={() => navigate('/chat-history')}
-        >
-          ← Back to History
-        </button>
-        <h1>{conversation?.title || 'Untitled Conversation'}</h1>
+      <div className="support-back-btn-row">
+        <Link to="/chat-history" className="support-back-btn" aria-label="Back to chat history">
+          <span className="support-back-icon">&#8592;</span> back
+        </Link>
       </div>
-      
       {conversation && (
         <MessageThread messages={conversation.messages} />
       )}

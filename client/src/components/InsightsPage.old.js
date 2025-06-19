@@ -1,30 +1,26 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import './InsightsPage.css';
+import { useQuery } from 'react-query';
 
 // Lazy load heavy components
 const EmotionalTimelineChart = React.lazy(() => import('./analytics/EmotionalTimelineChart'));
 const EmotionDistributionChart = React.lazy(() => import('./analytics/EmotionDistributionChart'));
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
-      cacheTime: 30 * 60 * 1000, // Keep unused data in cache for 30 minutes
-      retry: 2,
-      refetchOnWindowFocus: false
-    },
-  },
-});
+// Helper function to get auth token (real implementation)
+const getToken = () => {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
 
-// Helper functions
-const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
+// Helper function to get user ID from JWT token (real implementation)
 const getUserId = () => {
   try {
     const token = getToken();
     if (!token) return null;
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    // Use 'userId' as the field for user ID (matches your JWT structure)
     return payload.userId || null;
   } catch (e) {
     console.error('Error extracting userId from token:', e);
@@ -32,7 +28,47 @@ const getUserId = () => {
   }
 };
 
-// Default affirmations when no insights available
+// Analytics mock data
+const MOCK_TRIGGER_FREQUENCY_DATA = [
+  { trigger: 'perfectionism', thisWeek: 12, lastWeek: 8, thisMonth: 45 },
+  { trigger: 'social validation', thisWeek: 8, lastWeek: 10, thisMonth: 32 },
+  { trigger: 'fear of failure', thisWeek: 6, lastWeek: 12, thisMonth: 28 },
+  { trigger: 'comparison', thisWeek: 4, lastWeek: 6, thisMonth: 18 },
+  { trigger: 'rejection', thisWeek: 3, lastWeek: 4, thisMonth: 15 }
+];
+
+const MOCK_EMOTIONAL_TIMELINE = [
+  { date: '2024-06-10', anxiety: 7, sadness: 3, joy: 2, anger: 1 },
+  { date: '2024-06-11', anxiety: 5, sadness: 4, joy: 4, anger: 2 },
+  { date: '2024-06-12', anxiety: 6, sadness: 2, joy: 6, anger: 1 },
+  { date: '2024-06-13', anxiety: 8, sadness: 5, joy: 1, anger: 3 },
+  { date: '2024-06-14', anxiety: 4, sadness: 2, joy: 7, anger: 1 },
+  { date: '2024-06-15', anxiety: 3, sadness: 1, joy: 8, anger: 0 },
+  { date: '2024-06-16', anxiety: 6, sadness: 3, joy: 5, anger: 2 }
+];
+
+const MOCK_WEEKLY_SUMMARY = {
+  totalConversations: 12,
+  averageMoodScore: 6.2,
+  improvementFromLastWeek: 8.5,
+  mostActiveDay: 'wednesday',
+  dominantEmotion: 'anxiety',
+  triggerReduction: 15,
+  insights: [
+    "your anxiety levels decreased by 15% compared to last week",
+    "perfectionism triggers increased, consider practicing self-compassion",
+    "you had your best emotional day on friday - what made it special?"
+  ]
+};
+
+const EMOTIONAL_DISTRIBUTION_DATA = [
+  { emotion: 'anxiety', value: 35, color: '#f97316' },
+  { emotion: 'sadness', value: 25, color: '#3b82f6' },
+  { emotion: 'joy', value: 30, color: '#10b981' },
+  { emotion: 'anger', value: 10, color: '#ef4444' }
+];
+
+// Sample affirmations for practice mode when no insights available
 const DEFAULT_AFFIRMATIONS = [
   "i am enough just as i am",
   "i am worthy of love and kindness",
@@ -44,12 +80,40 @@ const DEFAULT_AFFIRMATIONS = [
   "i am capable of growth and change"
 ];
 
+// Cache constants
+const INSIGHTS_CACHE_KEY = 'insightsCache';
+const WEEKLY_SUMMARY_CACHE_KEY = 'weeklySummaryCache';
+const EMOTIONAL_TIMELINE_CACHE_KEY = 'emotionalTimelineCache';
+const EMOTION_DISTRIBUTION_CACHE_KEY = 'emotionDistributionCache';
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Generic cache helpers
+const loadFromCache = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_TTL) {
+      return data;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const saveToCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch {}
+};
+
 const WeeklySummary = React.memo(() => {
   const userId = useMemo(() => getUserId(), []);
   
-  const { data: summary, isLoading, error } = useQuery({
-    queryKey: ['weekly-summary', userId],
-    queryFn: async () => {
+  const { data: summary, isLoading, error } = useQuery(
+    ['weekly-summary', userId],
+    async () => {
       const token = getToken();
       const response = await fetch(`/api/insights/${userId}/weekly-summary`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -57,8 +121,13 @@ const WeeklySummary = React.memo(() => {
       const result = await response.json();
       if (!result.success) throw new Error('Failed to load weekly summary');
       return result.data;
+    },
+    {
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 30 * 60 * 1000,
+      retry: 2
     }
-  });
+  );
 
   if (isLoading) {
     return <div className="chart-loading">Loading weekly summary...</div>;
@@ -116,7 +185,133 @@ const WeeklySummary = React.memo(() => {
   );
 });
 
-const InsightsContent = () => {
+// EmotionalTimelineChart is now imported lazily at the top of the file
+
+const EmotionDistributionChart = () => {
+  const userId = useMemo(() => getUserId(), []);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState('week');
+
+  const fetchDistribution = useCallback(async (period, isRefresh = false) => {
+    setLoading(true);
+    setError('');
+    try {
+      // Try cache first if not refreshing
+      if (!isRefresh) {
+        const cacheKey = `${EMOTION_DISTRIBUTION_CACHE_KEY}_${period}`;
+        const cachedData = loadFromCache(cacheKey);
+        if (cachedData) {
+          setData(cachedData);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const token = getToken();
+      const response = await fetch(`/api/insights/${userId}/emotional-distribution?period=${period}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (result.success) {
+        setData(result.data);
+        // Cache the result
+        saveToCache(`${EMOTION_DISTRIBUTION_CACHE_KEY}_${period}`, result.data);
+      } else {
+        setError('Failed to load emotional distribution data');
+      }
+    } catch (err) {
+      setError('Unable to load emotional distribution data');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchDistribution(selectedPeriod);
+  }, [selectedPeriod, fetchDistribution]);
+
+  if (loading) {
+    return <div className="chart-loading">Loading emotional distribution...</div>;
+  }
+  if (error) {
+    return <div className="chart-error">{error}</div>;
+  }
+  if (!data.length || data.every(e => e.value === 0)) {
+    return (
+      <div className="empty-emotion-distribution">
+        <div className="empty-state-message" style={{ textAlign: 'center' }}>
+          <h4>No emotional distribution data yet</h4>
+          <p>Share more about how you're feeling to see your emotional breakdown.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const colorMap = {
+    anger: '#ef4444',
+    sadness: '#3b82f6',
+    fear: '#f97316',
+    shame: '#a855f7',
+    disgust: '#10b981'
+  };
+
+  return (
+    <>
+      <div className="section-header-simple">
+        <h3>Emotional Distribution</h3>
+        <p>breakdown of your emotional states</p>
+      </div>
+      <div className="pie-chart-container">
+        <ResponsiveContainer width="100%" height={400} aspect={2}>
+          <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={80}
+              outerRadius={160}
+              dataKey="value"
+              nameKey="emotion"
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              labelLine={false}
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={colorMap[entry.emotion] || '#8884d8'} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value) => `${value}%`} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="emotion-legend-small">
+        {data.map((emotion, index) => (
+          <div key={emotion.emotion} className="emotion-legend-item-small">
+            <div className="legend-color-small" style={{ backgroundColor: colorMap[emotion.emotion] }}></div>
+            <span className="legend-label-small">{emotion.emotion}</span>
+          </div>
+        ))}
+      </div>
+      <div className="period-selector" style={{ marginTop: '1rem' }}>
+        <button
+          onClick={() => setSelectedPeriod('week')}
+          className={selectedPeriod === 'week' ? 'active' : ''}
+        >
+          this week
+        </button>
+        <button
+          onClick={() => setSelectedPeriod('month')}
+          className={selectedPeriod === 'month' ? 'active' : ''}
+        >
+          this month
+        </button>
+      </div>
+    </>
+  );
+};
+
+const InsightsPage = () => {
   const [activeTab, setActiveTab] = useState('insights');
   const [expandedSections, setExpandedSections] = useState({
     triggers: false,
@@ -128,9 +323,9 @@ const InsightsContent = () => {
   
   const userId = useMemo(() => getUserId(), []);
 
-  const { data: insights, isLoading, error, refetch } = useQuery({
-    queryKey: ['insights', userId],
-    queryFn: async () => {
+  const { data: insights, isLoading, error, refetch } = useQuery(
+    ['insights', userId],
+    async () => {
       const token = getToken();
       const response = await fetch(`/api/insights/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -138,8 +333,13 @@ const InsightsContent = () => {
       const result = await response.json();
       if (!result.success) throw new Error('Failed to load insights');
       return result.data;
+    },
+    {
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 30 * 60 * 1000,
+      retry: 2
     }
-  });
+  );
 
   const practiceAffirmations = useMemo(() => {
     if (insights?.insights?.affirmations?.length > 0) {
@@ -186,19 +386,20 @@ const InsightsContent = () => {
 
   if (error) {
     return (
-      <div className="error-state">
-        <div className="error-icon">
-          <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="2" fill="#fff" />
-            <path d="M12 8v4" stroke="#e53e3e" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-          </svg>
+      <div className="insights-page">
+        <div className="error-state">
+          <div className="error-icon">
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="2" fill="#fff" />
+              <path d="M12 8v4" stroke="#e53e3e" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+            </svg>
+          </div>
+          <p className="error-message">{error.message}</p>
+          <button className="retry-button" onClick={() => refetch()}>
+            Try Again
+          </button>
         </div>
-        <h3>Oops! Something went wrong</h3>
-        <p className="error-message">{error.message}</p>
-        <button className="retry-button" onClick={() => refetch()}>
-          Try Again
-        </button>
       </div>
     );
   }
@@ -510,24 +711,4 @@ const InsightsContent = () => {
   );
 };
 
-// Wrap the app with React Query provider
-const InsightsPage = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <div className="insights-page">
-        <div className="insights-content">
-          <React.Suspense fallback={
-            <div className="loading-state">
-              <div className="loading-spinner" />
-              <p>Loading insights...</p>
-            </div>
-          }>
-            <InsightsContent />
-          </React.Suspense>
-        </div>
-      </div>
-    </QueryClientProvider>
-  );
-};
-
-export default InsightsPage; 
+export default InsightsPage;

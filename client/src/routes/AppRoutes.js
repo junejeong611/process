@@ -86,11 +86,9 @@ const AppRoutes = () => (
     
     <Route path="/chat-history/:id" element={
       <ProtectedRoute>
-        <DashboardLayout>
-          <PremiumRoute>
-            <ConversationDetailPage />
-          </PremiumRoute>
-        </DashboardLayout>
+        <PremiumRoute>
+          <ConversationDetailPage />
+        </PremiumRoute>
       </ProtectedRoute>
     } />
     
