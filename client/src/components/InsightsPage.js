@@ -1,22 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import './InsightsPage.css';
 
 // Lazy load heavy components
 const EmotionalTimelineChart = React.lazy(() => import('./analytics/EmotionalTimelineChart'));
 const EmotionDistributionChart = React.lazy(() => import('./analytics/EmotionDistributionChart'));
-
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
-      cacheTime: 30 * 60 * 1000, // Keep unused data in cache for 30 minutes
-      retry: 2,
-      refetchOnWindowFocus: false
-    },
-  },
-});
 
 // Helper functions
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -47,7 +36,7 @@ const DEFAULT_AFFIRMATIONS = [
 const WeeklySummary = React.memo(() => {
   const userId = useMemo(() => getUserId(), []);
   
-  const { data: summary, isLoading, error } = useQuery({
+  const { data: summary, isLoading, error, refetch } = useQuery({
     queryKey: ['weekly-summary', userId],
     queryFn: async () => {
       const token = getToken();
@@ -55,21 +44,40 @@ const WeeklySummary = React.memo(() => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const result = await response.json();
-      if (!result.success) throw new Error('Failed to load weekly summary');
+      if (!result.success) throw new Error('failed to load weekly summary');
       return result.data;
     }
   });
 
   if (isLoading) {
-    return <div className="chart-loading">Loading weekly summary...</div>;
+    return <div className="chart-loading">loading weekly summary...</div>;
   }
 
   if (error) {
-    return <div className="chart-error">{error.message}</div>;
+    return (
+      <div className="error-container">
+        <div className="error-card">
+          <div className="error-icon-lock">
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="1.5" />
+                <path d="M12 7v6" stroke="#e53e3e" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+            </svg>
+          </div>
+          <h3 className="error-title-text">could not load summary</h3>
+          <p className="error-message-text">{error.message}</p>
+          <div className="error-actions">
+            <button className="refresh-button-centered" onClick={() => refetch()}>
+              try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!summary) {
-    return <div className="chart-error">No summary data available.</div>;
+    return <div className="chart-error">no summary data available.</div>;
   }
 
   return (
@@ -128,7 +136,7 @@ const InsightsContent = () => {
   
   const userId = useMemo(() => getUserId(), []);
 
-  const { data: insights, isLoading, error, refetch } = useQuery({
+  const { data: insights, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['insights', userId],
     queryFn: async () => {
       const token = getToken();
@@ -175,6 +183,16 @@ const InsightsContent = () => {
 
   const hasEnoughData = insights?.messages?.length >= 5;
 
+  const lastUpdatedText = dataUpdatedAt
+    ? `Last updated: ${new Date(dataUpdatedAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      })}`
+    : 'Recently';
+
   if (isLoading) {
     return (
       <div className="loading-state">
@@ -186,19 +204,23 @@ const InsightsContent = () => {
 
   if (error) {
     return (
-      <div className="error-state">
-        <div className="error-icon">
-          <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="2" fill="#fff" />
-            <path d="M12 8v4" stroke="#e53e3e" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-          </svg>
+      <div className="error-container">
+        <div className="error-card">
+          <div className="error-icon-lock">
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="1.5" />
+                <path d="M12 7v6" stroke="#e53e3e" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+            </svg>
+          </div>
+          <h3 className="error-title-text">application error</h3>
+          <p className="error-message-text">{error.message || 'something went wrong. please refresh the page.'}</p>
+          <div className="error-actions">
+            <button className="refresh-button-centered" onClick={() => refetch()}>
+              refresh page
+            </button>
+          </div>
         </div>
-        <h3>Oops! Something went wrong</h3>
-        <p className="error-message">{error.message}</p>
-        <button className="retry-button" onClick={() => refetch()}>
-          Try Again
-        </button>
       </div>
     );
   }
@@ -210,12 +232,11 @@ const InsightsContent = () => {
       <div className="insights-page practice-mode">
         <div className="practice-container">
           <div className="practice-header">
-            <button className="back-button" onClick={exitPractice}>
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7-7l-7 7 7 7"/>
-              </svg>
-              Back to Insights
-            </button>
+            <div className="back-navigation">
+              <Link to="#" onClick={exitPractice} className="back-link" aria-label="Back to insights">
+                <span className="back-icon">&#8592;</span> back
+              </Link>
+            </div>
             <h2>Daily Affirmation Practice</h2>
             <p>Take a moment to breathe and repeat this affirmation</p>
           </div>
@@ -317,38 +338,37 @@ const InsightsContent = () => {
     <div className="insights-page">
       {/* Header */}
       <div className="insights-header">
-        <div className="header-content">
-          <h1>Your Emotional Insights</h1>
-          <p>understanding your emotional patterns</p>
-          <div className="header-meta">
-            <span className="last-updated">Last updated: {lastUpdated}</span>
+        <div className="header-top-row">
+          <div className="header-content">
+            <h1>Your Emotional Insights</h1>
+            <p>understanding your emotional patterns</p>
+            <span className="last-updated">{lastUpdatedText}</span>
+          </div>
+          
+          <div className="header-actions">
             <button 
-              className={`refresh-button ${isLoading ? 'refreshing' : ''}`}
+              className="practice-button primary"
+              onClick={startPractice}
+            >
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              Practice Affirmations
+            </button>
+            <button 
+              className={`refresh-button ${isFetching ? 'refreshing' : ''}`}
               onClick={() => refetch()}
-              disabled={isLoading}
+              disabled={isFetching}
             >
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
               </svg>
-              {isLoading ? 'Refreshing...' : 'Refresh Insights'}
+              {isFetching ? 'Refreshing...' : 'Refresh Insights'}
             </button>
           </div>
         </div>
         
-        {/* Quick Actions */}
-        <div className="quick-actions">
-          <button 
-            className="practice-button primary"
-            onClick={startPractice}
-          >
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-            Practice Affirmations
-          </button>
-        </div>
-
         {/* Tab Navigation */}
         <div className="tab-navigation">
           <button
@@ -510,23 +530,20 @@ const InsightsContent = () => {
   );
 };
 
-// Wrap the app with React Query provider
 const InsightsPage = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="insights-page">
-        <div className="insights-content">
-          <React.Suspense fallback={
-            <div className="loading-state">
-              <div className="loading-spinner" />
-              <p>Loading insights...</p>
-            </div>
-          }>
-            <InsightsContent />
-          </React.Suspense>
-        </div>
+    <div className="insights-page">
+      <div className="insights-content">
+        <React.Suspense fallback={
+          <div className="loading-state">
+            <div className="loading-spinner" />
+            <p>Loading insights...</p>
+          </div>
+        }>
+          <InsightsContent />
+        </React.Suspense>
       </div>
-    </QueryClientProvider>
+    </div>
   );
 };
 

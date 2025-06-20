@@ -314,21 +314,20 @@ body {
 .header-actions {
   margin-left: auto;
   display: flex;
-  gap: 0.875rem;
+  gap: var(--space-md);
   align-items: center;
 }
 
 .chat-history-header:hover {
-  box-shadow: var(--shadow-strong), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
+  border-bottom-color: var(--border-medium);
 }
 
 @media (max-width: 768px) {
   .chat-history-header {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 1rem !important;
-    padding: 1.25rem !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1.25rem;
   }
 
   .header-center {
@@ -342,66 +341,6 @@ body {
   }
 }
 
-/* Enhanced Back Button with Micro-interactions */
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.625rem;
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: 0.95rem;
-  font-weight: 600;
-  transition: all var(--transition-normal);
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius-full);
-  background: rgba(123, 182, 250, 0.08);
-  border: 1px solid var(--border-light);
-  text-transform: lowercase;
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-}
-
-.back-link::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left var(--transition-slow);
-}
-
-.back-link:hover::before {
-  left: 100%;
-}
-
-.back-link:hover,
-.back-link:focus {
-  color: var(--primary-blue-dark);
-  background: rgba(123, 182, 250, 0.15);
-  border-color: var(--border-medium);
-  transform: translateY(-2px) translateX(-1px);
-  text-decoration: none;
-  box-shadow: 0 8px 24px rgba(123, 182, 250, 0.2);
-}
-
-.back-link:active {
-  transform: translateY(-1px) translateX(-0.5px);
-}
-
-.back-icon {
-  font-size: 1.25rem;
-  transition: transform var(--transition-normal);
-  display: flex;
-  align-items: center;
-}
-
-.back-link:hover .back-icon {
-  transform: translateX(-4px);
-}
-
 /* Enhanced Title with Animated Gradient */
 .header-center {
   width: 100%;
@@ -413,18 +352,18 @@ body {
 }
 
 .page-title {
-  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 50%, var(--primary-blue) 100%);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-size: 1.875rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
+  color: var(--text-primary);
   margin: 0 0 0.375rem 0;
   line-height: 1.2;
   text-transform: lowercase;
   letter-spacing: -0.025em;
   animation: gradientShift 4s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 @keyframes gradientShift {
@@ -482,41 +421,34 @@ body {
 
 /* Standardized hover states */
 .action-button:hover:not(:disabled):not(.secondary):not(.danger),
-.action-button.select-all:hover:not(:disabled),
-.action-button.secondary:hover:not(:disabled),
-.modal-button:hover:not(:disabled),
-.retry-button:hover:not(:disabled) {
+.action-button.select-all:hover {
+  background: var(--primary-blue-pale);
+  color: var(--primary-blue-dark);
   transform: var(--hover-transform);
   box-shadow: var(--hover-shadow);
 }
 
 /* Danger button hover */
 .action-button.danger:hover:not(:disabled) {
-  transform: var(--hover-transform);
+  background-color: #fff2f2;
+  border-color: #ffb8b8;
+  color: #c53030;
   box-shadow: var(--danger-hover-shadow);
-  background: #ff5252;
-  border-color: #ff5252;
-  color: white;
 }
 
 /* Standardized active states */
 .action-button:active:not(:disabled):not(.secondary):not(.danger),
-.action-button.select-all:active:not(:disabled),
-.action-button.secondary:active:not(:disabled),
-.modal-button:active:not(:disabled),
-.retry-button:active:not(:disabled) {
+.action-button.select-all:active {
   transform: var(--active-transform);
-  box-shadow: none;
-  transition-duration: 100ms;
+  background: #dbeaf6; /* Slightly darker than hover */
 }
 
-/* Danger button active */
+/* Consistent active state for danger button */
 .action-button.danger:active:not(:disabled) {
+  background-color: #ffe5e5;
+  color: #a32929;
   transform: var(--active-transform);
   box-shadow: none;
-  background: #ff3d3d;
-  border-color: #ff3d3d;
-  transition-duration: 100ms;
 }
 
 /* Active class styles */
@@ -848,13 +780,12 @@ body {
 }
 
 .retry-button:hover {
-  background: #ff5252;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+  background-color: #6b8ead;
 }
 
 .retry-button:active {
-  transform: translateY(0);
+  background-color: #5a7d9a;
+  transform: scale(0.98);
 }
 
 /* Mobile responsiveness */
@@ -948,14 +879,21 @@ body {
 }
 
 .pill-button:hover {
+  background-color: var(--primary-blue-dark);
+  color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(123, 182, 250, 0.35);
-  text-decoration: none;
-  color: white;
+  box-shadow: var(--shadow-medium);
+}
+
+.pill-button:active {
+  transform: translateY(0);
+  background-color: var(--primary-blue-dark);
+  box-shadow: var(--shadow-light);
 }
 
 .pill-button:last-child {
-  margin-right: 0.625rem;
+  background-color: transparent;
+  color: var(--primary-blue-dark);
 }
 
 .pill-button:focus {
@@ -1104,32 +1042,39 @@ body {
 }
 
 .modal-button.primary {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-  color: white;
-  border-color: #ff6b6b;
+  background-color: var(--primary-blue-dark);
+  color: #fff;
 }
 
 .modal-button.primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+  background-color: var(--primary-blue);
+}
+
+.modal-button.primary:active {
+  background-color: #4a7bbf; /* Darker shade for active */
+  transform: scale(0.98);
 }
 
 .modal-button.secondary {
-  background: var(--bg-glass);
+  background-color: var(--bg-secondary);
   color: var(--text-secondary);
-  border-color: var(--border-light);
+  border: 1px solid var(--border-light);
 }
 
 .modal-button.secondary:hover {
-  background: rgba(123, 182, 250, 0.08);
-  color: var(--primary-blue-dark);
+  background-color: #dbe6f3;
   border-color: var(--border-medium);
+}
+
+.modal-button.secondary:active {
+  background-color: #d1dde9;
+  transform: scale(0.98);
 }
 
 /* Responsive Design Enhancements */
 @media (max-width: 768px) {
   .chat-history-container {
-    padding: var(--space-lg);
+    padding: 1.5rem 1rem;
   }
   
   .chat-history-header {
@@ -1613,13 +1558,12 @@ h3.error-title {
 }
 
 .retry-button:hover {
-  background: #ff5252;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+  background-color: #6b8ead;
 }
 
 .retry-button:active {
-  transform: translateY(0);
+  background-color: #5a7d9a;
+  transform: scale(0.98);
 }
 
 /* Mobile responsiveness */

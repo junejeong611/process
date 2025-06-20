@@ -208,8 +208,18 @@ const Register = () => {
           </header>
           
           {error && (
-            <div className="error-message" role="alert">
-              {error}
+            <div className="error-container">
+              <div className="error-card">
+                <div className="error-icon-lock">
+                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="#e57373" strokeWidth="1.5" />
+                      <path d="M12 7v6" stroke="#e57373" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+                  </svg>
+                </div>
+                <h3 className="error-title-text">registration failed</h3>
+                <p className="error-message-text">{error}</p>
+              </div>
             </div>
           )}
           

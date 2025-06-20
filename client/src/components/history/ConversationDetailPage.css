@@ -12,23 +12,15 @@
   padding-top: 5rem !important; /* Add padding to account for back button */
 }
 
-/* Support-style back button */
-.support-back-btn-row {
-  display: block;
-  position: fixed;
-  top: 1.5rem;
-  left: 1.5rem;
-  z-index: 100;
-  margin-bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0.25rem;
-  border-radius: 12px;
-  transition: all 0.2s ease;
+/* Back navigation */
+.back-navigation {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  z-index: 10;
 }
 
-.support-back-btn {
+.back-link {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -40,31 +32,22 @@
   padding: 0.4rem 0.6rem;
   border-radius: 8px;
   text-transform: lowercase;
-  background: none;
-  border: none;
-  outline: none;
-  cursor: pointer;
-  position: relative;
-  z-index: 1;
 }
 
-.support-back-btn:hover,
-.support-back-btn:focus {
+.back-link:hover,
+.back-link:focus {
   color: #3a5a8c;
-}
-
-.support-back-btn-row:hover {
-  background: rgba(123, 182, 250, 0.15);
+  background: rgba(123, 182, 250, 0.08);
   transform: translateX(-3px);
+  outline: none;
 }
 
-.support-back-icon {
+.back-icon {
   font-size: 1.2rem;
   transition: transform 0.2s ease;
-  margin-right: 0;
 }
 
-.support-back-btn:hover .support-back-icon {
+.back-link:hover .back-icon {
   transform: translateX(-3px);
 }
 
@@ -100,10 +83,67 @@
   to { transform: rotate(360deg); }
 }
 
-.error-message {
-  color: #dc3545;
-  text-align: center;
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 2rem;
+  width: 100%;
+}
+
+.error-card {
+  background-color: #fff;
+  border-radius: 18px;
+  border: 1px solid #e57373;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error-icon-lock {
+  margin-bottom: 1rem;
+}
+
+.error-title-text {
+  color: #e57373;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-transform: lowercase;
+}
+
+.error-message-text {
+  color: #6b7a90;
+  margin-bottom: 1.5rem;
+  text-transform: lowercase;
+}
+
+.error-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.refresh-button-centered {
+  padding: 0.75rem 1.5rem;
+  background-color: #3a5a8c; /* primary-blue */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-transform: lowercase;
+}
+
+.refresh-button-centered:hover {
+  background-color: #5a8fd6; /* medium-blue */
 }
 
 .error-bg {
@@ -116,12 +156,11 @@
     padding: 1rem;
   }
 
-  .support-back-btn-row {
-    top: 1rem;
-    left: 1rem;
+  .back-navigation {
+    padding: 0.5rem 0 0 0.5rem;
   }
 
-  .support-back-btn {
+  .back-link {
     font-size: 0.85rem;
     padding: 0.35rem 0.5rem;
   }

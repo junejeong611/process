@@ -204,6 +204,11 @@ body {
   background: var(--bg-light);
 }
 
+/* Override unwanted text-transform from other stylesheets */
+.login-form .form-control {
+  text-transform: none;
+}
+
 /* Password toggle button - FIXED POSITIONING */
 .toggle-password {
   position: absolute;
@@ -485,7 +490,7 @@ body {
   color: var(--primary-blue);
 }
 
-.checkbox-text {
+.login-form .checkbox-text {
   user-select: none;
   transition: color var(--transition-fast);
   text-transform: lowercase;

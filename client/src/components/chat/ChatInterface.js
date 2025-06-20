@@ -89,7 +89,7 @@ const ChatInterface = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
-  const [backendReady, setBackendReady] = useState(true);
+  const [backendReady, setBackendReady] = useState(false);
   const [backendError, setBackendError] = useState('');
   const [uiReady, setUiReady] = useState(false);
   

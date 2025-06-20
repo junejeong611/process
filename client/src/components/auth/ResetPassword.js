@@ -507,52 +507,41 @@ const ResetPassword = () => {
           </div>
 
           <header className="reset-password-header">
-            <div className="header-icon" role="img" aria-label="key icon">🔑</div>
+            <div className="header-icon" role="img" aria-label="lock icon">🔑</div>
             <h1 id="reset-password-heading" className="reset-password-title">
-              reset your password
+              set a new password
             </h1>
             <p className="reset-password-subtitle">
-              enter your new password to regain access to your account
+              your new password must be different from previous passwords
             </p>
           </header>
 
           {/* Enhanced error display */}
           {error && (
-            <div 
-              className={`error-message ${errorCategory?.type || ''}`} 
-              role="alert"
-              aria-live="polite"
-            >
-              <div className="error-content">
-                <div className="error-icon" aria-hidden="true">
-                  {getErrorIcon(errorCategory)}
+            <div className="error-container">
+              <div className="error-card">
+                <div className="error-icon-lock">
+                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="#e57373" strokeWidth="1.5" />
+                      <path d="M12 7v6" stroke="#e57373" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+                  </svg>
                 </div>
-                <div className="error-text">
-                  {errorCategory?.type === 'token' && (
-                    <div className="error-title">Invalid Reset Link</div>
-                  )}
-                  {errorCategory?.type === 'validation' && (
-                    <div className="error-title">Password Requirements</div>
-                  )}
-                  {errorCategory?.type === 'network' && (
-                    <div className="error-title">Connection Failed</div>
-                  )}
-                  {errorCategory?.type === 'server' && (
-                    <div className="error-title">Server Unavailable</div>
-                  )}
-                  {error}
-                </div>
+                <h3 className="error-title-text">password reset failed</h3>
+                <p className="error-message-text">{error}</p>
+                {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
+                  <div className="error-actions">
+                    <button 
+                      className="refresh-button-centered"
+                      onClick={handleRetry}
+                      aria-label={`retry password reset (attempt ${retryCount + 2})`}
+                      type="button"
+                    >
+                      try again
+                    </button>
+                  </div>
+                )}
               </div>
-              {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && tokenValid && (
-                <button 
-                  className="retry-button"
-                  onClick={handleRetry}
-                  aria-label={`retry password reset (attempt ${retryCount + 2})`}
-                  type="button"
-                >
-                  try again
-                </button>
-              )}
             </div>
           )}
 
