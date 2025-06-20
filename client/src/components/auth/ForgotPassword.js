@@ -425,29 +425,30 @@ const ForgotPassword = () => {
 
           {/* Enhanced error display */}
           {error && (
-            <div 
-              className={`error-message ${errorCategory?.type || ''}`} 
-              role="alert"
-              aria-live="polite"
-            >
-              <div className="error-content">
-                <div className="error-icon" aria-hidden="true">
-                  {getErrorIcon(errorCategory)}
+            <div className="error-container">
+              <div className="error-card">
+                <div className="error-icon-lock">
+                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="1.5" />
+                      <path d="M12 7v6" stroke="#e53e3e" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+                  </svg>
                 </div>
-                <div className="error-text">
-                  {error}
-                </div>
+                <h3 className="error-title-text">request failed</h3>
+                <p className="error-message-text">{error}</p>
+                {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
+                  <div className="error-actions">
+                    <button 
+                      className="refresh-button-centered"
+                      onClick={handleRetry}
+                      aria-label={`retry password reset request (attempt ${retryCount + 2})`}
+                      type="button"
+                    >
+                      try again
+                    </button>
+                  </div>
+                )}
               </div>
-              {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
-                <button 
-                  className="retry-button"
-                  onClick={handleRetry}
-                  aria-label={`retry password reset request (attempt ${retryCount + 2})`}
-                  type="button"
-                >
-                  try again
-                </button>
-              )}
             </div>
           )}
 

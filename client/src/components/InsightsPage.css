@@ -61,13 +61,39 @@
 
 /* Header */
 .insights-header {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-  padding: var(--spacing-3xl) var(--spacing-2xl) var(--spacing-2xl);
   position: sticky;
   top: 0;
   z-index: 10;
+  padding: 1.5rem 2rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  border-radius: 1.5rem;
+}
+
+.header-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 1.5rem;
+}
+
+.header-content {
+  flex: 1 1 auto;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .header-content h1 {
@@ -81,6 +107,11 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  margin-bottom: 0;
 }
 
 .header-content p {
@@ -103,6 +134,15 @@
   font-size: var(--text-sm);
   color: var(--text-muted);
   text-transform: lowercase;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  text-transform: lowercase;
+  flex-shrink: 0;
 }
 
 .refresh-button {
@@ -143,7 +183,7 @@
 .quick-actions {
   display: flex;
   gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: 0;
 }
 
 .practice-button {
@@ -863,33 +903,88 @@
 }
 
 .error-state p {
-  font-size: var(--text-base);
   color: var(--text-secondary);
-  margin: 0 0 var(--spacing-xl) 0;
-  text-transform: lowercase;
+  max-width: 400px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
 }
 
 /* Make retry button transparent with border */
 .retry-button {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  background: transparent !important;
-  color: var(--text-primary);
-  border: 1px solid var(--text-primary) !important;
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  padding: 12px 24px;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  font-family: inherit;
-  text-transform: lowercase;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
+  transition: background-color var(--transition-fast);
 }
 
 .retry-button:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  transform: translateY(-1px);
+  background: var(--medium-blue);
+}
+
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  width: 100%;
+}
+
+.error-card {
+  background-color: var(--bg-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--error-red);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error-icon-lock {
+  margin-bottom: 1rem;
+}
+
+.error-title-text {
+  color: var(--error-red);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-message-text {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.error-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.refresh-button-centered {
+  padding: 0.75rem 1.5rem;
+  background-color: #3a5a8c; /* primary-blue */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-transform: lowercase;
+}
+
+.refresh-button-centered:hover {
+  background-color: #5a8fd6; /* medium-blue */
 }
 
 /* Insufficient data state */
@@ -1015,7 +1110,14 @@
 }
 
 /* Practice mode */
-.practice-mode {
+.insights-page.practice-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-primary);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1023,55 +1125,91 @@
   padding: var(--spacing-2xl);
 }
 
+.practice-mode .main-content {
+  padding: 0;
+  height: 100%;
+}
+
+.practice-mode + .navbar, .practice-mode ~ .navbar {
+  display: none !important;
+}
+
+body .dashboard-layout .navbar {
+  transition: transform 0.3s ease-in-out;
+}
+
+.insights-page.practice-mode ~ .navbar {
+  transform: translateY(-100%);
+}
+
 .practice-container {
-  max-width: 600px;
+  padding: var(--spacing-2xl);
   width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
   text-align: center;
 }
 
 .practice-header {
   margin-bottom: var(--spacing-3xl);
+  text-align: center;
 }
 
-.back-button {
+/* Unified back button styles */
+.practice-mode .back-navigation {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  z-index: 10;
+}
+
+.practice-mode .back-link {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  font-family: inherit;
+  gap: 0.5rem;
+  color: #6b7a90;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   text-transform: lowercase;
-  margin-bottom: var(--spacing-xl);
 }
 
-.back-button:hover {
-  background: var(--bg-white);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
+.practice-mode .back-link:hover,
+.practice-mode .back-link:focus {
+  color: #3a5a8c;
+  background: rgba(123, 182, 250, 0.08);
+  transform: translateX(-3px);
+  outline: none;
+}
+
+.practice-mode .back-icon {
+  font-size: 1.2rem;
+  transition: transform 0.2s ease;
+}
+
+.practice-mode .back-link:hover .back-icon {
+  transform: translateX(-3px);
 }
 
 .practice-header h2 {
-  font-size: var(--text-2xl);
+  font-size: 2rem;
   font-weight: 700;
   color: var(--primary-blue);
-  margin: 0 0 var(--spacing-sm) 0;
+  margin: 0 0 var(--spacing-md) 0;
   text-transform: lowercase;
 }
 
 .practice-header p {
-  font-size: var(--text-base);
+  font-size: 1.25rem;
   color: var(--text-secondary);
   margin: 0;
   text-transform: lowercase;
 }
 
-.affirmation-card {
+.practice-mode .affirmation-card {
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-xl);
   padding: var(--spacing-3xl);
@@ -1081,8 +1219,8 @@
   border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-.affirmation-card .affirmation-text {
-  font-size: 1.5rem;
+.practice-mode .affirmation-card .affirmation-text {
+  font-size: 2rem;
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.4;
@@ -1093,10 +1231,11 @@
 .affirmation-meta {
   display: flex;
   justify-content: center;
+  margin-top: 1.5rem;
 }
 
 .affirmation-counter {
-  font-size: var(--text-sm);
+  font-size: 1rem;
   color: var(--text-muted);
   background: rgba(107, 155, 215, 0.1);
   padding: var(--spacing-sm) var(--spacing-lg);
@@ -1106,18 +1245,19 @@
 
 .practice-actions {
   margin-bottom: var(--spacing-2xl);
+  margin-top: 2rem;
 }
 
 .next-affirmation-button {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-lg) var(--spacing-xl);
+  gap: var(--spacing-md);
+  padding: 1rem 2rem;
   background: linear-gradient(135deg, var(--affirmation-color) 0%, #68d391 100%);
   color: #ffffff;
   border: none;
   border-radius: var(--radius-lg);
-  font-size: var(--text-base);
+  font-size: 1.125rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);

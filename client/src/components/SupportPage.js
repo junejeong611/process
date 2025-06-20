@@ -39,13 +39,12 @@ const SupportPage = () => {
   const navigate = useNavigate();
   return (
     <main className="support-main" role="main">
-      {/* Modern floating back button, centered above card */}
-      <div className="support-back-btn-row">
-        <Link to="/options" className="support-back-btn" aria-label="Back to options">
-          <span className="support-back-icon">&#8592;</span> back
-        </Link>
-      </div>
       <div className="support-card">
+        <div className="back-navigation">
+          <Link to="/options" className="back-link" aria-label="Back to options">
+            <span className="back-icon">&#8592;</span> back
+          </Link>
+        </div>
         <h1 className="support-title">Crisis Support Resources</h1>
         <p className="support-intro">if you are in crisis, please reach out to one of the resources below. you are not alone.</p>
         <ul className="support-list">

@@ -70,9 +70,24 @@ const ConversationDetailPage = () => {
 
   if (error) {
     return (
-      <div className="conversation-detail-container error-bg">
-        <div className="error-message">
-          {error}
+      <div className="conversation-detail-container">
+        <div className="error-container">
+          <div className="error-card">
+            <div className="error-icon-lock">
+              <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="1.5" />
+                  <path d="M12 7v6" stroke="#e53e3e" strokeWidth="1.5" strokeLinecap="round" />
+                  <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+              </svg>
+            </div>
+            <h3 className="error-title-text">failed to load conversation</h3>
+            <p className="error-message-text">{error}</p>
+            <div className="error-actions">
+              <button className="refresh-button-centered" onClick={() => fetchConversation()}>
+                try again
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -80,9 +95,9 @@ const ConversationDetailPage = () => {
 
   return (
     <div className="conversation-detail-container">
-      <div className="support-back-btn-row">
-        <Link to="/chat-history" className="support-back-btn" aria-label="Back to chat history">
-          <span className="support-back-icon">&#8592;</span> back
+      <div className="back-navigation">
+        <Link to="/chat-history" className="back-link" aria-label="Back to chat history">
+          <span className="back-icon">&#8592;</span> back
         </Link>
       </div>
       {conversation && (

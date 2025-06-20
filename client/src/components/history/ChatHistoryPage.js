@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import ConversationCard from './ConversationCard';
 import './ChatHistoryPage.css';
 import { toast } from 'react-toastify';
+
+// Constants
+const ITEMS_PER_PAGE = 10;
 
 // Cache for conversations data
 let conversationsCache = null;
@@ -11,8 +14,8 @@ const CACHE_DURATION = 30000; // 30 seconds
 
 const ChatHistoryPage = () => {
   // State management
-  const [conversations, setConversations] = useState(conversationsCache || []);
-  const [loading, setLoading] = useState(!conversationsCache);
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [loadingStage, setLoadingStage] = useState('initial');
   const [error, setError] = useState('');
   const [errorType, setErrorType] = useState('');
@@ -89,8 +92,8 @@ const ChatHistoryPage = () => {
     if (shouldFetch) {
       fetchConversations();
     } else {
-      setLoading(false);
       setConversations(conversationsCache);
+      setLoading(false);
     }
 
     document.title = 'Chat History - Your Safe Space';
@@ -215,7 +218,13 @@ const ChatHistoryPage = () => {
       }
       
       if (data.success) {
-        setConversations(data.conversations || []);
+        const sortedConversations = (data.conversations || []).sort((a, b) => 
+          new Date(b.lastMessageTime || b.updatedAt || b.createdAt) - 
+          new Date(a.lastMessageTime || a.updatedAt || a.createdAt)
+        );
+        setConversations(sortedConversations);
+        conversationsCache = sortedConversations;
+        lastFetchTime = Date.now();
         setError('');
         setErrorType('');
         setRetryCount(0);
@@ -455,33 +464,21 @@ const ChatHistoryPage = () => {
   // Enhanced loading state with better UX and proper centering
   if (loading) {
     return (
-      <>
-        {/* Main content still renders but is overlaid by loading */}
-        <div className="main-content-wrapper">
-          <div className="chat-history-container">
-            <div className="chat-history-inner">
-              {/* Content placeholder while loading */}
-            </div>
+      <div className="loading-container">
+        <div className="loading-content">
+          <div className="loading-spinner" role="status" aria-label="Loading your conversations">
+            <div className="spinner-circle"></div>
           </div>
+          <p className="loading-text" aria-live="polite">
+            {loadingMessages[loadingStage]}
+          </p>
         </div>
-        
-        {/* Full-screen loading overlay */}
-        <div className="loading-container">
-          <div className="loading-content">
-            <div className="loading-spinner" role="status" aria-label="Loading your conversations">
-              <div className="spinner-circle"></div>
-            </div>
-            <p className="loading-text" aria-live="polite">
-              {loadingMessages[loadingStage]}
-            </p>
-          </div>
-        </div>
-      </>
+      </div>
     );
   }
 
   // Enhanced error state with better support messaging
-  const renderError = () => {
+  if (error) {
     return (
       <div className="error-message-container">
         <div className="error-message">
@@ -498,7 +495,7 @@ const ChatHistoryPage = () => {
         </div>
       </div>
     );
-  };
+  }
 
   return (
     <div className="main-content-wrapper">

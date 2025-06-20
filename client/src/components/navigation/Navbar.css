@@ -1,4 +1,3 @@
-/* Updated Navbar.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
@@ -30,6 +29,7 @@
   font-family: var(--font-family);
   z-index: 100;
   overflow-x: hidden;
+  transition: width var(--transition-medium);
 }
 
 .navbar.collapsed {
@@ -130,17 +130,19 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-align: left;
   font-family: inherit;
   text-transform: lowercase;
   position: relative;
   outline: none;
+  text-decoration: none; /* for Link component */
+  width: calc(100% - 1.5rem); /* for Link component */
 }
 
 .navbar.collapsed .navbar-item {
   padding: 0.875rem;
   justify-content: center;
   margin: 0 0.5rem;
+  width: calc(100% - 1rem);
 }
 
 .navbar-item:hover {

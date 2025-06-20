@@ -112,6 +112,7 @@ const Login = () => {
   const [shakePassword, setShakePassword] = useState(false);
   const [shakeEmail, setShakeEmail] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
 
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -197,6 +198,7 @@ const Login = () => {
     }
   }, [debouncedEmail, emailError]);
 
+  // Real-time validation for password only
   useEffect(() => {
     if (debouncedPassword) {
       const validationError = validatePassword(debouncedPassword);
@@ -279,6 +281,12 @@ const Login = () => {
     setErrorCategory(null);
     handleSubmit(e);
   }, [retryCount]);
+
+  const handleEmailBlur = () => {
+    setEmailBlurred(true);
+    const validationError = validateEmail(email);
+    setEmailError(validationError);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -591,10 +599,11 @@ const Login = () => {
                   ref={emailInputRef}
                   id="email"
                   type="email"
-                  className={`form-control${(emailError && (emailBlurred || hasSubmitted)) ? ' is-invalid' : ''}${shakeEmail ? ' shake' : ''}`}
+                  className={`form-control${(emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' is-invalid' : ''}${shakeEmail && (emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' shake' : ''}`}
                   value={email}
                   onChange={handleEmailChange}
-                  onBlur={() => setEmailBlurred(true)}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => { setEmailBlurred(true); setEmailFocused(false); }}
                   required
                   aria-required="true"
                   aria-invalid={!!emailError}
@@ -607,7 +616,7 @@ const Login = () => {
                   onAnimationEnd={() => setShakeEmail(false)}
                 />
               </div>
-              {emailError && (
+              {emailError && (emailBlurred || hasSubmitted) && !emailFocused && (
                 <div className="invalid-feedback" id="email-error" role="alert">
                   {emailError}
                 </div>
