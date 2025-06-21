@@ -673,7 +673,7 @@ const Login = () => {
                 
                 <div className="form-options">
                     <div className="remember-me">
-                        <label className="checkbox-label">
+                        <label className="checkbox-label mfa-checkbox">
                         <input
                             type="checkbox"
                             checked={trustDevice}

@@ -661,7 +661,7 @@ const ChatHistoryPage = () => {
                     <div className="empty-icon" aria-hidden="true">💬</div>
                     <h3 className="empty-title">no conversations yet</h3>
                     <p className="empty-message">
-                      Ready to start your journey? Your first conversation is just a click away.
+                      ready to start your journey? your first conversation is just a click away
                     </p>
                     <div className="empty-actions">
                       <Link to="/voice" className="pill-button" aria-label="Start voice conversation">

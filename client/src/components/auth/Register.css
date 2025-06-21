@@ -99,7 +99,7 @@
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.2rem;
   animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1) 0.2s both;
 }
 
@@ -262,16 +262,14 @@
 
 .strength-label {
   font-size: 0.8rem;
-  font-weight: 500;
-  text-transform: lowercase;
-  color: #6b7a90;
-  min-width: 50px;
-  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Terms and agreement */
 .terms-group {
-  margin-top: 0.5rem;
+  margin-top: -0.5rem;
+  margin-bottom: -0.5rem;
 }
 
 .checkbox-label {
@@ -280,17 +278,17 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: #6b7a90;
-  gap: 0.5rem;
-  line-height: 1.4;
+  text-align: left;
 }
 
 .checkbox-label input[type="checkbox"] {
   accent-color: #7bb6fa;
+  margin-right: 0.75em;
   width: 1.1em;
   height: 1.1em;
   cursor: pointer;
-  margin-top: 0.1rem;
   flex-shrink: 0;
+  margin-top: 3px;
 }
 
 .checkbox-label:hover .checkbox-text {

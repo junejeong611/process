@@ -275,10 +275,11 @@
 
 .toggle-icon {
   transition: transform var(--transition-medium);
+  transform: translateX(-2px);
 }
 
 .toggle-icon.rotated {
-  transform: rotate(180deg);
+  transform: translateX(-2px) rotate(180deg);
 }
 
 /* Tooltip for collapsed state */

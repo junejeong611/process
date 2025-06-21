@@ -887,18 +887,12 @@ body {
 
 .pill-button:active {
   transform: translateY(0);
-  background-color: var(--primary-blue-dark);
   box-shadow: var(--shadow-light);
-}
-
-.pill-button:last-child {
-  background-color: transparent;
-  color: var(--primary-blue-dark);
 }
 
 .pill-button:focus {
   outline: none;
-  box-shadow: var(--shadow-glow), var(--shadow-light);
+  box-shadow: 0 0 0 4px var(--primary-blue-pale);
 }
 
 /* Conversations List */

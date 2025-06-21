@@ -551,7 +551,6 @@ const ForgotPassword = () => {
           </form>
 
           <footer className="forgot-password-footer">
-            <p>remember your password? <Link to="/login">sign in</Link></p>
             <p>don't have an account? <Link to="/register">sign up</Link></p>
             <p className="support-text">
               having trouble? <Link to="/contact" className="support-link">contact support</Link>
