@@ -1751,3 +1751,7 @@ h3.error-title,
     min-width: auto;
   }
 }
+
+.empty-message a.pill-button {
+  color: #fff !important;
+}

@@ -15,6 +15,7 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression'); // Add compression for better performance
 const getSecrets = require('./load');
+const cookieParser = require('cookie-parser');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -79,6 +80,9 @@ function startServer() {
 
   // Enable compression for all responses
   app.use(compression());
+
+  // Use cookie-parser middleware
+  app.use(cookieParser());
 
   // API rate limiting for security
   const apiLimiter = rateLimit({
