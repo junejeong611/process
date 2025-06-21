@@ -71,6 +71,37 @@ const userSchema = new mongoose.Schema({
     enum: ['inactive', 'trialing', 'active', 'canceled', 'past_due'],
     default: 'inactive'
   },
+  // MFA / 2FA Fields
+  mfa_enabled: {
+    type: Boolean,
+    default: false
+  },
+  mfa_secret: {
+    type: String,
+    select: false // Do not return by default for security
+  },
+  mfa_setup_completed: {
+    type: Boolean,
+    default: false
+  },
+  backup_codes: {
+    type: [String],
+    select: false // Do not return by default
+  },
+  trusted_devices: {
+    type: [{
+      device_id: String,
+      expires_at: Date
+    }],
+    select: false
+  },
+  last_mfa_attempt: {
+    type: Date
+  },
+  mfa_attempt_count: {
+    type: Number,
+    default: 0
+  },
   stripeCustomerId: {
     type: String
   },
@@ -88,7 +119,14 @@ const userSchema = new mongoose.Schema({
   },
   cancelAtPeriodEnd: {
     type: Boolean
-  }
+  },
+  // For password reset
+  password_reset_token: String,
+  password_reset_expires: Date,
+
+  // For MFA reset
+  mfa_reset_token: String,
+  mfa_reset_expires: Date
 }, {
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
   collection: 'users',
@@ -106,15 +144,28 @@ userSchema.virtual('fullName').get(function() {
 
 // Pre-save hook to hash password if modified
 userSchema.pre('save', async function(next) {
-  try {
-    if (!this.isModified('password')) return next();
-    
-    const salt = await bcrypt.genSalt(SALT_WORK_FACTOR);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (err) {
-    next(err);
+  // Hash password
+  if (this.isModified('password')) {
+    try {
+      const salt = await bcrypt.genSalt(SALT_WORK_FACTOR);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (err) {
+      return next(err);
+    }
   }
+
+  // Hash backup codes
+  if (this.isModified('backup_codes')) {
+    try {
+      this.backup_codes = await Promise.all(
+        this.backup_codes.map(code => bcrypt.hash(code, SALT_WORK_FACTOR))
+      );
+    } catch (err) {
+      return next(err);
+    }
+  }
+  
+  return next();
 });
 
 // Update lastLogin timestamp on successful login

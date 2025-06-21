@@ -96,7 +96,7 @@ export const SubscriptionProvider = ({ children }) => {
       fetchStatus();
     }
     // eslint-disable-next-line
-  }, [fetchStatus, token]);
+  }, [token]);
 
   // Allow manual refresh (e.g., after checkout)
   const forceRefresh = async () => {

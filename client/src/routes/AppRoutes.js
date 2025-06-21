@@ -7,6 +7,8 @@ import ChatInterface from '../components/chat/ChatInterface';
 import UserProfile from '../components/profile/UserProfile';
 import ForgotPassword from '../components/auth/ForgotPassword';
 import ResetPassword from '../components/auth/ResetPassword';
+import ResetMfaRequest from '../components/auth/ResetMfaRequest';
+import ResetMfaConfirm from '../components/auth/ResetMfaConfirm';
 import ChatHistoryPage from '../components/history/ChatHistoryPage';
 import ConversationDetailPage from '../components/history/ConversationDetailPage';
 import OptionsPage from '../components/OptionsPage';
@@ -43,6 +45,8 @@ const AppRoutes = () => (
     <Route path="/register" element={<Register />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password/:token" element={<ResetPassword />} />
+    <Route path="/reset-mfa-request" element={<ResetMfaRequest />} />
+    <Route path="/reset-mfa-confirm/:token" element={<ResetMfaConfirm />} />
     <Route path="/crisis-support" element={<SupportPage />} />
     
     {/* Protected routes */}

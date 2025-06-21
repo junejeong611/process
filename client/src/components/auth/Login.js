@@ -113,6 +113,17 @@ const Login = () => {
   const [shakeEmail, setShakeEmail] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
+  
+  // New states for MFA
+  const [mfaStep, setMfaStep] = useState(null); // null, 'required', 'setup', 'backup-codes'
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [qrCode, setQrCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState([]);
+  const [trustDevice, setTrustDevice] = useState(false);
+  // A temporary token to authorize MFA steps without full login
+  const [mfaAuthToken, setMfaAuthToken] = useState(null); 
+  const [useBackupCode, setUseBackupCode] = useState(false);
 
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -188,13 +199,13 @@ const Login = () => {
 
   // Real-time validation
   useEffect(() => {
+    let validationError = '';
     if (debouncedEmail && debouncedEmail.trim()) {
-      const validationError = validateEmail(debouncedEmail);
-      if (validationError !== emailError) {
-        setEmailError(validationError);
-      }
-    } else if (emailError && !debouncedEmail.trim()) {
-      setEmailError('');
+      validationError = validateEmail(debouncedEmail);
+    }
+    
+    if (validationError !== emailError) {
+      setEmailError(validationError);
     }
   }, [debouncedEmail, emailError]);
 
@@ -245,24 +256,22 @@ const Login = () => {
   const handleEmailChange = useCallback((e) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
-    if (emailError) setEmailError('');
     if (error) {
       setError('');
       setErrorCategory(null);
     }
     setHasSubmitted(false);
-  }, [emailError, error]);
+  }, [error]);
 
   const handlePasswordChange = useCallback((e) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
-    if (passwordError) setPasswordError('');
     if (error) {
       setError('');
       setErrorCategory(null);
     }
     setHasSubmitted(false);
-  }, [passwordError, error]);
+  }, [error]);
 
   const togglePasswordVisibility = useCallback(() => {
     setShowPassword(!showPassword);
@@ -381,6 +390,25 @@ const Login = () => {
         throw new Error(errorMessage, { cause: { statusCode: response.status, data } });
       }
       
+      // MFA handling
+      if (data.mfaRequired) {
+        setIsLoading(false);
+        setMfaStep('required');
+        setMfaAuthToken(data.mfaToken); // Store the temporary MFA token
+        // Clear password from state for security
+        setPassword('');
+        return;
+      }
+      
+      if (data.mfaSetupRequired) {
+        setIsLoading(false);
+        setMfaStep('setup');
+        setQrCode(data.qrCode);
+        setMfaAuthToken(data.mfaToken);
+        setPassword('');
+        return;
+      }
+
       if (data.success) {
         // Set login success state for animation
         setLoginSuccess(true);
@@ -493,8 +521,83 @@ const Login = () => {
       setErrorCategory(category);
     } finally {
       if (!loginSuccess) setIsLoading(false);
-      controllerRef.current = null;
+      // Do not clear the controller ref if we are in an MFA step
+      if (!mfaStep) {
+        controllerRef.current = null;
+      }
     }
+  };
+
+  const handleMfaSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMfaError('');
+
+    if (controllerRef.current) {
+        controllerRef.current.abort();
+    }
+    controllerRef.current = new AbortController();
+    const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
+
+    try {
+        const response = await fetch('/api/auth/mfa/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${mfaAuthToken}`
+            },
+            body: JSON.stringify({ mfaCode, trustDevice }),
+            signal: controllerRef.current.signal
+        });
+
+        clearTimeout(timeoutId);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'MFA verification failed.');
+        }
+
+        // Handle successful setup
+        if (data.setupComplete) {
+            setBackupCodes(data.backupCodes);
+            // Store the final token received after setup
+            if (data.token) {
+                if (rememberMe) {
+                    localStorage.setItem('token', data.token);
+                } else {
+                    sessionStorage.setItem('token', data.token);
+                }
+            }
+            setMfaStep('backup-codes');
+            setIsLoading(false);
+            return;
+        }
+
+        // Handle successful login
+        if (data.success && data.token) {
+            setLoginSuccess(true);
+            if (rememberMe) {
+                localStorage.setItem('token', data.token);
+            } else {
+                sessionStorage.setItem('token', data.token);
+            }
+            toast.success('Login successful!');
+            setTimeout(() => navigate('/options'), 800);
+        }
+
+    } catch (err) {
+        setMfaError(err.message || 'An error occurred. Please try again.');
+        toast.error(err.message || 'An error occurred.');
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const finishSetup = () => {
+    setLoginSuccess(true);
+    toast.success('Setup complete! Welcome!');
+    // The token has already been stored, so we just need to redirect.
+    setTimeout(() => navigate('/options'), 800);
   };
 
   const formatCountdown = useCallback((seconds) => {
@@ -524,204 +627,359 @@ const Login = () => {
           tabIndex={0} 
           aria-labelledby="login-heading"
         >
-          <header className="login-header" aria-live="polite">
-            <h1 id="login-heading" className="login-title">welcome back</h1>
-            <p className="login-subtitle">
-              a safe place for you to process your emotions
-            </p>
-          </header>
-          
-          {/* Enhanced error display - consistent with ResetPassword */}
-          {error && (
-            <div 
-              className={`error-message ${errorCategory?.type || ''}`} 
-              role="alert"
-              aria-live="polite"
-            >
-              <div className="error-content">
-                <div className="error-icon" aria-hidden="true">
-                  {getErrorIcon(errorCategory)}
+          {mfaStep === 'required' ? (
+            <>
+              <header className="login-header" aria-live="polite">
+                <h1 id="login-heading" className="login-title">two-factor authentication</h1>
+                <p className="login-subtitle">
+                  {useBackupCode ? 'enter one of your backup codes' : 'enter the code from your authenticator app'}
+                </p>
+              </header>
+              {/* MFA Error Display */}
+              {mfaError && (
+                <div className="error-message auth" role="alert" aria-live="polite">
+                  <div className="error-content">
+                    <div className="error-icon" aria-hidden="true">🔐</div>
+                    <div className="error-text">{mfaError}</div>
+                  </div>
                 </div>
-                <div className="error-text">
-                  {errorCategory?.type === 'auth' && (
-                    <div className="error-title">login failed</div>
-                  )}
-                  {errorCategory?.type === 'account' && (
-                    <div className="error-title">account issue</div>
-                  )}
-                  {errorCategory?.type === 'network' && (
-                    <div className="error-title">connection problem</div>
-                  )}
-                  {errorCategory?.type === 'rateLimit' && (
-                    <div className="error-title">too many attempts</div>
-                  )}
-                  {errorCategory?.type === 'server' && (
-                    <div className="error-title">server error</div>
-                  )}
-                  {errorCategory?.type === 'validation' && (
-                    <div className="error-title">validation error</div>
-                  )}
-                  {error}
-                </div>
-              </div>
-              {errorCategory?.canRetry && errorCategory?.type !== 'auth' && retryCount < 3 && countdown === 0 && (
-                <button 
-                  className="retry-button"
-                  onClick={handleRetry}
-                  aria-label={`retry login (attempt ${retryCount + 2})`}
-                  type="button"
-                >
-                  try again
-                </button>
               )}
-            </div>
-          )}
+              <form onSubmit={handleMfaSubmit} className="login-form" noValidate>
+                <div className="form-group">
+                  <label htmlFor="mfa-code" className="form-label">verification code</label>
+                  <div className="input-wrapper">
+                      <input
+                        id="mfa-code"
+                        type="text"
+                        className="form-control"
+                        value={mfaCode}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (useBackupCode) {
+                            // Allow hex characters for backup codes, and force uppercase
+                            setMfaCode(value.replace(/[^0-9a-fA-F]/g, '').toUpperCase());
+                          } else {
+                            // Allow only digits for TOTP codes
+                            setMfaCode(value.replace(/[^0-9]/g, ''));
+                          }
+                        }}
+                        required
+                        autoComplete="one-time-code"
+                        maxLength={useBackupCode ? 8 : 6}
+                        placeholder={useBackupCode ? '8-character backup code' : '6-digit code'}
+                      />
+                  </div>
+                </div>
+                
+                <div className="form-options">
+                    <div className="remember-me">
+                        <label className="checkbox-label">
+                        <input
+                            type="checkbox"
+                            checked={trustDevice}
+                            onChange={(e) => setTrustDevice(e.target.checked)}
+                            aria-checked={trustDevice}
+                        />
+                        <span className="checkbox-text">trust this device for 30 days</span>
+                        </label>
+                    </div>
+                </div>
 
-          {/* Offline indicator */}
-          {!isOnline && (
-            <div className="offline-indicator" role="alert" aria-live="assertive">
-              <span className="offline-icon" aria-hidden="true">📶</span>
-              you're currently offline
-            </div>
-          )}
-          
-          <form 
-            ref={formRef}
-            onSubmit={handleSubmit} 
-            className="login-form" 
-            noValidate
-            autoComplete="on"
-          >
-            <div className={`form-group${emailError ? ' has-error' : ''}`}>
-              <label htmlFor="email" className="form-label">email address</label>
-              <div className="input-wrapper">
-                <input
-                  ref={emailInputRef}
-                  id="email"
-                  type="email"
-                  className={`form-control${(emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' is-invalid' : ''}${shakeEmail && (emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' shake' : ''}`}
-                  value={email}
-                  onChange={handleEmailChange}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => { setEmailBlurred(true); setEmailFocused(false); }}
-                  required
-                  aria-required="true"
-                  aria-invalid={!!emailError}
-                  aria-describedby={emailError ? 'email-error' : 'email-help'}
-                  placeholder="email address"
-                  disabled={isLoading || loginSuccess}
-                  autoComplete="username"
-                  spellCheck="false"
-                  maxLength="254"
-                  onAnimationEnd={() => setShakeEmail(false)}
-                />
-              </div>
-              {emailError && (emailBlurred || hasSubmitted) && !emailFocused && (
-                <div className="invalid-feedback" id="email-error" role="alert">
-                  {emailError}
-                </div>
-              )}
-              <div id="email-help" className="visually-hidden">
-                enter your registered email address
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="password" className="form-label">password</label>
-              <div className="input-wrapper">
-                <input
-                  ref={passwordInputRef}
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  className={`form-control${(passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused ? ' is-invalid' : '')}${shakePassword && (passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused) ? ' shake' : ''}`}
-                  value={password}
-                  onChange={handlePasswordChange}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => { setPasswordBlurred(true); setPasswordFocused(false); }}
-                  required
-                  aria-required="true"
-                  aria-invalid={!!passwordError}
-                  aria-describedby={passwordError ? 'password-error' : 'password-help'}
-                  placeholder="password"
-                  disabled={isLoading || loginSuccess}
-                  autoComplete="current-password"
-                  maxLength="128"
-                  onAnimationEnd={() => setShakePassword(false)}
-                />
-                <button 
-                  type="button"
-                  className="toggle-password"
-                  onClick={togglePasswordVisibility}
-                  aria-label={showPassword ? "hide password" : "show password"}
-                  tabIndex="0"
-                  disabled={isLoading || loginSuccess}
+                <button
+                  type="submit"
+                  className={`login-button ${isLoading ? 'loading' : ''}`}
+                  disabled={isLoading || mfaCode.length !== (useBackupCode ? 8 : 6)}
                 >
-                  {showPassword ? "hide" : "show"}
+                  <span className="button-text">
+                    {isLoading ? 'verifying...' : 'verify'}
+                  </span>
                 </button>
+              </form>
+               <footer className="login-footer">
+                <p>
+                    <button className="link-button" onClick={() => setUseBackupCode(!useBackupCode)}>
+                        {useBackupCode ? 'use authenticator app' : "can't access your app? use a backup code"}
+                    </button>
+                </p>
+                <p className="support-text">
+                    <Link to="/reset-mfa-request">Having trouble? Reset your authenticator</Link>
+                </p>
+              </footer>
+            </>
+          ) : mfaStep === 'setup' ? (
+             <>
+                <header className="login-header" aria-live="polite">
+                  <h1 id="login-heading" className="login-title">set up two-factor auth</h1>
+                  <p className="login-subtitle">
+                    scan this qr code with your authenticator app
+                  </p>
+                  <p className="login-app-recommendation">
+                    don't have one? download Microsoft Authenticator, Google Authenticator, or Duo from the app store
+                  </p>
+                </header>
+
+                {/* MFA Error Display */}
+                {mfaError && (
+                  <div className="error-message auth" role="alert" aria-live="polite">
+                    <div className="error-content">
+                      <div className="error-icon" aria-hidden="true">🔐</div>
+                      <div className="error-text">{mfaError}</div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="qr-code-container">
+                    {qrCode ? <img src={qrCode} alt="MFA QR Code" /> : <div className="loading-spinner" style={{ margin: '0 auto' }} />}
+                </div>
+
+                 <form onSubmit={handleMfaSubmit} className="login-form" noValidate>
+                    <div className="form-group">
+                        <label htmlFor="mfa-code" className="form-label">verification code</label>
+                        <div className="input-wrapper">
+                            <input
+                                id="mfa-code"
+                                type="text"
+                                className="form-control"
+                                value={mfaCode}
+                                onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                required
+                                autoComplete="one-time-code"
+                                maxLength="6"
+                                placeholder="enter 6-digit code to verify"
+                            />
+                        </div>
+                    </div>
+                    <button type="submit" className="login-button" disabled={isLoading || mfaCode.length !== 6}>
+                        <span className="button-text">{isLoading ? 'verifying...' : 'verify & enable'}</span>
+                    </button>
+                </form>
+             </>
+          ) : mfaStep === 'backup-codes' ? (
+            <>
+              <header className="login-header" aria-live="polite">
+                <h1 id="login-heading" className="login-title">save your backup codes</h1>
+                <p className="login-subtitle">
+                  store these securely. you can use them to log in if you lose access to your authenticator app.
+                </p>
+              </header>
+              <div className="backup-codes-container">
+                <div className="backup-codes-grid">
+                    {backupCodes.map((code, index) => (
+                        <div key={index} className="backup-code-item">{code}</div>
+                    ))}
+                </div>
               </div>
-              {passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused && (
-                <div className="invalid-feedback" id="password-error" role="alert">
-                  {passwordError}
+              <p className="backup-codes-info">each code can only be used once</p>
+              <button type="button" className="login-button" onClick={finishSetup}>
+                <span className="button-text">I saved my codes</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <header className="login-header" aria-live="polite">
+                <h1 id="login-heading" className="login-title">welcome back</h1>
+                <p className="login-subtitle">
+                  a safe place for you to process your emotions
+                </p>
+              </header>
+          
+              {/* Enhanced error display - consistent with ResetPassword */}
+              {error && (
+                <div 
+                  className={`error-message ${errorCategory?.type || ''}`} 
+                  role="alert"
+                  aria-live="polite"
+                >
+                  <div className="error-content">
+                    <div className="error-icon" aria-hidden="true">
+                      {getErrorIcon(errorCategory)}
+                    </div>
+                    <div className="error-text">
+                      {errorCategory?.type === 'auth' && (
+                        <div className="error-title">login failed</div>
+                      )}
+                      {errorCategory?.type === 'account' && (
+                        <div className="error-title">account issue</div>
+                      )}
+                      {errorCategory?.type === 'network' && (
+                        <div className="error-title">connection problem</div>
+                      )}
+                      {errorCategory?.type === 'rateLimit' && (
+                        <div className="error-title">too many attempts</div>
+                      )}
+                      {errorCategory?.type === 'server' && (
+                        <div className="error-title">server error</div>
+                      )}
+                      {errorCategory?.type === 'validation' && (
+                        <div className="error-title">validation error</div>
+                      )}
+                      {error}
+                    </div>
+                  </div>
+                  {errorCategory?.canRetry && errorCategory?.type !== 'auth' && retryCount < 3 && countdown === 0 && (
+                    <button 
+                      className="retry-button"
+                      onClick={handleRetry}
+                      aria-label={`retry login (attempt ${retryCount + 2})`}
+                      type="button"
+                    >
+                      try again
+                    </button>
+                  )}
                 </div>
               )}
-              <div id="password-help" className="visually-hidden">
-                enter your account password
-              </div>
-            </div>
-            
-            <div className="form-options">
-              <div className="remember-me">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    disabled={isLoading || loginSuccess}
-                    aria-checked={rememberMe}
-                  />
-                  <span className="checkbox-text">remember me</span>
-                </label>
-              </div>
-              <div className="forgot-password">
-                <Link to="/forgot-password">forgot password?</Link>
-              </div>
-            </div>
-            
-            <button
-              type="submit"
-              className={`login-button ${isLoading ? 'loading' : ''} ${loginSuccess ? 'success' : ''}`}
-              disabled={!isFormValid}
-              aria-busy={isLoading}
-              aria-describedby="login-status"
-            >
-              <span className="button-text">
-                {loginSuccess ? 'success!' : 
-                 isLoading ? 'signing in...' : 
-                 countdown > 0 ? `wait ${formatCountdown(countdown)}` :
-                 'sign in'}
-              </span>
-              {retryCount > 0 && !isLoading && !loginSuccess && (
-                <span 
-                  className="retry-count" 
-                  aria-label={`attempt ${retryCount + 1}`}
-                  aria-hidden="true"
-                >
-                  #{retryCount + 1}
-                </span>
-              )}
-            </button>
-
-            <div id="login-status" className="visually-hidden" aria-live="polite">
-              {isLoading ? 'signing in, please wait' : ''}
-              {loginSuccess ? 'login successful, redirecting' : ''}
-              {error ? `error: ${error}` : ''}
-            </div>
-          </form>
           
-          <footer className="login-footer">
-            <p>don't have an account? <Link to="/register">sign up</Link></p>
-            <p className="support-text">we're here to help whenever you need us.</p>
-          </footer>
+              {/* Offline indicator */}
+              {!isOnline && (
+                <div className="offline-indicator" role="alert" aria-live="assertive">
+                  <span className="offline-icon" aria-hidden="true">📶</span>
+                  you're currently offline
+                </div>
+              )}
+              
+              <form 
+                ref={formRef}
+                onSubmit={handleSubmit} 
+                className="login-form" 
+                noValidate
+                autoComplete="on"
+              >
+                <div className={`form-group${emailError ? ' has-error' : ''}`}>
+                  <label htmlFor="email" className="form-label">email address</label>
+                  <div className="input-wrapper">
+                    <input
+                      ref={emailInputRef}
+                      id="email"
+                      type="email"
+                      className={`form-control${(emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' is-invalid' : ''}${shakeEmail && (emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' shake' : ''}`}
+                      value={email}
+                      onChange={handleEmailChange}
+                      onFocus={() => setEmailFocused(true)}
+                      onBlur={() => { setEmailBlurred(true); setEmailFocused(false); }}
+                      required
+                      aria-required="true"
+                      aria-invalid={!!emailError}
+                      aria-describedby={emailError ? 'email-error' : 'email-help'}
+                      placeholder="email address"
+                      disabled={isLoading || loginSuccess}
+                      autoComplete="username"
+                      spellCheck="false"
+                      maxLength="254"
+                      onAnimationEnd={() => setShakeEmail(false)}
+                    />
+                  </div>
+                  <div className="feedback-container">
+                    {emailError && (emailBlurred || hasSubmitted) && !emailFocused && (
+                      <div className="invalid-feedback" id="email-error" role="alert">
+                        {emailError}
+                      </div>
+                    )}
+                  </div>
+                  <div id="email-help" className="visually-hidden">
+                    enter your registered email address
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="password" className="form-label">password</label>
+                  <div className="input-wrapper">
+                    <input
+                      ref={passwordInputRef}
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      className={`form-control${(passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused ? ' is-invalid' : '')}${shakePassword && (passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused) ? ' shake' : ''}`}
+                      value={password}
+                      onChange={handlePasswordChange}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => { setPasswordBlurred(true); setPasswordFocused(false); }}
+                      required
+                      aria-required="true"
+                      aria-invalid={!!passwordError}
+                      aria-describedby={passwordError ? 'password-error' : 'password-help'}
+                      placeholder="password"
+                      disabled={isLoading || loginSuccess}
+                      autoComplete="current-password"
+                      maxLength="128"
+                      onAnimationEnd={() => setShakePassword(false)}
+                    />
+                    <button 
+                      type="button"
+                      className="toggle-password"
+                      onClick={togglePasswordVisibility}
+                      aria-label={showPassword ? "hide password" : "show password"}
+                      tabIndex="0"
+                      disabled={isLoading || loginSuccess}
+                    >
+                      {showPassword ? "hide" : "show"}
+                    </button>
+                  </div>
+                  <div className="feedback-container">
+                    {passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused && (
+                      <div className="invalid-feedback" id="password-error" role="alert">
+                        {passwordError}
+                      </div>
+                    )}
+                  </div>
+                  <div id="password-help" className="visually-hidden">
+                    enter your account password
+                  </div>
+                </div>
+                
+                <div className="form-options">
+                  <div className="remember-me">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        disabled={isLoading || loginSuccess}
+                        aria-checked={rememberMe}
+                      />
+                      <span className="checkbox-text">remember me</span>
+                    </label>
+                  </div>
+                  <div className="forgot-password">
+                    <Link to="/forgot-password">forgot password?</Link>
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  className={`login-button ${isLoading ? 'loading' : ''} ${loginSuccess ? 'success' : ''}`}
+                  disabled={!isFormValid}
+                  aria-busy={isLoading}
+                  aria-describedby="login-status"
+                >
+                  <span className="button-text">
+                    {loginSuccess ? 'success!' : 
+                     isLoading ? 'signing in...' : 
+                     countdown > 0 ? `wait ${formatCountdown(countdown)}` :
+                     'sign in'}
+                  </span>
+                  {retryCount > 0 && !isLoading && !loginSuccess && (
+                    <span 
+                      className="retry-count" 
+                      aria-label={`attempt ${retryCount + 1}`}
+                      aria-hidden="true"
+                    >
+                      #{retryCount + 1}
+                    </span>
+                  )}
+                </button>
+
+                <div id="login-status" className="visually-hidden" aria-live="polite">
+                  {isLoading ? 'signing in, please wait' : ''}
+                  {loginSuccess ? 'login successful, redirecting' : ''}
+                  {error ? `error: ${error}` : ''}
+                </div>
+              </form>
+              
+              <footer className="login-footer">
+                <p>don't have an account? <Link to="/register">sign up</Link></p>
+                <p className="support-text">we're here to help whenever you need us.</p>
+              </footer>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,0 +1,135 @@
+/* ResetMfaRequest.css - Matched to Login.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.reset-mfa-request-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: #e3edf7; /* --bg-gradient-start */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #3a5a8c; /* --primary-blue */
+}
+
+.reset-mfa-request-card {
+    width: 100%;
+    max-width: 520px;
+    padding: 2.5rem 2rem;
+    background-color: #fff;
+    border: 3.5px solid #dbe6f3; /* --border-light */
+    border-radius: 18px; /* --border-radius-large */
+    box-shadow: 0 8px 40px rgba(60, 90, 130, 0.12), 0 3px 12px rgba(60, 90, 130, 0.08); /* --shadow-medium */
+}
+
+.reset-mfa-request-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.reset-mfa-request-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3a5a8c; /* --primary-blue */
+    margin: 0 0 0.5rem;
+    text-transform: lowercase;
+}
+
+.reset-mfa-request-subtitle {
+    color: #6b7a90; /* --text-gray */
+    font-size: 1rem;
+    line-height: 1.5;
+    text-transform: lowercase;
+}
+
+.reset-mfa-request-form .form-group {
+    margin-bottom: 1.1rem;
+    text-align: left;
+}
+
+.reset-mfa-request-form .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #3a5a8c; /* --primary-blue */
+    text-transform: lowercase;
+}
+
+.reset-mfa-request-form .form-control {
+    width: 100%;
+    padding: 1rem 1.2rem;
+    background-color: #f7fafd; /* --bg-light */
+    border: 1.5px solid #dbe6f3; /* --border-light */
+    border-radius: 8px; /* --border-radius */
+    color: #2a3a4d;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: all 0.25s ease;
+}
+
+.reset-mfa-request-form .form-control::placeholder {
+    color: #8ca0b8; /* --light-gray */
+    text-transform: lowercase;
+}
+
+.reset-mfa-request-form .form-control:focus {
+    outline: none;
+    border-color: #7bb6fa; /* --light-blue */
+    box-shadow: 0 0 0 2px #b3d4fc; /* --focus-blue */
+    background: #fff;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
+    transition: all 0.3s ease;
+    text-transform: lowercase;
+}
+
+.submit-button:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(123, 182, 250, 0.4);
+}
+
+.submit-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.message-display {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #e3edf7;
+    border: 1px solid #dbe6f3;
+    color: #3a5a8c;
+    font-size: 0.95rem;
+    text-align: center;
+    text-transform: lowercase;
+}
+
+.reset-mfa-request-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.92rem;
+}
+
+.reset-mfa-request-footer a {
+    color: #5a8fd6; /* --medium-blue */
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.reset-mfa-request-footer a:hover {
+    color: #3a5a8c; /* --primary-blue */
+    text-decoration: underline;
+} 

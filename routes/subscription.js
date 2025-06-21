@@ -10,9 +10,9 @@ const {
 
 // GET /api/subscription/status
 router.get('/status', authenticateToken, async (req, res) => {
-  console.log('📊 Fetching subscription status for user:', req.user.email);
+  console.log('📊 Fetching subscription status for user:', req.user.userId);
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.userId);
     if (!user) {
       console.error('❌ User not found');
       return res.status(404).json({ error: 'User not found' });
@@ -44,9 +44,9 @@ router.get('/status', authenticateToken, async (req, res) => {
 
 // POST /api/subscription/create-checkout-session
 router.post('/create-checkout-session', authenticateToken, async (req, res) => {
-  console.log('🔑 Creating Stripe Checkout session for user:', req.user.email);
+  console.log('🔑 Creating Stripe Checkout session for user:', req.user.userId);
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.userId);
     if (!user) {
       console.error('❌ User not found');
       return res.status(404).json({ error: 'User not found' });
@@ -85,9 +85,9 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
 
 // POST /api/subscription/create-portal-session
 router.post('/create-portal-session', authenticateToken, async (req, res) => {
-  console.log('🔑 Creating Stripe Customer Portal session for user:', req.user.email);
+  console.log('🔑 Creating Stripe Customer Portal session for user:', req.user.userId);
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.userId);
     if (!user || !user.stripeCustomerId) {
       console.error('❌ User or Stripe customer ID not found');
       return res.status(400).json({ error: 'No subscription found' });

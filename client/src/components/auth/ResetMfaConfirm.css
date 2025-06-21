@@ -1,0 +1,148 @@
+/* ResetMfaConfirm.css - Matched to Login.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.reset-mfa-confirm-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: #e3edf7; /* --bg-gradient-start */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #3a5a8c; /* --primary-blue */
+}
+
+.reset-mfa-confirm-card {
+    width: 100%;
+    max-width: 480px;
+    padding: 2.5rem 2rem;
+    background-color: #fff;
+    border: 3.5px solid #dbe6f3; /* --border-light */
+    border-radius: 18px; /* --border-radius-large */
+    box-shadow: 0 8px 40px rgba(60, 90, 130, 0.12), 0 3px 12px rgba(60, 90, 130, 0.08); /* --shadow-medium */
+    text-align: center;
+}
+
+.reset-mfa-confirm-header {
+    margin-bottom: 1.5rem;
+}
+
+.reset-mfa-confirm-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3a5a8c; /* --primary-blue */
+    margin: 0 0 0.5rem;
+    text-transform: lowercase;
+}
+
+.reset-mfa-confirm-subtitle {
+    color: #6b7a90; /* --text-gray */
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+    text-transform: lowercase;
+}
+
+.confirm-button {
+    width: 100%;
+    padding: 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
+    transition: all 0.3s ease;
+    text-transform: lowercase;
+}
+
+.confirm-button:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(123, 182, 250, 0.4);
+}
+
+.confirm-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.warning-text {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #6b7a90; /* --text-gray */
+    text-transform: lowercase;
+}
+
+.error-message {
+    background: linear-gradient(90deg, #fff6f6 80%, #f7fafd 100%);
+    color: #e57373; /* --error-red */
+    border: 2.5px solid #e57373; /* --error-red */
+    border-radius: 18px; /* --border-radius-large */
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 8px 32px rgba(229, 115, 115, 0.10);
+    text-transform: lowercase;
+}
+
+.error-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.error-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.2rem;
+    width: 2.2rem;
+    font-size: 1.3rem;
+    background: #ffeaea;
+    color: #e57373; /* --error-red */
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(229, 115, 115, 0.08);
+}
+
+.error-title {
+    font-weight: 700;
+    font-size: 1.08rem;
+    margin-bottom: 0.2rem;
+    color: #e57373; /* --error-red */
+    text-transform: lowercase;
+    letter-spacing: 0.2px;
+}
+
+.confirmation-message {
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #e3edf7;
+    border: 1px solid #dbe6f3;
+    color: #3a5a8c;
+    font-size: 1rem;
+}
+
+.confirmation-message p {
+    margin: 0.5rem 0;
+    text-transform: lowercase;
+}
+
+.login-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: #5a8fd6; /* --medium-blue */
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.login-link:hover {
+    color: #3a5a8c; /* --primary-blue */
+    text-decoration: underline;
+} 
