@@ -117,6 +117,80 @@ const Navbar = () => {
     }
   };
 
+  // Render navigation item - unified approach
+  const renderNavItem = (item, isMobile = false) => {
+    const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
+    const isDisabled = isPremiumRequired && item.key !== 'subscribe';
+    
+    // Close mobile menu on navigation
+    const handleItemClick = () => {
+      handleNavigation(item);
+      if (isMobile) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    // If item is disabled (premium required but not subscribe button)
+    if (isDisabled) {
+      return (
+        <div
+          key={item.key}
+          className={`navbar-item ${activeKey === item.key ? 'active' : ''} disabled premium-required`}
+          aria-label={`${item.label} (Premium required)`}
+          title={isCollapsed ? `${item.label} (Premium required)` : undefined}
+          style={{ opacity: 0.5, cursor: 'not-allowed' }}
+        >
+          {activeKey === item.key && <div className="navbar-item-indicator" />}
+          <div className="navbar-item-icon" style={{ position: 'relative' }}>
+            {item.icon}
+            <svg 
+              width="10" 
+              height="10" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              style={{ position: 'absolute', top: '-2px', right: '-2px' }}
+            >
+              <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
+              <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
+        </div>
+      );
+    }
+
+    // For clickable items (either accessible or subscribe button)
+    return (
+      <button
+        key={item.key}
+        className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}`}
+        onClick={handleItemClick}
+        onKeyDown={(e) => handleKeyDown(e, item)}
+        aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
+        title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
+      >
+        {activeKey === item.key && <div className="navbar-item-indicator" />}
+        <div className="navbar-item-icon" style={{ position: 'relative' }}>
+          {item.icon}
+          {/* Show premium indicator for items that require premium */}
+          {isPremiumRequired && (
+            <svg 
+              width="10" 
+              height="10" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              style={{ position: 'absolute', top: '-2px', right: '-2px' }}
+            >
+              <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
+              <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </div>
+        {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
+      </button>
+    );
+  };
+
   return (
     <>
       {/* Hamburger icon for mobile */}
@@ -143,6 +217,7 @@ const Navbar = () => {
                 <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
+            
             {/* Header */}
             <div className="navbar-header">
               <button
@@ -187,60 +262,9 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Navigation Items */}
+            {/* Navigation Items for Mobile */}
             <div className="navbar-items">
-              {navItems.map((item) => {
-                const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
-                const isDisabled = isPremiumRequired && item.key !== 'subscribe';
-                const targetPath = (item.requiresPremium && !hasPremiumAccess) ? '/subscribe' : item.path;
-
-                if (isDisabled) {
-                  return (
-                    <div
-                      key={item.key}
-                      className={`navbar-item ${activeKey === item.key ? 'active' : ''} disabled premium-required`}
-                      aria-label={`${item.label} (Premium required)`}
-                      title={isCollapsed ? `${item.label} (Premium required)` : undefined}
-                      style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                    >
-                      {activeKey === item.key && <div className="navbar-item-indicator" />}
-                      <div className="navbar-item-icon" style={{ position: 'relative' }}>
-                        {item.icon}
-                        <svg 
-                          width="10" 
-                          height="10" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          style={{ position: 'absolute', top: '-2px', right: '-2px' }}
-                        >
-                          <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
-                          <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                      {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
-                    </div>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={item.key}
-                    to={targetPath}
-                    className={`navbar-item ${activeKey === item.key ? 'active' : ''}`}
-                    aria-label={`Navigate to ${item.label}`}
-                    title={isCollapsed ? item.label : undefined}
-                    onClick={(e) => {
-                      if (window.innerWidth <= 768) {
-                        setMobileMenuOpen(false);
-                      }
-                    }}
-                  >
-                    {activeKey === item.key && <div className="navbar-item-indicator" />}
-                    <div className="navbar-item-icon">{item.icon}</div>
-                    {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
-                  </Link>
-                );
-              })}
+              {navItems.map((item) => renderNavItem(item, true))}
             </div>
           </nav>
           {/* Click outside to close */}
@@ -248,7 +272,7 @@ const Navbar = () => {
         </div>
       )}
 
-      {/* Desktop sidebar (unchanged) */}
+      {/* Desktop sidebar */}
       <nav className={`navbar${isCollapsed ? ' collapsed' : ''}`}> 
         {/* Header */}
         <div className="navbar-header">
@@ -294,60 +318,9 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items for Desktop */}
         <div className="navbar-items">
-          {navItems.map((item) => {
-            const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
-            const isDisabled = isPremiumRequired && item.key !== 'subscribe';
-            const targetPath = (item.requiresPremium && !hasPremiumAccess) ? '/subscribe' : item.path;
-
-            if (isDisabled) {
-              return (
-                <div
-                  key={item.key}
-                  className={`navbar-item ${activeKey === item.key ? 'active' : ''} disabled premium-required`}
-                  aria-label={`${item.label} (Premium required)`}
-                  title={isCollapsed ? `${item.label} (Premium required)` : undefined}
-                  style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                >
-                  {activeKey === item.key && <div className="navbar-item-indicator" />}
-                  <div className="navbar-item-icon" style={{ position: 'relative' }}>
-                    {item.icon}
-                    <svg 
-                      width="10" 
-                      height="10" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      style={{ position: 'absolute', top: '-2px', right: '-2px' }}
-                    >
-                      <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
-                      <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={item.key}
-                to={targetPath}
-                className={`navbar-item ${activeKey === item.key ? 'active' : ''}`}
-                aria-label={`Navigate to ${item.label}`}
-                title={isCollapsed ? item.label : undefined}
-                onClick={(e) => {
-                  if (window.innerWidth <= 768) {
-                    setMobileMenuOpen(false);
-                  }
-                }}
-              >
-                {activeKey === item.key && <div className="navbar-item-indicator" />}
-                <div className="navbar-item-icon">{item.icon}</div>
-                {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
-              </Link>
-            );
-          })}
+          {navItems.map((item) => renderNavItem(item, false))}
         </div>
       </nav>
     </>
