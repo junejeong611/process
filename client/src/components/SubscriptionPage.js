@@ -5,6 +5,7 @@ import SubscriptionStatusBanner from './subscription/SubscriptionStatusBanner';
 import TrialBanner from './subscription/TrialBanner';
 import SubscriptionActions from './subscription/SubscriptionActions';
 import Navbar from './navigation/Navbar';
+import './subscription/SubscriptionPage.css';
 
 const SubscriptionPage = () => {
   const { status, loading, setStatus } = useSubscription();
@@ -35,22 +36,41 @@ const SubscriptionPage = () => {
     };
   }, [status, navigate, setStatus]);
 
-  if (loading) return <div>Loading subscription status...</div>;
+  if (loading) {
+    return (
+      <div className="subscription-layout">
+        <Navbar />
+        <div className="subscription-main">
+          <div className="subscription-container">
+            <div className="subscription-loading">
+              <div className="subscription-spinner"></div>
+              <div className="subscription-loading-text">Loading subscription status...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (status === 'inactive') {
     return (
-      <div>
+      <div className="subscription-layout">
         <Navbar />
-        <div style={{ padding: 24, maxWidth: 600, margin: '0 auto' }}>
-          <h1>Subscription Details</h1>
-          <SubscriptionStatusBanner />
-          <TrialBanner />
-          <div style={{ marginTop: 24 }}>
-            <SubscriptionActions />
-          </div>
-          <div style={{ marginTop: 32, textAlign: 'center', color: '#ad6800' }}>
-            Waiting for your subscription to activate...<br />
-            (You may need to wait a few seconds after checkout.)
+        <div className="subscription-main">
+          <div className="subscription-container">
+            <div className="subscription-header">
+              <h1 className="subscription-title">Subscription Details</h1>
+              <p className="subscription-subtitle">Manage your subscription and billing</p>
+            </div>
+            <SubscriptionStatusBanner />
+            <TrialBanner />
+            <div className="subscription-actions">
+              <SubscriptionActions />
+            </div>
+            <div className="subscription-waiting">
+              Waiting for your subscription to activate...<br />
+              (You may need to wait a few seconds after checkout.)
+            </div>
           </div>
         </div>
       </div>
@@ -58,15 +78,20 @@ const SubscriptionPage = () => {
   }
 
   return (
-    <div>
+    <div className="subscription-layout">
       <Navbar />
-    <div style={{ padding: 24, maxWidth: 600, margin: '0 auto' }}>
-      <h1>Subscription Details</h1>
-        <SubscriptionStatusBanner />
-        <TrialBanner />
-        <div style={{ marginTop: 24 }}>
-          <SubscriptionActions />
-      </div>
+      <div className="subscription-main">
+        <div className="subscription-container">
+          <div className="subscription-header">
+            <h1 className="subscription-title">Subscription Details</h1>
+            <p className="subscription-subtitle">Manage your subscription and billing</p>
+          </div>
+          <SubscriptionStatusBanner />
+          <TrialBanner />
+          <div className="subscription-actions">
+            <SubscriptionActions />
+          </div>
+        </div>
       </div>
     </div>
   );

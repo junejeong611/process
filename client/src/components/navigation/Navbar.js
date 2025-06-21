@@ -192,21 +192,14 @@ const Navbar = () => {
               {navItems.map((item) => {
                 // Only show premium-required state if loading is false
                 const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
-                const isDisabled = isPremiumRequired && item.key !== 'subscribe';
                 return (
                   <button
                     key={item.key}
-                    className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}${isDisabled ? ' disabled' : ''}`}
-                    onClick={() => {
-                      if (!isDisabled) handleNavigation(item);
-                    }}
-                    onKeyDown={(e) => {
-                      if (!isDisabled) handleKeyDown(e, item);
-                    }}
+                    className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}`}
+                    onClick={() => handleNavigation(item)}
+                    onKeyDown={(e) => handleKeyDown(e, item)}
                     aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
                     title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
-                    disabled={isDisabled}
-                    style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                   >
                     {activeKey === item.key && <div className="navbar-item-indicator" />}
                     <div className="navbar-item-icon" style={{ position: 'relative' }}>
@@ -287,21 +280,14 @@ const Navbar = () => {
           {navItems.map((item) => {
             // Only show premium-required state if loading is false
             const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
-            const isDisabled = isPremiumRequired && item.key !== 'subscribe';
             return (
               <button
                 key={item.key}
-                className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}${isDisabled ? ' disabled' : ''}`}
-                onClick={() => {
-                  if (!isDisabled) handleNavigation(item);
-                }}
-                onKeyDown={(e) => {
-                  if (!isDisabled) handleKeyDown(e, item);
-                }}
+                className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}`}
+                onClick={() => handleNavigation(item)}
+                onKeyDown={(e) => handleKeyDown(e, item)}
                 aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
                 title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
-                disabled={isDisabled}
-                style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 {activeKey === item.key && <div className="navbar-item-indicator" />}
                 <div className="navbar-item-icon" style={{ position: 'relative' }}>
