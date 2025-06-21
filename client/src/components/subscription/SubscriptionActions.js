@@ -19,14 +19,14 @@ const SubscriptionActions = () => {
 
   if (status.subscriptionStatus === 'active') {
     return (
-      <button onClick={handlePortal}>
+      <button className="subscription-button success" onClick={handlePortal}>
         Manage Subscription
       </button>
     );
   }
 
   return (
-    <button onClick={handleCheckout}>
+    <button className="subscription-button" onClick={handleCheckout}>
       Start Free Trial / Subscribe
     </button>
   );

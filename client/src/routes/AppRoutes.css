@@ -75,17 +75,6 @@
   padding: 1.5rem 2rem;
 }
 
-/* Subscription page - full width layout */
-.subscription-container {
-  margin-left: 0 !important;
-  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1rem;
-}
-
 /* Support page - accessible layout */
 .support-container {
   margin-left: 0 !important;
@@ -153,7 +142,6 @@
     padding: 0.5rem 0.75rem;
   }
   
-  .subscription-container,
   .support-container,
   .exit-container {
     padding: 1rem 0.5rem;

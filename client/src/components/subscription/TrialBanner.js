@@ -15,7 +15,7 @@ const TrialBanner = () => {
     );
     if (daysLeft <= 3) {
       return (
-        <div style={{ background: '#fffbe6', color: '#ad6800', padding: 12, textAlign: 'center' }}>
+        <div className="trial-banner">
           Your free trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}!{' '}
           <a href="/subscribe">Upgrade now</a>
         </div>
