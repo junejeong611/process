@@ -18,7 +18,8 @@ const auditLogSchema = new mongoose.Schema({
       'PASSWORD_RESET_REQUEST', 'PASSWORD_RESET_SUCCESS',
       'MFA_RESET_REQUEST', 'MFA_RESET_SUCCESS',
       'DATA_EXPORT_REQUEST', 'DATA_EXPORT_SUCCESS',
-      'ACCOUNT_DELETED'
+      'ACCOUNT_DELETED',
+      'FORCED_PASSWORD_RESET_INITIATED'
     ],
   },
   target: {

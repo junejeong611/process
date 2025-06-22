@@ -1,5 +1,12 @@
 const axios = require('axios');
+const { RateLimiter } = require('limiter');
+const Anthropic = require('@anthropic-ai/sdk');
 require('dotenv').config();
+
+// Initialize the Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.CLAUDE_API_KEY,
+});
 
 // Custom error classes
 class ClaudeApiError extends Error {
@@ -373,8 +380,74 @@ const sendMessage = async (message, history = [], systemPrompt = null, retryCoun
   }
 };
 
+const sendMessageStream = async (message, history = [], systemPrompt = null) => {
+  if (!process.env.CLAUDE_API_KEY) {
+    throw new ClaudeApiError('Claude API key not set in environment variables', 401, 'missing_api_key');
+  }
+
+  const model = process.env.CLAUDE_MODEL || 'claude-3-opus-20240229';
+
+  const messages = [
+    ...history,
+    { role: 'user', content: message }
+  ];
+
+  try {
+    const stream = await anthropic.messages.create({
+      model: model,
+      system: systemPrompt || DEFAULT_SYSTEM_PROMPT,
+      messages: messages,
+      max_tokens: 4096,
+      stream: true,
+    });
+    stream.on('end', () => {
+      console.log('Claude stream finished.');
+    });
+    return stream;
+  } catch (error) {
+    if (error instanceof Anthropic.APIError) {
+      console.error(`[ClaudeService] Stream API Error (${error.status}): ${error.message}`);
+      if (error.status === 429) {
+        throw new RateLimitError(error.message);
+      }
+      throw new ClaudeApiError(error.message, error.status, error.type);
+    } else {
+      console.error(`[ClaudeService] Stream Unexpected error: ${error.message}`);
+      throw error;
+    }
+  }
+};
+
+/**
+ * Sends a message to the Claude API and waits for the full response (non-streaming).
+ * This serves as a fallback for when streaming fails.
+ * @param {string} content - The message content to send.
+ * @returns {Promise<string>} - A promise that resolves to the full text response from Claude.
+ */
+const sendFullMessage = async (content) => {
+  try {
+    const msg = await anthropic.messages.create({
+      model: AI_MODEL,
+      max_tokens: 4096,
+      messages: [{ role: 'user', content }],
+    });
+
+    const responseText = msg.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join(' ');
+      
+    return responseText;
+  } catch (error) {
+    console.error('Error sending full message to Claude:', error);
+    throw new Error('Failed to get full response from Claude.');
+  }
+};
+
 module.exports = {
   sendMessage,
+  sendMessageStream,
+  sendFullMessage,
   ClaudeApiError,
   RateLimitError
 }; 

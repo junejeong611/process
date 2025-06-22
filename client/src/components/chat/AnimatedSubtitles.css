@@ -1,0 +1,60 @@
+.animated-subtitles-container {
+    position: absolute;
+    bottom: 150px; /* Adjust as needed */
+    left: 0;
+    right: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none; /* Allows clicks to go through to elements behind it */
+}
+
+.subtitle-line {
+    font-size: 2.5rem; /* Larger font size for impact */
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.5); /* Inactive words are semi-transparent */
+    margin-bottom: 1rem;
+    transition: all 0.3s ease-in-out;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    line-height: 1.4;
+}
+
+.subtitle-word {
+    display: inline-block; /* Needed for transform */
+    transition: all 0.2s ease-in-out;
+    padding: 0 0.2rem;
+}
+
+.subtitle-word.active {
+    color: #FFFFFF; /* Fully opaque */
+    transform: scale(1.1); /* Slightly larger */
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
+}
+
+.subtitle-word.spoken {
+    color: #a7a7a7; /* A slightly dimmer color for words already spoken in the line */
+    transform: scale(1);
+}
+
+/* Animation for lines entering and exiting */
+.line-enter {
+    opacity: 0;
+    transform: translateY(20px);
+}
+.line-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+}
+.line-exit {
+    opacity: 1;
+    transform: translateY(0);
+}
+.line-exit-active {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 300ms, transform 300ms;
+} 

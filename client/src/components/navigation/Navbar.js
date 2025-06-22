@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useAuth } from '../../contexts/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -9,6 +10,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { status, loading } = useSubscription();
+  const { isAdmin } = useAuth();
 
   // Debug logs
   console.log('Navbar - Subscription Status:', status);
@@ -77,6 +79,23 @@ const Navbar = () => {
     }
   ];
 
+  // Conditionally add the Admin Dashboard link
+  if (isAdmin) {
+    navItems.push({
+      key: 'admin',
+      icon: (
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 11c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" stroke="currentColor" strokeWidth="2"/>
+          <path d="M12 14c-2.489 0-4.5 2.011-4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      ),
+      label: 'admin',
+      path: '/admin/dashboard',
+      requiresPremium: false
+    });
+  }
+
   // Determine active item based on current path
   const getActiveItem = () => {
     const currentPath = location.pathname;
@@ -89,6 +108,7 @@ const Navbar = () => {
     if (currentPath.startsWith('/chat-history')) return 'history';
     if (currentPath.startsWith('/insights')) return 'insights';
     if (currentPath.startsWith('/subscribe')) return 'subscribe';
+    if (currentPath.startsWith('/admin')) return 'admin';
     if (currentPath.startsWith('/dashboard') || currentPath === '/') return 'dashboard';
     
     return 'dashboard'; // Default fallback

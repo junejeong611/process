@@ -19,15 +19,24 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 import SubscriptionPage from '../components/SubscriptionPage';
 import PremiumRoute from '../components/subscription/PremiumRoute';
 import SupportPage from '../components/SupportPage';
+import AdminDashboard from '../components/admin/AdminDashboard';
+import { useAuth } from '../contexts/AuthContext';
 import './AppRoutes.css';
 
-// Dummy authentication check (replace with real logic)
-const isAuthenticated = () => {
-  return !!(localStorage.getItem('token') || sessionStorage.getItem('token'));
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
-const ProtectedRoute = ({ children }) => {
-  return isAuthenticated() ? children : <Navigate to="/login" />;
+const AdminRoute = ({ children }) => {
+    const { isAuthenticated, isAdmin, loading } = useAuth();
+    if (loading) {
+        return <div>Loading...</div>; // Or a spinner component
+    }
+    if (!isAuthenticated) {
+        return <Navigate to="/login" />;
+    }
+    return isAdmin ? children : <Navigate to="/dashboard" />; // Or a 403 page
 };
 
 const ChatLayout = () => (
@@ -48,6 +57,15 @@ const AppRoutes = () => (
     <Route path="/reset-mfa-request" element={<ResetMfaRequest />} />
     <Route path="/reset-mfa-confirm/:token" element={<ResetMfaConfirm />} />
     <Route path="/crisis-support" element={<SupportPage />} />
+    
+    {/* Admin Route */}
+    <Route path="/admin/dashboard" element={
+        <AdminRoute>
+            <DashboardLayout>
+                <AdminDashboard />
+            </DashboardLayout>
+        </AdminRoute>
+    } />
     
     {/* Protected routes */}
     <Route path="/dashboard" element={

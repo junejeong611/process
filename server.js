@@ -81,7 +81,12 @@ function startServer() {
   const voiceRecordRoute = require('./routes/record');
   const subscriptionRoutes = require('./routes/subscription');
   const stripeWebhook = require('./routes/stripeWebhook');
+  const adminRoutes = require('./routes/admin'); // Import admin routes
   const session = require('express-session');
+
+  // Import middleware for admin routes
+  const auth = require('./middleware/auth');
+  const requireAdmin = require('./middleware/admin');
 
   // Initialize Express app
   const app = express();
@@ -167,6 +172,9 @@ function startServer() {
   app.get('/api/v1/csrf-token', (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
   });
+
+  // Apply admin middleware and routes
+  app.use('/api/admin', auth, requireAdmin, adminRoutes);
 
   // MongoDB connection with improved error handling and options
   const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/emotionalsupportapp';

@@ -75,11 +75,31 @@ router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and select the mfa_secret field
-    const user = await User.findOne({ email }).select('+mfa_secret').select('+refreshTokens');
+    // Find user and select fields needed for login and reset flow
+    const user = await User.findOne({ email }).select('+mfa_secret +refreshTokens +password');
     if (!user) {
       logEvent(null, 'USER_LOGIN_FAILED', 'FAILURE', { ipAddress: req.ip, details: { email } });
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // --- Handle Forced Password Reset ---
+    if (user.passwordResetRequired === true) {
+      logEvent(user._id, 'FORCED_PASSWORD_RESET_INITIATED', 'SUCCESS', { ipAddress: req.ip });
+      // Generate a secure, one-time password reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      // Hash the token for secure storage in the database
+      user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+      // Set a 1-hour expiry for the token
+      user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+      
+      await user.save();
+
+      // Send a specific response to the client
+      return res.status(200).json({ 
+        success: false, // Not a successful login
+        passwordResetRequired: true, 
+        resetToken: resetToken // Send the unhashed token to the client
+      });
     }
 
     // Check for account lock
@@ -88,6 +108,10 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     // Check password
+    if (!user.password) {
+        // This case should not be hit if the passwordResetRequired flow is working, but it's a good safeguard.
+        return res.status(401).json({ success: false, message: 'Invalid credentials. Please reset your password.' });
+    }
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       logEvent(user._id, 'USER_LOGIN_FAILED', 'FAILURE', { ipAddress: req.ip });
@@ -434,22 +458,47 @@ router.get('/reset-password/:token', async (req, res) => {
 // @desc    Reset password
 // @access  Public
 router.post('/reset-password', async (req, res) => {
-  const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ success: false, message: 'Token and new password are required.' });
-  // Find user with unexpired token
-  const user = await User.findOne({ resetPasswordExpires: { $gt: Date.now() } }).select('+resetPasswordToken');
-  if (!user) {
-    return res.status(400).json({ success: false, message: 'Invalid or expired token.' });
-  }
-  // Compare provided token with hashed token
-  const isMatch = await bcrypt.compare(token, user.resetPasswordToken);
-  if (!isMatch) {
-    return res.status(400).json({ success: false, message: 'Invalid or expired token.' });
-  }
-  user.password = password;
-  user.clearPasswordResetToken();
-  await user.save();
-  res.json({ success: true, message: 'Password has been reset.' });
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) {
+            return res.status(400).json({ success: false, message: 'token and new password are required' });
+        }
+
+        // Hash the incoming token so it can be matched with the stored hashed token
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        // Find the user with the matching hashed token that has not expired
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'password reset token is invalid or has expired' });
+        }
+
+        // Set the new password. The pre-save hook in the User model will hash it.
+        user.password = password;
+        // Clear the reset token fields
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        // The forced reset is complete
+        user.passwordResetRequired = false;
+        
+        await user.save();
+        
+        logEvent(user._id, 'USER_PASSWORD_RESET', 'SUCCESS', { ipAddress: req.ip });
+
+        res.json({ success: true, message: 'password has been reset successfully' });
+
+    } catch (error) {
+        console.error('Password reset error:', error);
+        // Check for validation errors from the User model
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+        res.status(500).json({ success: false, message: 'an internal server error occurred' });
+    }
 });
 
 // @route   POST /api/auth/refresh-token

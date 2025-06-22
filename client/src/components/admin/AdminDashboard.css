@@ -1,0 +1,123 @@
+/* AdminDashboard.css */
+
+.admin-dashboard {
+  padding: 2rem;
+  background-color: #f0f2f5; /* A light grey background, consistent with modern dashboards */
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.admin-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.admin-header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.admin-header p {
+  font-size: 1rem;
+  color: #595959;
+  margin-top: 0.25rem;
+}
+
+.admin-widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+.widget {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.widget:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.widget h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #262626;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 0.75rem;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.metric:last-child {
+  margin-bottom: 0;
+}
+
+.metric span {
+  color: #595959;
+}
+
+.metric .value {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-family: 'Roboto Mono', monospace; /* Monospaced font for data */
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.status-indicator.good {
+  background-color: #52c41a; /* Green */
+  box-shadow: 0 0 8px rgba(82, 196, 26, 0.6);
+}
+
+.status-indicator.warning {
+  background-color: #faad14; /* Amber */
+  box-shadow: 0 0 8px rgba(250, 173, 20, 0.6);
+}
+
+.status-indicator.bad {
+  background-color: #f5222d; /* Red */
+  box-shadow: 0 0 8px rgba(245, 34, 45, 0.6);
+}
+
+.status-indicator.pending {
+  background-color: #d9d9d9; /* Grey for pending data */
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
+}
+
+.admin-footer {
+  margin-top: 2rem;
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 0.875rem;
+} 

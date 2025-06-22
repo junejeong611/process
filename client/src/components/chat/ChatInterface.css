@@ -1200,3 +1200,40 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.typing-indicator span {
+  animation: typing-blink 1.4s infinite both;
+  margin: 0 1px;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.fallback-indicator {
+  text-align: center;
+  padding: 8px 12px;
+  margin: 10px 20px;
+  background-color: #fefcbf; /* A soft, non-alarming yellow */
+  color: #713f12; /* A gentle, readable brown text */
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-style: italic;
+  border: 1px solid #fde047;
+}
+
+@keyframes typing-blink {
+  0% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
