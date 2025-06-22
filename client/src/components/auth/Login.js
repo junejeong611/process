@@ -1,8 +1,10 @@
 /* global gtag */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios'; // Import axios
 import './Login.css';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Enhanced form validation helper functions
 const validateEmail = (email) => {
@@ -113,6 +115,7 @@ const Login = () => {
   const [shakeEmail, setShakeEmail] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
+  const [csrfToken, setCsrfToken] = useState('');
   
   // New states for MFA
   const [mfaStep, setMfaStep] = useState(null); // null, 'required', 'setup', 'backup-codes'
@@ -126,6 +129,7 @@ const Login = () => {
   const [useBackupCode, setUseBackupCode] = useState(false);
 
   const navigate = useNavigate();
+  const { login } = useAuth();
   const formRef = useRef(null);
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
@@ -134,6 +138,21 @@ const Login = () => {
   // Debounced values for real-time validation
   const debouncedEmail = useDebounce(email, 500);
   const debouncedPassword = useDebounce(password, 300);
+
+  // Fetch CSRF token on component mount using axios
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axios.get('/api/v1/csrf-token', { withCredentials: true });
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+        setError('Could not initialize login form. Please refresh the page.');
+        setErrorCategory({ type: 'network', canRetry: true, severity: 'error' });
+      }
+    };
+    fetchCsrfToken();
+  }, []);
 
   // Enhanced online/offline monitoring
   useEffect(() => {
@@ -313,6 +332,11 @@ const Login = () => {
     setError('');
     setErrorCategory(null);
 
+    if (!csrfToken) {
+        setError('A security token is missing. Please refresh the page and try again.');
+        return;
+    }
+
     // Check if offline
     if (!isOnline) {
       setError('you appear to be offline. please check your connection and try again.');
@@ -349,47 +373,34 @@ const Login = () => {
     setSubmitAttempts(prev => prev + 1);
     
     try {
-      // Abort previous request if still pending
-      if (controllerRef.current) {
-        controllerRef.current.abort();
-      }
-
+      // Abort controller for axios
       controllerRef.current = new AbortController();
-      const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
 
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
+      // Use axios for the login request
+      const response = await axios.post('/api/auth/login', {
+        email: email.trim().toLowerCase(), 
+        password, 
+        rememberMe,
+        timestamp: Date.now(),
+        attempts: submitAttempts
+      }, {
         headers: { 
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-CSRF-TOKEN': csrfToken 
         },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), 
-          password, 
-          rememberMe,
-          timestamp: Date.now(),
-          attempts: submitAttempts
-        }),
+        withCredentials: true, // Crucial for sending session cookie
         signal: controllerRef.current.signal
       });
       
-      clearTimeout(timeoutId);
+      const data = response.data;
 
-      // Parse response data first to get better error information
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse response JSON:', parseError);
-        throw new Error(`HTTP ${response.status}: Failed to parse server response`);
+      // --- Handle Forced Password Reset Response ---
+      if (data.passwordResetRequired) {
+        toast.info('For your security, you must reset your password.');
+        // Redirect to the reset password page with the token
+        navigate(`/reset-password/${data.resetToken}`);
+        return; 
       }
 
-      if (!response.ok) {
-        // Use the server's error message if available, otherwise use status text
-        const errorMessage = data?.message || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage, { cause: { statusCode: response.status, data } });
-      }
-      
       // MFA handling
       if (data.mfaRequired) {
         setIsLoading(false);
@@ -410,16 +421,8 @@ const Login = () => {
       }
 
       if (data.success) {
-        // Set login success state for animation
         setLoginSuccess(true);
-        
-        // Store token based on remember me preference
-        if (rememberMe) {
-          localStorage.setItem('token', data.token);
-        } else {
-          sessionStorage.setItem('token', data.token);
-        }
-        
+        login(data.accessToken, data.user, rememberMe);
         toast.success('Login successful!');
         
         // Analytics tracking
@@ -430,13 +433,13 @@ const Login = () => {
           });
         }
         
-        // After login, check subscription status
-        fetch('/api/subscription/status', {
-          headers: { Authorization: `Bearer ${data.token}` }
+        // Use axios for subscription status check too for consistency
+        axios.get('/api/subscription/status', {
+          headers: { Authorization: `Bearer ${data.accessToken}` },
+          withCredentials: true
         })
-          .then(res => res.json())
+          .then(res => res.data)
           .then(subStatus => {
-            // Add a slight delay for the success animation
             setTimeout(() => {
               if (subStatus.subscriptionStatus === 'inactive') {
                 navigate('/subscribe');
@@ -447,84 +450,57 @@ const Login = () => {
           })
           .catch(error => {
             console.error('Subscription status check failed:', error);
-            // Fallback to options page if subscription check fails
             setTimeout(() => {
               navigate('/options');
             }, 800);
           });
       } else {
-        // Handle server-side authentication failures
         const errorMessage = data.message || 'invalid email or password. please try again.';
         const category = categorizeError(errorMessage, response.status);
-        
         setError(errorMessage);
         setErrorCategory(category);
         
-        // Set countdown for rate limiting
-        if (category.type === 'rateLimit') {
-          setCountdown(300);
-        } else if (category.type === 'auth' && submitAttempts >= 3) {
-          setCountdown(60);
-        }
+        if (category.type === 'rateLimit') setCountdown(300);
+        else if (category.type === 'auth' && submitAttempts >= 3) setCountdown(60);
         
         toast.error(errorMessage);
       }
     } catch (err) {
+      // Handle the case where the server sends a special response for password reset
+      if (err.response?.data?.passwordResetRequired) {
+        const { resetToken } = err.response.data;
+        toast.info('For your security, you must reset your password.');
+        navigate(`/reset-password/${resetToken}`);
+        return;
+      }
       console.error('Login error:', err);
       let errorMessage;
       let category;
-      let statusCode = null;
+      let statusCode = err.response?.status;
 
-      // Extract status code if available
-      if (err.cause?.statusCode) {
-        statusCode = err.cause.statusCode;
-      }
-
-      if (err.name === 'AbortError') {
+      if (axios.isCancel(err)) {
         errorMessage = 'request timed out. please check your connection and try again.';
         category = categorizeError('network timeout');
-      } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      } else if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorMessage = err.response.data?.message || `Error: ${err.response.statusText}`;
+        category = categorizeError(errorMessage, statusCode);
+      } else if (err.request) {
+        // The request was made but no response was received
         errorMessage = 'connection error. please check your internet and try again.';
         category = categorizeError('network connection');
-      } else if (err.message.includes('HTTP 401') || statusCode === 401) {
-        errorMessage = 'invalid email or password. please try again.';
-        category = categorizeError('authentication failed', 401);
-      } else if (err.message.includes('HTTP 403') || statusCode === 403) {
-        errorMessage = 'access denied. please check your credentials.';
-        category = categorizeError('authentication failed', 403);
-      } else if (err.message.includes('HTTP 429') || statusCode === 429) {
-        errorMessage = 'too many login attempts. please wait before trying again.';
-        category = categorizeError('rate limit', 429);
-        setCountdown(300);
-      } else if (err.message.includes('HTTP 5') || (statusCode >= 500 && statusCode < 600)) {
-        errorMessage = 'server error. please try again in a moment.';
-        category = categorizeError('server error', statusCode);
-        setCountdown(30);
-      } else if (statusCode === 400) {
-        errorMessage = 'invalid request. please check your input and try again.';
-        category = categorizeError('validation error', 400);
       } else {
-        // Check if the error message itself contains authentication-related keywords
-        const errorLower = err.message.toLowerCase();
-        if (errorLower.includes('invalid') || errorLower.includes('incorrect') || 
-            errorLower.includes('wrong') || errorLower.includes('password') ||
-            errorLower.includes('email')) {
-          errorMessage = err.message;
-          category = categorizeError(err.message, statusCode);
-        } else {
-          errorMessage = 'connection error. please check your internet and try again.';
-          category = categorizeError('unknown error');
-        }
+        // Something happened in setting up the request that triggered an Error
+        errorMessage = err.message;
+        category = categorizeError(errorMessage);
       }
 
       setError(errorMessage);
       setErrorCategory(category);
+      toast.error(errorMessage);
     } finally {
-      if (!loginSuccess) setIsLoading(false);
-      // Do not clear the controller ref if we are in an MFA step
-      if (!mfaStep) {
-        controllerRef.current = null;
-      }
+      setIsLoading(false);
     }
   };
 
@@ -540,18 +516,18 @@ const Login = () => {
     const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
 
     try {
-        const response = await fetch('/api/auth/mfa/verify', {
-            method: 'POST',
+        const response = await axios.post('/api/auth/mfa/verify', {
+            mfaCode, trustDevice
+        }, {
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${mfaAuthToken}`
             },
-            body: JSON.stringify({ mfaCode, trustDevice }),
+            withCredentials: true,
             signal: controllerRef.current.signal
         });
 
         clearTimeout(timeoutId);
-        const data = await response.json();
+        const data = response.data;
 
         if (!response.ok) {
             throw new Error(data.message || 'MFA verification failed.');

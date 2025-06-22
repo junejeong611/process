@@ -8,7 +8,9 @@
         "start:client": "cd client && npm start",
         "dev:server": "nodemon server.js",
         "install:all": "npm install && cd client && npm install",
-        "start": "node scripts/start-services.js"
+        "start": "node scripts/start-services.js",
+        "db:backfill-auth": "node scripts/backfill-auth-code.js",
+        "db:force-password-reset": "node scripts/force-password-reset.js"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.41.0",
@@ -21,11 +23,13 @@
         "body-parser": "^1.20.2",
         "chalk": "^4.1.2",
         "compression": "^1.8.0",
+        "compromise": "^14.14.4",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "deepgram": "^1.0.3",
         "dotenv": "^16.5.0",
         "elevenlabs-node": "^2.0.3",
+        "eventsource": "^4.0.0",
         "express": "^4.18.2",
         "express-rate-limit": "^7.1.4",
         "express-session": "^1.18.1",
@@ -34,6 +38,7 @@
         "geoip-lite": "^1.4.10",
         "helmet": "^7.1.0",
         "jsonwebtoken": "^9.0.2",
+        "limiter": "^3.0.0",
         "lusca": "^1.7.0",
         "mic": "^2.1.2",
         "mongodb": "^6.16.0",
@@ -45,8 +50,12 @@
         "nodemailer": "^7.0.3",
         "qrcode": "^1.5.4",
         "react-toastify": "^11.0.5",
+        "react-transition-group": "^4.4.5",
         "speakeasy": "^2.0.0",
-        "stripe": "^18.2.0"
+        "stripe": "^18.2.0",
+        "wink-eng-lite-web-model": "^1.5.2",
+        "wink-nlp": "^1.14.3",
+        "ws": "^8.18.0"
     },
     "devDependencies": {
         "@types/jest": "^29.5.14",

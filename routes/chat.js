@@ -13,6 +13,14 @@ const keyService = require('../services/keyService');
 const axios = require('axios');
 const { ElevenLabsClient, play } = require('@elevenlabs/elevenlabs-js');
 require("dotenv").config();
+const {
+  sendMessage,
+  sendMessageStream,
+} = require('../services/claudeService');
+const {
+  getClaudeAndSpeechStream
+} = require('../services/elevenLabsService');
+const StreamingManager = require('../services/streamingManager');
 
 
 // Initialize Claude API client
@@ -28,44 +36,26 @@ router.use(userLimiter);
 // @access  Private
 router.post('/conversations', auth, async (req, res) => {
   try {
-    const { wrappedConversationKey, title } = req.body;
-
-    if (!wrappedConversationKey) {
-      return res.status(400).json({ error: 'wrappedConversationKey is required.' });
-    }
-
     const conversation = new Conversation({
       userId: req.user._id,
-      title: title || 'New Conversation',
-      wrappedConversationKey: wrappedConversationKey,
+      title: req.body.title || 'New Conversation',
+      type: req.body.type || 'text'
     });
     await conversation.save();
 
     // AI's first message
-    const aiFirstMessage = "I'm here, ready when you are";
-
-    const aiMessage = new Message({
+    const aiFirstMessage = new Message({
       userId: req.user._id,
-      content: aiFirstMessage,
+      content: "I'm here, ready when you are.",
       sender: 'ai',
       conversationId: conversation._id
     });
-    await aiMessage.save();
-
-    // Update conversation's lastMessageTime and messageCount
-    conversation.lastMessageTime = new Date();
-    conversation.messageCount = 1;
-    await conversation.save();
-
-    logEvent(req.user._id, 'CREATE_CONVERSATION', 'SUCCESS', { 
-      ipAddress: req.ip, 
-      targetId: conversation._id, 
-      targetType: 'Conversation' 
-    });
+    await aiFirstMessage.save();
 
     res.status(201).json(conversation);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error creating conversation:', error);
+    res.status(500).json({ error: 'Failed to create conversation.' });
   }
 });
 
@@ -76,32 +66,11 @@ router.get('/conversations', auth, async (req, res) => {
   try {
     const conversations = await Conversation.find({ userId: req.user._id })
       .sort({ updatedAt: -1 })
-      .limit(20); // Limit to 20 for testing
-
-    // Get the last message for each conversation
-    const conversationsWithLastMessage = await Promise.all(conversations.map(async (conversation) => {
-      const lastMessage = await Message.findOne({ 
-        conversationId: conversation._id 
-      }).sort({ createdAt: -1 });
-
-      return {
-        ...conversation.toObject(),
-        lastMessage: lastMessage ? lastMessage.content : null,
-        lastMessageTime: lastMessage ? lastMessage.createdAt : conversation.updatedAt
-      };
-    }));
-
-    res.json({
-      success: true,
-      conversations: conversationsWithLastMessage
-    });
+      .limit(50); 
+    res.json(conversations);
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Failed to load conversations',
-      error: error.message 
-    });
+    res.status(500).json({ error: 'Failed to load conversations.' });
   }
 });
 
@@ -113,18 +82,11 @@ router.get('/messages/:conversationId', auth, async (req, res) => {
     const messages = await Message.find({ 
       userId: req.user._id,
       conversationId: req.params.conversationId 
-    })
-      .sort({ createdAt: 1 });
-      
-    logEvent(req.user._id, 'VIEW_CONVERSATION', 'SUCCESS', {
-      ipAddress: req.ip,
-      targetId: req.params.conversationId,
-      targetType: 'Conversation'
-    });
-
+    }).sort({ createdAt: 1 });
     res.json(messages);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ error: 'Failed to load messages.' });
   }
 });
 
@@ -369,6 +331,49 @@ router.post('/conversations/bulk-delete', auth, async (req, res) => {
   }
 });
 
+// @route   POST /api/chat/unified-stream
+// @desc    Send a message and get a unified streamed reply (text or voice)
+// @access  Private
+router.post('/unified-stream', auth, aiCallLimiter, async (req, res) => {
+  const streamingManager = new StreamingManager(req, res);
+  streamingManager.handleStream();
+});
 
+// @route   POST /api/chat/message
+// @desc    Send a message and get a standard, non-streamed reply. (Fallback)
+// @access  Private
+router.post('/message', auth, aiCallLimiter, async (req, res) => {
+  const { content, conversationId } = req.body;
+
+  if (!content || !conversationId) {
+    return res.status(400).json({ error: 'Content and conversationId are required.' });
+  }
+
+  try {
+    const conversation = await Conversation.findOne({ _id: conversationId, userId: req.user._id });
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.' });
+    }
+
+    // 1. Save User Message
+    const userMessage = new Message({ userId: req.user._id, content, sender: 'user', conversationId });
+    await userMessage.save();
+
+    // 2. Get Full AI Response
+    const { sendFullMessage } = require('../services/claudeService');
+    const aiContent = await sendFullMessage(content);
+    
+    // 3. Save AI Message
+    const aiMessage = new Message({ userId: req.user._id, content: aiContent, sender: 'ai', conversationId });
+    await aiMessage.save();
+
+    // 4. Send Response
+    res.json({ content: aiContent });
+
+  } catch (error) {
+    console.error('Error in fallback message route:', error);
+    res.status(500).json({ error: 'Failed to get a response from the AI.' });
+  }
+});
 
 module.exports = router;

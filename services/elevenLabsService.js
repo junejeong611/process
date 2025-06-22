@@ -1,9 +1,16 @@
-const axios = require('axios');
+const { ElevenLabsClient } = require('@elevenlabs/elevenlabs-js');
+const WebSocket = require('ws');
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { sendMessage } = require('./claudeService');
+const { sendMessage, sendMessageStream } = require('./claudeService');
+const { streamToBuffer, bufferToStream } = require('../utils/streamUtils');
+const nlp = require('compromise');
+
+const elevenlabs = new ElevenLabsClient({
+  apiKey: process.env.ELEVENLABS_API_KEY,
+});
 
 // Custom error classes
 class ElevenLabsApiError extends Error {
@@ -33,137 +40,216 @@ const getDefaultVoiceSettings = () => {
   };
 };
 
-// Main synthesizeSpeech function
-const synthesizeSpeech = async (text, options = {}, retryCount = 0) => {
-  // Validate configuration
-  if (!process.env.ELEVENLABS_API_KEY) {
-    throw new ElevenLabsApiError('ElevenLabs API key not set in environment variables', 401, 'missing_api_key');
+// Main synthesizeSpeech function (now using SDK, but not streaming output)
+const synthesizeSpeech = async (text, options = {}) => {
+  if (!process.env.ELEVENLABS_VOICE_ID) {
+    throw new ElevenLabsApiError('ElevenLabs Voice ID not set in environment variables', 400, 'missing_config');
   }
-  
-  if (!process.env.ELEVENLABS_API_URL || !process.env.ELEVENLABS_VOICE_ID) {
-    throw new ElevenLabsApiError('ElevenLabs API URL or Voice ID not set in environment variables', 400, 'missing_config');
-  }
-  
   if (!text || typeof text !== 'string' || !text.trim()) {
     throw new ElevenLabsApiError('Text is required for speech synthesis', 400, 'missing_text');
   }
 
-  console.log(`[ElevenLabsService] Synthesizing speech. Length: ${text.length} chars. Attempt: ${retryCount + 1}`);
-  
-  // Get default voice settings and merge with provided options
-  const defaultVoiceSettings = getDefaultVoiceSettings();
-  
-  const requestBody = {
-    text,
-    model_id: process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2',
-    voice_settings: {
-      ...defaultVoiceSettings,
-      ...(options.voice_settings || {})
-    },
-    ...(options.extraBody || {})
-  };
+  console.log(`[ElevenLabsService] Synthesizing speech. Length: ${text.length} chars.`);
 
   try {
-    const response = await axios.post(
-      `${process.env.ELEVENLABS_API_URL}/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
-      requestBody,
+    const audioStream = await elevenlabs.textToSpeech.stream(
+      process.env.ELEVENLABS_VOICE_ID,
       {
-        headers: {
-          'Accept': `audio/${process.env.AUDIO_FORMAT || 'mp3'}`,
-          'xi-api-key': process.env.ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
+        text,
+        model_id: process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2',
+        voice_settings: {
+          ...getDefaultVoiceSettings(),
+          ...(options.voice_settings || {})
         },
-        responseType: 'arraybuffer',
-        timeout: parseInt(process.env.REQUEST_TIMEOUT_MS) || 30000
       }
     );
-    
-    // Validate the response
-    if (!response.data || response.data.byteLength === 0) {
-      throw new ElevenLabsApiError('Received empty audio data from API', 500, 'invalid_response');
+
+    const chunks = [];
+    for await (const chunk of audioStream) {
+      chunks.push(chunk);
     }
-    
-    // Verify content type is actually audio
-    const contentType = response.headers['content-type'];
-    if (!contentType || !contentType.includes('audio/')) {
-      console.warn(`[ElevenLabsService] Unexpected content type: ${contentType}`);
-    }
-    
+    const audioBuffer = Buffer.concat(chunks);
+
     return {
-      audio: response.data,
-      contentType: contentType || `audio/${process.env.AUDIO_FORMAT || 'mp3'}`,
-      byteLength: response.data.byteLength,
-      raw: {
-        headers: response.headers,
-        status: response.status
-      }
+      audio: audioBuffer,
+      contentType: `audio/${process.env.AUDIO_FORMAT || 'mp3'}`,
+      byteLength: audioBuffer.length,
     };
   } catch (error) {
-    if (error.response) {
-      const { status } = error.response;
-      
-      // Try to parse error message from buffer if possible
-      let errorMessage = 'Unknown ElevenLabs API error';
-      let errorType = 'unknown';
-      
-      if (error.response.data) {
-        try {
-          // Handle both string and buffer error responses
-          if (Buffer.isBuffer(error.response.data)) {
-            const dataString = error.response.data.toString('utf8');
-            if (dataString.includes('{')) {
-              const errorData = JSON.parse(dataString);
-              errorMessage = errorData.detail || errorData.message || errorMessage;
-              errorType = errorData.error_type || errorType;
-            } else {
-              errorMessage = dataString;
-            }
-          } else if (typeof error.response.data === 'string') {
-            if (error.response.data.includes('{')) {
-              const errorData = JSON.parse(error.response.data);
-              errorMessage = errorData.detail || errorData.message || errorMessage;
-              errorType = errorData.error_type || errorType;
-            } else {
-              errorMessage = error.response.data;
-            }
-          } else if (typeof error.response.data === 'object') {
-            errorMessage = error.response.data.detail || error.response.data.message || errorMessage;
-            errorType = error.response.data.error_type || errorType;
-          }
-        } catch (parseError) {
-          console.error('[ElevenLabsService] Error parsing error response:', parseError);
-        }
-      }
-      
-      console.error(`[ElevenLabsService] API error (${status}): ${errorMessage}`);
-      
-      if (status === 429) {
-        const retryAfter = parseInt(error.response.headers['retry-after'] || '60', 10);
-        const rateLimitError = new RateLimitError('Rate limit exceeded');
-        rateLimitError.retryAfter = retryAfter;
-        throw rateLimitError;
-      }
-      
-      if (status === 401) {
-        throw new ElevenLabsApiError('Authentication failed - invalid API key', 401, 'authentication_error');
-      }
-      
-      throw new ElevenLabsApiError(errorMessage, status, errorType);
-    } else if (error.request) {
-      if (error.code === 'ECONNABORTED') {
-        const maxRetries = parseInt(process.env.MAX_RETRIES) || 2;
-        if (retryCount < maxRetries) {
-          console.log(`[ElevenLabsService] Request timeout, retrying (${retryCount + 1}/${maxRetries})...`);
-          return synthesizeSpeech(text, options, retryCount + 1);
-        }
-        throw new ElevenLabsApiError('Request timeout after retries', 408, 'timeout');
-      }
-      
-      throw new ElevenLabsApiError('No response received from API', 0, 'network_error');
-    } else {
-      throw new ElevenLabsApiError(`Error setting up request: ${error.message}`, 0, 'request_setup_error');
-    }
+    console.error(`[ElevenLabsService] API error: ${error.message}`);
+    // The SDK might throw its own specific errors. We can handle them here.
+    throw new ElevenLabsApiError(error.message, error.status, error.type);
   }
+};
+
+const synthesizeSpeechStream = (textStream) => {
+  const audioStream = new (require('stream').PassThrough)();
+  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2';
+  const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=${modelId}`;
+  
+  const ws = new WebSocket(wsUrl);
+  let textBuffer = '';
+
+  ws.on('open', () => {
+    console.log('[ElevenLabsService] WebSocket connection opened.');
+    const bosMessage = {
+      text: " ",
+      voice_settings: getDefaultVoiceSettings(),
+      xi_api_key: process.env.ELEVENLABS_API_KEY,
+    };
+    ws.send(JSON.stringify(bosMessage));
+
+    textStream.on('data', (chunk) => {
+      textBuffer += chunk.toString();
+      const doc = nlp(textBuffer);
+      const sentences = doc.sentences().out('array');
+
+      if (sentences.length > 1) {
+        const sentencesToSend = sentences.slice(0, -1).join(' ');
+        const request = {
+          text: sentencesToSend,
+          try_trigger_generation: true,
+        };
+        ws.send(JSON.stringify(request));
+        // Keep the last, potentially incomplete sentence in the buffer
+        textBuffer = sentences[sentences.length - 1];
+      }
+    });
+
+    textStream.on('end', () => {
+      // Send any remaining text in the buffer
+      if (textBuffer.trim().length > 0) {
+        const request = {
+          text: textBuffer,
+          try_trigger_generation: true,
+        };
+        ws.send(JSON.stringify(request));
+      }
+      // Send End Of Stream message
+      const eosMessage = { text: "" };
+      ws.send(JSON.stringify(eosMessage));
+      console.log('[ElevenLabsService] Text stream ended. Sent EOS message.');
+    });
+  });
+
+  ws.on('message', (message) => {
+    const data = JSON.parse(message);
+    if (data.audio) {
+      audioStream.write(Buffer.from(data.audio, 'base64'));
+    }
+    if (data.isFinal) {
+      audioStream.end();
+    }
+    if (data.error) {
+      audioStream.emit('error', new Error(data.error));
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.error('[ElevenLabsService] WebSocket error:', error);
+    audioStream.emit('error', error);
+  });
+
+  ws.on('close', (code, reason) => {
+    console.log(`[ElevenLabsService] WebSocket closed: ${code} ${reason}`);
+    if (!audioStream.writableEnded) {
+      audioStream.end();
+    }
+  });
+
+  return audioStream;
+};
+
+const synthesizeSpeechWithTimestampsStream = (textStream) => {
+  const combinedStream = new (require('stream').PassThrough)({ objectMode: true });
+  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2';
+  const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=${modelId}&output_format=mp3_22050_32`;
+
+  const ws = new WebSocket(wsUrl);
+  let textBuffer = '';
+  let wordCounter = 0;
+
+  ws.on('open', () => {
+    console.log('[ElevenLabsService] Subtitle WebSocket connection opened.');
+    const bosMessage = {
+      text: " ",
+      voice_settings: getDefaultVoiceSettings(),
+      xi_api_key: process.env.ELEVENLABS_API_KEY,
+      generation_config: {
+        chunk_length_schedule: [50],
+      },
+    };
+    ws.send(JSON.stringify(bosMessage));
+
+    textStream.on('data', (chunk) => {
+      textBuffer += chunk.toString();
+      // Use compromise to split into sentences
+      const doc = nlp(textBuffer);
+      const sentences = doc.sentences().out('array');
+      
+      if (sentences.length > 1) {
+        const sentencesToSend = sentences.slice(0, -1).join(' ');
+        const request = {
+          text: sentencesToSend + " ", // Add space to ensure last word is processed
+        };
+        ws.send(JSON.stringify(request));
+        textBuffer = sentences[sentences.length - 1];
+      }
+    });
+
+    textStream.on('end', () => {
+      if (textBuffer.trim().length > 0) {
+        const request = {
+          text: textBuffer,
+        };
+        ws.send(JSON.stringify(request));
+      }
+      const eosMessage = { text: "" };
+      ws.send(JSON.stringify(eosMessage));
+      console.log('[ElevenLabsService] Subtitle text stream ended. Sent EOS message.');
+    });
+  });
+
+  ws.on('message', (message) => {
+    const data = JSON.parse(message);
+    if (data.audio) {
+      combinedStream.write({ type: 'audio', chunk: data.audio }); // audio is already base64
+    }
+    if (data.normalizedAlignment) {
+        // The new format for word boundaries
+        const { words } = data.normalizedAlignment;
+        for (const word of words) {
+             const subtitle = {
+                text: word.word,
+                startTime: word.start,
+                endTime: word.end,
+            };
+            combinedStream.write({ type: 'subtitle', subtitle });
+        }
+    }
+    if (data.isFinal) {
+      combinedStream.end();
+    }
+    if (data.error) {
+        combinedStream.emit('error', new Error(data.error));
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.error('[ElevenLabsService] Subtitle WebSocket error:', error);
+    combinedStream.emit('error', error);
+  });
+
+  ws.on('close', (code, reason) => {
+    console.log(`[ElevenLabsService] Subtitle WebSocket closed: ${code} ${reason}`);
+    if (!combinedStream.writableEnded) {
+      combinedStream.end();
+    }
+  });
+
+  return combinedStream;
 };
 
 // Simple audio caching system
@@ -262,28 +348,64 @@ const getClaudeAndSpeech = async (message, history = [], systemPrompt = null, tt
       audio: speechResult.audio,
       contentType: speechResult.contentType,
       fromCache: false,
-      claudeRaw: claudeResult.raw,
-      elevenLabsRaw: speechResult.raw
+      claudeRaw: claudeResult.raw
     };
   } catch (error) {
-    console.error('[ElevenLabsService] Error in getClaudeAndSpeech:', error);
-    
-    // If Claude response succeeded but speech synthesis failed,
-    // return the text response anyway
-    if (error instanceof ElevenLabsApiError && arguments[0]?.content) {
-      return {
-        text: arguments[0].content,
-        audio: null,
-        error: error.message,
-        errorType: error.errorType
-      };
-    }
-    
-    throw error;
+    console.error('Error in getClaudeAndSpeech:', error);
+    throw new Error('Failed to get response from Claude and synthesize speech.');
   }
 };
 
-// Add a function to get available voices
+// Debounce function to prevent rapid successive calls
+const debounce = (func, delay) => {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), delay);
+  };
+};
+
+// Function to synthesize speech from a stream of text
+// This function will now be orchestrated by getClaudeAndSpeechStream
+const synthesizeSpeechStreamFromText = async (text) => {
+  try {
+    const audioStream = await synthesizeSpeech(text);
+    return audioStream;
+  } catch (error) {
+    console.error(`ElevenLabs TTS Error: ${error.message}`);
+    // In case of an error, push it to the stream to be handled by the consumer
+    const audioStream = new (require('stream').PassThrough)();
+    audioStream.emit('error', new Error('Failed to synthesize speech.'));
+    return audioStream; // Return the stream even on error to prevent crashing
+  }
+};
+
+const getClaudeAndSpeechStream = (message, history = [], systemPrompt = null) => {
+  // 1. Get a stream from Claude
+  const claudeStream = new (require('stream').PassThrough)();
+  sendMessageStream(message, history, systemPrompt)
+    .then(stream => {
+      stream.on('data', (chunk) => {
+        if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
+          claudeStream.write(chunk.delta.text);
+        }
+      });
+      stream.on('end', () => {
+        claudeStream.end();
+      });
+    })
+    .catch(err => {
+      console.error("Error getting stream from Claude:", err);
+      claudeStream.emit('error', err);
+    });
+
+  // 2. Pipe it to ElevenLabs for TTS
+  const audioStream = synthesizeSpeechStream(claudeStream);
+
+  return audioStream;
+};
+
+// Function to get available voices from ElevenLabs
 const getAvailableVoices = async () => {
   if (!process.env.ELEVENLABS_API_KEY) {
     throw new ElevenLabsApiError('ElevenLabs API key not set in environment variables', 401, 'missing_api_key');
@@ -310,8 +432,14 @@ const getAvailableVoices = async () => {
 
 module.exports = {
   synthesizeSpeech,
+  synthesizeSpeechStream,
+  synthesizeSpeechWithTimestampsStream,
+  getCachedAudio,
+  saveToCache,
+  cleanupCache,
+  getClaudeAndSpeech,
+  getClaudeAndSpeechStream,
   getAvailableVoices,
   ElevenLabsApiError,
   RateLimitError,
-  getClaudeAndSpeech
 };

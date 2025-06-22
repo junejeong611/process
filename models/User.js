@@ -28,15 +28,21 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: false,
     minlength: [8, 'Password must be at least 8 characters'],
     validate: {
       validator: function(v) {
-        // Password must contain at least one number and one letter
+        if (this.password == null && !this.isModified('password')) {
+            return true;
+        }
         return /\d/.test(v) && /[a-zA-Z]/.test(v);
       },
       message: 'Password must contain at least one letter and one number'
     }
+  },
+  passwordResetRequired: {
+    type: Boolean,
+    default: false
   },
   name: {
     type: String,
