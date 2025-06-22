@@ -21,13 +21,7 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const { loadKeys } = require('./services/keyService');
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const chatRoutes = require('./routes/chat');
-const voiceRoutes = require('./routes/voice');
-const insightsRoutes = require('./routes/insights');
-const voiceRecordRoute = require('./routes/record');
-const subscriptionRoutes = require('./routes/subscription');
-const stripeWebhook = require('./routes/stripeWebhook');
+// -- Routes will be required inside startServer() after secrets are loaded --
 
 //collect secrets from secrets manager
 (async () => {
@@ -45,6 +39,7 @@ const stripeWebhook = require('./routes/stripeWebhook');
     process.env.CLAUDE_API_KEY = secrets.CLAUDE_API_KEY;
     process.env.JWT_SECRET = secrets.JWT_SECRET;
     process.env.COOKIE_SECRET = secrets.COOKIE_SECRET;
+    process.env.ENCRYPTION_SECRET = secrets.ENCRYPTION_SECRET;
     process.env.EMAIL_USER = secrets.EMAIL_USER;
     process.env.EMAIL_PASS = secrets.EMAIL_PASS;
     process.env.EMAIL_FROM = secrets.EMAIL_FROM;
@@ -78,6 +73,16 @@ const stripeWebhook = require('./routes/stripeWebhook');
 })();
 
 function startServer() {
+  // Require routes here, after secrets are loaded into process.env
+  const authRoutes = require('./routes/auth');
+  const chatRoutes = require('./routes/chat');
+  const voiceRoutes = require('./routes/voice');
+  const insightsRoutes = require('./routes/insights');
+  const voiceRecordRoute = require('./routes/record');
+  const subscriptionRoutes = require('./routes/subscription');
+  const stripeWebhook = require('./routes/stripeWebhook');
+  const session = require('express-session');
+
   // Initialize Express app
   const app = express();
   app.set('trust proxy', 1); // trust first proxy for correct rate limiting behind proxy
@@ -91,6 +96,18 @@ function startServer() {
 
   // API rate limiting for security - apply general limiter
   app.use('/api/', apiLimiter);
+
+  // Session middleware configuration
+  app.use(session({
+    secret: process.env.COOKIE_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'strict'
+    }
+  }));
 
   // Enhanced security headers
   app.use(helmet({
