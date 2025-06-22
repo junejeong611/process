@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
+const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const auth = require('../middleware/auth');
 const claudeService = require('../services/claudeService');
+const { userLimiter, aiCallLimiter } = require('../middleware/rateLimiter');
+const { logEvent } = require('../services/auditLogService');
+const keyService = require('../services/keyService');
 const axios = require('axios');
 const { ElevenLabsClient, play } = require('@elevenlabs/elevenlabs-js');
 require("dotenv").config();
@@ -15,16 +20,24 @@ const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY
 });
 
-
+// Apply user-level rate limiting to all chat routes
+router.use(userLimiter);
 
 // @route   POST /api/chat/conversations
 // @desc    Create a new conversation
 // @access  Private
 router.post('/conversations', auth, async (req, res) => {
   try {
+    const { wrappedConversationKey, title } = req.body;
+
+    if (!wrappedConversationKey) {
+      return res.status(400).json({ error: 'wrappedConversationKey is required.' });
+    }
+
     const conversation = new Conversation({
       userId: req.user._id,
-      title: 'New Conversation'
+      title: title || 'New Conversation',
+      wrappedConversationKey: wrappedConversationKey,
     });
     await conversation.save();
 
@@ -43,6 +56,12 @@ router.post('/conversations', auth, async (req, res) => {
     conversation.lastMessageTime = new Date();
     conversation.messageCount = 1;
     await conversation.save();
+
+    logEvent(req.user._id, 'CREATE_CONVERSATION', 'SUCCESS', { 
+      ipAddress: req.ip, 
+      targetId: conversation._id, 
+      targetType: 'Conversation' 
+    });
 
     res.status(201).json(conversation);
   } catch (error) {
@@ -96,6 +115,13 @@ router.get('/messages/:conversationId', auth, async (req, res) => {
       conversationId: req.params.conversationId 
     })
       .sort({ createdAt: 1 });
+      
+    logEvent(req.user._id, 'VIEW_CONVERSATION', 'SUCCESS', {
+      ipAddress: req.ip,
+      targetId: req.params.conversationId,
+      targetType: 'Conversation'
+    });
+
     res.json(messages);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -132,74 +158,127 @@ async function getEmotionsFromClaude(text) {
 // @route   POST /api/chat/send
 // @desc    Send a message, get Claude reply, store both
 // @access  Private
-router.post('/send', auth, async (req, res) => {
-  try {
-    const { content, conversationId } = req.body;
-
-    if (!content || !conversationId) {
-      return res.status(400).json({ error: 'Message content and conversation ID are required' });
+router.post('/send', 
+  auth, 
+  aiCallLimiter, 
+  [
+    body('encryptedContent', 'encryptedContent cannot be empty').not().isEmpty(),
+    body('encryptedConversationKey', 'encryptedConversationKey is required').not().isEmpty(),
+    body('conversationId', 'Invalid conversation ID').isMongoId(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    // Verify conversation exists and belongs to user
-    const conversation = await Conversation.findOne({
-      _id: conversationId,
-      userId: req.user._id
-    });
+    try {
+      const { encryptedContent, encryptedConversationKey, conversationId } = req.body;
+      
+      // Verify conversation exists and belongs to user
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        userId: req.user._id
+      });
 
-    if (!conversation) {
-      return res.status(404).json({ error: 'Conversation not found' });
-    }
+      if (!conversation) {
+        return res.status(404).json({ error: 'Conversation not found' });
+      }
 
-    // Extract triggers from user's message using Claude
-    const triggers = await getTriggersFromClaude(content);
-    // Extract emotions from user's message using Claude
-    const emotions = await getEmotionsFromClaude(content);
+      // --- Decryption for AI Processing ---
+      let conversationKey;
+      let decryptedContent;
+      try {
+        // 1. Decrypt the conversation key with the server's private key
+        const serverPrivateKey = keyService.getPrivateKey();
+        const conversationKeyBuffer = crypto.privateDecrypt(
+          {
+            key: serverPrivateKey,
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+            oaepHash: 'sha256',
+          },
+          Buffer.from(encryptedConversationKey, 'base64')
+        );
+        conversationKey = conversationKeyBuffer;
 
-    // Save user message with triggers and emotions
-    const userMessage = new Message({
-      userId: req.user._id,
-      content,
-      sender: 'user',
-      conversationId,
-      triggers,
-      emotions
-    });
+        // 2. Decrypt the message content with the decrypted conversation key (AES-256-GCM)
+        const contentBuffer = Buffer.from(encryptedContent, 'base64');
+        const iv = contentBuffer.slice(0, 12);
+        const authTag = contentBuffer.slice(12, 28);
+        const encrypted = contentBuffer.slice(28);
+        
+        const decipher = crypto.createDecipheriv('aes-256-gcm', conversationKey, iv);
+        decipher.setAuthTag(authTag);
+        decryptedContent = Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+
+      } catch (decryptionError) {
+        console.error('Decryption failed:', decryptionError);
+        logEvent(req.user._id, 'DECRYPTION_FAILED', 'FAILURE', { ipAddress: req.ip, targetId: conversationId });
+        return res.status(500).json({ error: 'Failed to decrypt message for processing.' });
+      }
+      // --- End Decryption ---
+
+      // Extract triggers from user's message using Claude
+      const triggers = await getTriggersFromClaude(decryptedContent);
+      // Extract emotions from user's message using Claude
+      const emotions = await getEmotionsFromClaude(decryptedContent);
+
+      // Save user message (content remains encrypted with the at-rest key)
+      const userMessage = new Message({
+        userId: req.user._id,
+        content: decryptedContent, // mongoose-encryption will re-encrypt this at rest
+        sender: 'user',
+        conversationId,
+        triggers,
+        emotions
+      });
     
-    await userMessage.save();
+      await userMessage.save();
 
-    // Get Claude's response using claudeService
-    const claudeResponse = await claudeService.sendMessage(content);
+      // Get Claude's response using the decrypted content
+      const claudeResponse = await claudeService.sendMessage(decryptedContent);
 
-    // Save assistant's response
-    const assistantMessage = new Message({
-      userId: req.user._id,
-      content: claudeResponse.content,
-      sender: 'ai',
-      conversationId
-    });
-    await assistantMessage.save();
+      // Save assistant's response (content will be encrypted at rest)
+      const assistantMessage = new Message({
+        userId: req.user._id,
+        content: claudeResponse.content,
+        sender: 'ai',
+        conversationId
+      });
+      await assistantMessage.save();
 
-    // Update conversation's last message timestamp and increment message count
-    conversation.lastMessageTime = new Date();
-    conversation.messageCount = (conversation.messageCount || 0) + 2; // Increment by 2 for both user and AI messages
-    await conversation.save();
+      // Clear sensitive data from memory as soon as possible
+      conversationKey.fill(0);
+      decryptedContent = null;
 
-    console.log(assistantMessage)
+      // Update conversation's last message timestamp and increment message count
+      conversation.lastMessageTime = new Date();
+      conversation.messageCount = (conversation.messageCount || 0) + 2; // Increment by 2 for both user and AI messages
+      await conversation.save();
+      
+      logEvent(req.user._id, 'SEND_MESSAGE', 'SUCCESS', {
+        ipAddress: req.ip,
+        targetId: conversation._id,
+        targetType: 'Conversation',
+        details: { messageId: userMessage._id }
+      });
 
-    res.json({
-      message: assistantMessage
-    });
-  } catch (error) {
-    console.error('[/api/chat/send] uncaught error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+      console.log(assistantMessage)
+
+      res.json({
+        message: assistantMessage
+      });
+    } catch (error) {
+      console.error('[/api/chat/send] uncaught error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
 
 // @route   POST /api/chat/elevenlabs
 // @desc    get a audio file from elevenlabs
 // @access  Private
-router.post('/elevenlabs', auth, async (req, res) => {
+router.post('/elevenlabs', auth, aiCallLimiter, async (req, res) => {
   try {
     const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
     const { text } = req.body;
@@ -248,14 +327,45 @@ router.post('/conversations/bulk-delete', auth, async (req, res) => {
       return res.status(400).json({ error: 'No conversation IDs provided' });
     }
 
-    // Delete conversations belonging to the user
-    await Conversation.deleteMany({ _id: { $in: conversationIds }, userId: req.user._id });
-    // Optionally, delete related messages as well
-    await Message.deleteMany({ conversationId: { $in: conversationIds }, userId: req.user._id });
+    // Ensure all conversations belong to the user
+    const conversations = await Conversation.find({
+      _id: { $in: conversationIds },
+      userId: req.user._id
+    });
 
-    res.status(200).json({ success: true, deleted: conversationIds.length });
+    if (conversations.length !== conversationIds.length) {
+      logEvent(req.user._id, 'DELETE_CONVERSATION', 'FAILURE', {
+        ipAddress: req.ip,
+        details: { reason: 'Attempt to delete unauthorized conversations', conversationIds }
+      });
+      return res.status(403).json({ error: 'You can only delete your own conversations' });
+    }
+
+    // Delete associated messages first
+    await Message.deleteMany({ conversationId: { $in: conversationIds } });
+    
+    // Then delete the conversations
+    await Conversation.deleteMany({ _id: { $in: conversationIds } });
+
+    conversationIds.forEach(id => {
+      logEvent(req.user._id, 'DELETE_CONVERSATION', 'SUCCESS', {
+        ipAddress: req.ip,
+        targetId: id,
+        targetType: 'Conversation'
+      });
+    });
+
+    res.json({
+      success: true,
+      message: `${conversationIds.length} conversations deleted successfully`
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error deleting conversations:', error);
+    logEvent(req.user._id, 'DELETE_CONVERSATION', 'FAILURE', {
+      ipAddress: req.ip,
+      details: { error: error.message, conversationIds: req.body.conversationIds }
+    });
+    res.status(500).json({ success: false, message: 'Failed to delete conversations' });
   }
 });
 

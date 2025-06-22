@@ -8,6 +8,10 @@ const { sendEmail } = require('../utils/email');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const auth = require('../middleware/auth'); // Assuming you have this middleware
+const { logEvent } = require('../services/auditLogService');
+const mongoose = require('mongoose');
+const { checkLoginAnomaly, handleFailedLogin } = require('../services/anomalyService');
+const keyService = require('../services/keyService');
 
 const router = express.Router();
 
@@ -72,14 +76,22 @@ router.post('/login', loginLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     // Find user and select the mfa_secret field
-    const user = await User.findOne({ email }).select('+mfa_secret');
+    const user = await User.findOne({ email }).select('+mfa_secret').select('+refreshTokens');
     if (!user) {
+      logEvent(null, 'USER_LOGIN_FAILED', 'FAILURE', { ipAddress: req.ip, details: { email } });
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Check for account lock
+    if (user.isLocked && user.lockExpiresAt > new Date()) {
+      return res.status(403).json({ success: false, message: `Account is temporarily locked. Please try again after ${Math.ceil((user.lockExpiresAt - Date.now()) / 60000)} minutes.` });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      logEvent(user._id, 'USER_LOGIN_FAILED', 'FAILURE', { ipAddress: req.ip });
+      await handleFailedLogin(user._id, req.ip);
       // Consider adding a delay to make timing attacks harder
       await new Promise(resolve => setTimeout(resolve, 500));
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -88,13 +100,30 @@ router.post('/login', loginLimiter, async (req, res) => {
     // --- Check for Trusted Device ---
     const { device_id } = req.cookies;
     if (device_id) {
-        const trustedDevice = user.trusted_devices.find(d => d.device_id === device_id && d.expires_at > new Date());
+        const hashedDeviceId = crypto.createHash('sha256').update(device_id).digest('hex');
+        const trustedDevice = user.trusted_devices.find(d => d.device_id === hashedDeviceId && d.expires_at > new Date());
         if (trustedDevice) {
-            // Device is trusted, bypass MFA and issue full token
-            const token = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
-                expiresIn: '7d'
+            // Device is trusted, bypass MFA and issue tokens
+            logEvent(user._id, 'USER_LOGIN', 'SUCCESS', { ipAddress: req.ip, details: { trustedDevice: true } });
+            await checkLoginAnomaly(user, req.ip);
+            const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+                expiresIn: '15m'
             });
-            return res.json({ success: true, token, user: { id: user._id, email: user.email, name: user.name } });
+
+            const refreshToken = crypto.randomBytes(40).toString('hex');
+            const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+            user.refreshTokens.push({ token: hashedRefreshToken, device: req.headers['user-agent'] });
+            await user.save();
+            
+            res.cookie('refreshToken', refreshToken, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'strict',
+              maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
+            return res.json({ success: true, accessToken, user: { id: user._id, email: user.email, name: user.name } });
         }
     }
     
@@ -132,11 +161,26 @@ router.post('/login', loginLimiter, async (req, res) => {
     // --- End MFA Logic ---
 
     // Generate full access token if MFA is not applicable
-    const token = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
-      expiresIn: '7d'
+    logEvent(user._id, 'USER_LOGIN', 'SUCCESS', { ipAddress: req.ip });
+    await checkLoginAnomaly(user, req.ip);
+    const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+      expiresIn: '15m'
     });
 
-    res.json({ success: true, token, user: { id: user._id, email: user.email, name: user.name } });
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    user.refreshTokens.push({ token: hashedRefreshToken, device: req.headers['user-agent'] });
+    await user.save();
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({ success: true, accessToken, user: { id: user._id, email: user.email, name: user.name } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "An unexpected server error occurred." });
@@ -177,12 +221,15 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
                 if (isMatch) {
                     isValid = true;
                     user.backup_codes.splice(i, 1); // Invalidate used backup code
+                    logEvent(userId, 'MFA_VERIFY_SUCCESS', 'SUCCESS', { ipAddress: req.ip, details: { usingBackupCode: true } });
+                    await checkLoginAnomaly(await User.findById(userId), req.ip);
                     break;
                 }
             }
         }
 
         if (!isValid) {
+            logEvent(userId, 'MFA_VERIFY_FAILED', 'FAILURE', { ipAddress: req.ip });
             return res.status(401).json({ success: false, message: 'Invalid verification code' });
         }
         
@@ -196,26 +243,37 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
             // Generate and store hashed backup codes
             const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
             user.backup_codes = backupCodes; // Pre-save hook will hash these
-            await user.save();
             
-            // Issue final, full-access token upon successful setup
-            const token = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
-                expiresIn: '7d'
+            // Generate tokens
+            const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+                expiresIn: '15m'
             });
+            const refreshToken = crypto.randomBytes(40).toString('hex');
+            const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+            user.refreshTokens.push({ token: hashedRefreshToken, device: req.headers['user-agent'] });
+            
+            await user.save();
 
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+            
             // Return backup codes to the user ONCE, along with their new token
-            return res.json({ success: true, setupComplete: true, backupCodes, token });
+            return res.json({ success: true, setupComplete: true, backupCodes, accessToken });
         }
 
         // Handle "Trust this device"
         if (trustDevice) {
             const deviceId = crypto.randomBytes(16).toString('hex');
+            const hashedDeviceId = crypto.createHash('sha256').update(deviceId).digest('hex');
             const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
             
-            user.trusted_devices.push({ device_id: deviceId, expires_at });
-            await user.save();
+            user.trusted_devices.push({ device_id: hashedDeviceId, expires_at });
 
-            // Set the deviceId in a secure, httpOnly cookie
+            // Set the raw deviceId in a secure, httpOnly cookie
             res.cookie('device_id', deviceId, { 
                 httpOnly: true, 
                 secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
@@ -225,11 +283,24 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
         }
 
         // Issue final, full-access token
-        const token = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
-            expiresIn: '7d'
+        const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+            expiresIn: '15m'
         });
 
-        res.json({ success: true, token, user: { id: user._id, email: user.email, name: user.name } });
+        const refreshToken = crypto.randomBytes(40).toString('hex');
+        const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+        user.refreshTokens.push({ token: hashedRefreshToken, device: req.headers['user-agent'] });
+
+        await user.save();
+
+        res.cookie('refreshToken', refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        res.json({ success: true, accessToken, user: { id: user._id, email: user.email, name: user.name } });
 
     } catch (error) {
         console.error('MFA verification error:', error);
@@ -379,6 +450,146 @@ router.post('/reset-password', async (req, res) => {
   user.clearPasswordResetToken();
   await user.save();
   res.json({ success: true, message: 'Password has been reset.' });
+});
+
+// @route   POST /api/auth/refresh-token
+// @desc    Get a new access token using a refresh token
+// @access  Public (access controlled by refresh token cookie)
+router.post('/refresh-token', async (req, res) => {
+  const { refreshToken } = req.cookies;
+  if (!refreshToken) {
+    return res.status(401).json({ success: false, message: 'Refresh token not found.' });
+  }
+
+  try {
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    const user = await User.findOne({ 
+      'refreshTokens.token': hashedRefreshToken 
+    }).select('+refreshTokens');
+
+    if (!user) {
+      // If the refresh token is not found, it might have been stolen.
+      // For security, we can clear the cookie.
+      res.clearCookie('refreshToken');
+      return res.status(403).json({ success: false, message: 'Invalid refresh token.' });
+    }
+
+    // Token Rotation
+    // Remove the old token
+    user.refreshTokens = user.refreshTokens.filter(rt => rt.token !== hashedRefreshToken);
+
+    // Generate new tokens
+    const newAccessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+      expiresIn: '15m'
+    });
+    const newRefreshToken = crypto.randomBytes(40).toString('hex');
+    const newHashedRefreshToken = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+
+    // Add the new refresh token
+    user.refreshTokens.push({ token: newHashedRefreshToken, device: req.headers['user-agent'], lastUsed: new Date() });
+    
+    await user.save();
+
+    // Send the new refresh token in a cookie
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({ success: true, accessToken: newAccessToken });
+
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
+
+// @route   POST /api/auth/logout
+// @desc    Logout user by invalidating refresh token
+// @access  Private (requires auth to get user id)
+router.post('/logout', auth, async (req, res) => {
+    try {
+        const { refreshToken } = req.cookies;
+        if (refreshToken) {
+            const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+            
+            // Remove the specific refresh token from the user's document
+            await User.updateOne(
+                { _id: req.user.userId },
+                { $pull: { refreshTokens: { token: hashedRefreshToken } } }
+            );
+        }
+        
+        logEvent(req.user.userId, 'USER_LOGOUT', 'SUCCESS', { ipAddress: req.ip });
+
+        res.clearCookie('refreshToken');
+        res.clearCookie('device_id'); // Also clear trusted device cookie
+        res.json({ success: true, message: 'Logged out successfully' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// @route   DELETE /api/auth/account
+// @desc    Delete user account and all associated data
+// @access  Private
+router.delete('/account', auth, async (req, res) => {
+    try {
+        const { password } = req.body;
+        const userId = req.user.userId;
+
+        if (!password) {
+            return res.status(400).json({ success: false, message: 'Password is required to delete your account.' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            logEvent(userId, 'ACCOUNT_DELETED', 'FAILURE', { ipAddress: req.ip, details: { reason: 'Invalid password' } });
+            return res.status(401).json({ success: false, message: 'Invalid password.' });
+        }
+
+        // --- Cascade Delete ---
+        // 1. Delete all user's messages
+        await mongoose.model('Message').deleteMany({ userId });
+        // 2. Delete all user's conversations
+        await mongoose.model('Conversation').deleteMany({ userId });
+        // 3. Delete all user's audit logs
+        await mongoose.model('AuditLog').deleteMany({ userId });
+        // 4. Delete the user
+        await user.remove();
+
+        logEvent(userId, 'ACCOUNT_DELETED', 'SUCCESS', { ipAddress: req.ip });
+
+        res.clearCookie('refreshToken');
+        res.clearCookie('device_id');
+        res.json({ success: true, message: 'Your account and all associated data have been permanently deleted.' });
+
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        res.status(500).json({ success: false, message: 'An internal server error occurred during account deletion.' });
+    }
+});
+
+// @route   GET /api/auth/public-key
+// @desc    Get the server's public key for encryption
+// @access  Private
+router.get('/public-key', auth, (req, res) => {
+  try {
+    const publicKey = keyService.getPublicKey();
+    res.json({ publicKey });
+  } catch (error) {
+    console.error('Error fetching public key:', error);
+    res.status(500).json({ error: 'Could not retrieve server key.' });
+  }
 });
 
 module.exports = router; 

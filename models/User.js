@@ -5,7 +5,16 @@
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const mongooseEncryption = require('mongoose-encryption');
 const SALT_WORK_FACTOR = 10;
+
+const refreshTokenSchema = new mongoose.Schema({
+  token: { type: String, required: true },
+  device: String,
+  lastUsed: Date,
+  createdAt: { type: Date, default: Date.now, expires: '7d' } // Automatically remove after 7 days
+});
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -45,9 +54,20 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date
   },
-  refreshToken: {
-    type: String
+  lastLoginIp: {
+    type: String,
   },
+  lastLoginCountry: {
+    type: String,
+  },
+  isLocked: {
+    type: Boolean,
+    default: false
+  },
+  lockExpiresAt: {
+    type: Date
+  },
+  refreshTokens: [refreshTokenSchema],
   isActive: {
     type: Boolean,
     default: true
@@ -140,6 +160,29 @@ userSchema.virtual('fullName').get(function() {
     return `${this.firstName} ${this.lastName}`;
   }
   return this.name; // Fallback to name field if first/last name not available
+});
+
+const encKey = process.env.ENCRYPTION_SECRET;
+if (!encKey) {
+  throw new Error('ENCRYPTION_SECRET environment variable is not set!');
+}
+
+userSchema.plugin(mongooseEncryption, {
+  secret: encKey,
+  encryptedFields: ['name', 'firstName', 'lastName'],
+  authenticated: true,
+  // Add blind indexes for searching on encrypted fields
+  // This creates a new field __searchable_name, etc.
+  // Note: Blind indexing is good for exact matches but not for substring searches.
+  blindIndexes: ['name', 'firstName', 'lastName']
+});
+
+// Hash the refresh token before saving
+refreshTokenSchema.pre('save', function(next) {
+  if (this.isModified('token')) {
+    this.token = crypto.createHash('sha256').update(this.token).digest('hex');
+  }
+  next();
 });
 
 // Pre-save hook to hash password if modified
