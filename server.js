@@ -16,6 +16,9 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression'); // Add compression for better performance
 const getSecrets = require('./load');
 const cookieParser = require('cookie-parser');
+const lusca = require('lusca');
+const { apiLimiter } = require('./middleware/rateLimiter');
+const { loadKeys } = require('./services/keyService');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -65,6 +68,8 @@ const stripeWebhook = require('./routes/stripeWebhook');
     console.log('✅ Stripe service initialized');
 
     // Start server after secrets are loaded
+    // Load server encryption keys
+    loadKeys();
     startServer();
   } catch (err) {
     console.error('❌ Failed to load secrets:', err.message);
@@ -82,19 +87,43 @@ function startServer() {
   app.use(compression());
 
   // Use cookie-parser middleware
-  app.use(cookieParser());
+  app.use(cookieParser(process.env.COOKIE_SECRET));
 
-  // API rate limiting for security
-  const apiLimiter = rateLimit({
-    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // Use env var if available
-    max: process.env.RATE_LIMIT_MAX_REQUESTS || 100, // Use env var if available
-    standardHeaders: true,
-    message: 'Too many requests from this IP, please try again later.'
-  });
+  // API rate limiting for security - apply general limiter
+  app.use('/api/', apiLimiter);
 
   // Enhanced security headers
   app.use(helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false, // Disable CSP in development
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for now, but should be removed
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true
+    },
+    frameguard: {
+      action: 'deny'
+    }
+  }));
+
+  // Lusca for CSRF protection and other security enhancements
+  app.use(lusca({
+    csrf: true,
+    xframe: 'SAMEORIGIN',
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    xssProtection: true,
+    nosniff: true,
+    referrerPolicy: 'same-origin'
   }));
 
   // Logger middleware - different formats for dev and production
@@ -117,8 +146,10 @@ function startServer() {
   app.use(express.json({ limit: '2mb' })); // Parse JSON request bodies with size limit
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-  // Apply rate limiting to API routes
-  app.use('/api/', apiLimiter);
+  // Endpoint to get CSRF token
+  app.get('/api/v1/csrf-token', (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+  });
 
   // MongoDB connection with improved error handling and options
   const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/emotionalsupportapp';
