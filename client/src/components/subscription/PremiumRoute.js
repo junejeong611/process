@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
-import SubscriptionActions from './SubscriptionActions';
+import { createCheckoutSession } from '../../services/subscription';
 
 const PremiumRoute = ({ children }) => {
   const { status, loading } = useSubscription();
@@ -22,12 +22,19 @@ const PremiumRoute = ({ children }) => {
     return <>{children}</>;
   }
 
+  const handleCheckout = async () => {
+    const url = await createCheckoutSession();
+    window.location.href = url;
+  };
+
   return (
     <div className="subscription-status-banner inactive">
       <h3>This is a premium feature.</h3>
       <p>Start your free trial or subscribe to access this feature.</p>
       <div className="subscription-actions">
-        <SubscriptionActions />
+        <button className="subscription-button" onClick={handleCheckout}>
+          Start Free Trial / Subscribe
+        </button>
       </div>
     </div>
   );

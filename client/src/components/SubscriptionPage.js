@@ -1,42 +1,28 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import SubscriptionStatusBanner from './subscription/SubscriptionStatusBanner';
-import TrialBanner from './subscription/TrialBanner';
-import SubscriptionActions from './subscription/SubscriptionActions';
 import Navbar from './navigation/Navbar';
 import './subscription/SubscriptionPage.css';
 
 const SubscriptionPage = () => {
-  const { status, loading, setStatus } = useSubscription();
-  const navigate = useNavigate();
+  const { loading, forceRefresh } = useSubscription();
+  const location = useLocation();
+  const refreshTriggered = useRef(false);
 
   useEffect(() => {
-    let interval;
-    let timeout;
-    if (status === 'inactive') {
-      interval = setInterval(async () => {
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        const res = await fetch('/api/subscription/status', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.subscriptionStatus === 'trialing' || data.subscriptionStatus === 'active') {
-          setStatus(data.subscriptionStatus);
-          clearInterval(interval);
-          clearTimeout(timeout);
-          navigate('/options');
-        }
-      }, 2000);
-      timeout = setTimeout(() => clearInterval(interval), 30000);
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.has('session_id') && !refreshTriggered.current) {
+      console.log('Checkout success detected, forcing subscription status refresh.');
+      refreshTriggered.current = true;
+      // Use a small timeout to give the webhook a moment to arrive
+      setTimeout(() => {
+        forceRefresh();
+      }, 500);
     }
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [status, navigate, setStatus]);
+  }, [location.search, forceRefresh]);
 
-  if (loading) {
+  if (loading && !refreshTriggered.current) {
     return (
       <div className="subscription-layout">
         <Navbar />
@@ -45,31 +31,6 @@ const SubscriptionPage = () => {
             <div className="subscription-loading">
               <div className="subscription-spinner"></div>
               <div className="subscription-loading-text">Loading subscription status...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'inactive') {
-    return (
-      <div className="subscription-layout">
-        <Navbar />
-        <div className="subscription-main">
-          <div className="subscription-container">
-            <div className="subscription-header">
-              <h1 className="subscription-title">Subscription Details</h1>
-              <p className="subscription-subtitle">Manage your subscription and billing</p>
-            </div>
-            <SubscriptionStatusBanner />
-            <TrialBanner />
-            <div className="subscription-actions">
-              <SubscriptionActions />
-            </div>
-            <div className="subscription-waiting">
-              Waiting for your subscription to activate...<br />
-              (You may need to wait a few seconds after checkout.)
             </div>
           </div>
         </div>
@@ -87,10 +48,6 @@ const SubscriptionPage = () => {
             <p className="subscription-subtitle">Manage your subscription and billing</p>
           </div>
           <SubscriptionStatusBanner />
-          <TrialBanner />
-          <div className="subscription-actions">
-            <SubscriptionActions />
-          </div>
         </div>
       </div>
     </div>
