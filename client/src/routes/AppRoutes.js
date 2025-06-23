@@ -17,6 +17,7 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 import SubscriptionPage from '../components/SubscriptionPage';
 import PremiumRoute from '../components/subscription/PremiumRoute';
 import SupportPage from '../components/SupportPage';
+import SettingsPage from '../components/SettingsPage';
 import './AppRoutes.css';
 
 // Dummy authentication check (replace with real logic)
@@ -112,6 +113,14 @@ const AppRoutes = () => (
       </ProtectedRoute>
     } />
     
+    <Route path="/settings" element={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <SettingsPage />
+        </DashboardLayout>
+      </ProtectedRoute>
+    } />
+    
     <Route path="/voice" element={
       <ProtectedRoute>
         <DashboardLayout>
@@ -146,7 +155,7 @@ const AppRoutes = () => (
     } />
     
     {/* Default redirect */}
-    <Route path="*" element={<Navigate to="/login" />} />
+    <Route path="*" element={<Navigate to="/dashboard" />} />
   </Routes>
 );
 
