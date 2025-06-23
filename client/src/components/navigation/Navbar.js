@@ -15,14 +15,24 @@ const Navbar = () => {
   console.log('Navbar - Loading:', loading);
 
   // Check if user has premium access
-  const hasPremiumAccess = status && (
-    status.subscriptionStatus === 'active' ||
-    status.subscriptionStatus === 'trialing'
-  ) && status.subscriptionStatus !== 'inactive';
+  const hasPremiumAccess = !loading && status && status !== 'inactive';
 
   // Debug log for premium access
   console.log('Navbar - Has Premium Access:', hasPremiumAccess);
-  console.log('Navbar - Current Status:', status?.subscriptionStatus);
+
+  const isPremiumRoute = location.pathname.startsWith('/chat-history') || location.pathname.startsWith('/insights');
+
+  const getSubscriptionLabel = () => {
+    // While loading, show a neutral/loading state
+    if (loading) {
+      console.log('Navbar - Render: Loading...');
+      return '...';
+    }
+    // After loading, determine the correct label
+    const label = hasPremiumAccess ? 'Manage Subscription' : 'Subscribe';
+    console.log(`Navbar - Render: Label is "${label}"`);
+    return label;
+  };
 
   const navItems = [
     {
@@ -72,8 +82,18 @@ const Navbar = () => {
           <circle cx="12" cy="16" r="1" fill="currentColor"/>
         </svg>
       ),
-      label: hasPremiumAccess ? 'manage subscription' : 'subscribe',
+      label: getSubscriptionLabel(),
       path: '/subscribe'
+    },
+    {
+      key: 'settings',
+      icon: (
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+      label: 'settings',
+      path: '/settings'
     }
   ];
 
