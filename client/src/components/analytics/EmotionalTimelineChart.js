@@ -51,8 +51,7 @@ const EmotionalTimelineChart = () => {
     return (
       <div className="empty-emotional-timeline">
         <div className="empty-state-message" style={{ textAlign: 'center' }}>
-          <h4>No emotional data yet</h4>
-          <p>Share more about how you're feeling to see your emotional timeline.</p>
+          <p>No emotional timeline identified yet. As we chat more, your emotional timeline will appear here to support your healing journey.</p>
         </div>
       </div>
     );

@@ -23,11 +23,11 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <BackendConnectionCheck>
+        {/* <BackendConnectionCheck> */}
           <SubscriptionProvider>
             <App />
           </SubscriptionProvider>
-        </BackendConnectionCheck>
+        {/* </BackendConnectionCheck> */}
       </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>

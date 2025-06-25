@@ -55,8 +55,7 @@ const EmotionDistributionChart = () => {
     return (
       <div className="empty-emotion-distribution">
         <div className="empty-state-message" style={{ textAlign: 'center' }}>
-          <h4>No emotional distribution data yet</h4>
-          <p>Share more about how you're feeling to see your emotional breakdown.</p>
+          <p>No emotional distribution identified yet. As we chat more, your emotional breakdown will appear here to support your healing journey.</p>
         </div>
       </div>
     );

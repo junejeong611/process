@@ -5,7 +5,7 @@ export async function getSubscriptionStatus() {
   console.log('getSubscriptionStatus - Token:', token ? 'Present' : 'Missing');
   
   try {
-    const response = await axios.get('/api/subscription/status', {
+    const response = await axios.get('/api/v1/subscription/status', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -25,7 +25,7 @@ export async function createCheckoutSession() {
   
   console.log('Creating checkout session with URLs:', { successUrl, cancelUrl });
   
-  const response = await axios.post('/api/subscription/create-checkout-session', {
+  const response = await axios.post('/api/v1/subscription/create-checkout-session', {
     successUrl,
     cancelUrl
   }, {
@@ -39,7 +39,7 @@ export async function createCheckoutSession() {
 export async function createPortalSession() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   const returnUrl = window.location.origin + '/subscribe';
-  const response = await axios.post('/api/subscription/create-portal-session', {
+  const response = await axios.post('/api/v1/subscription/create-portal-session', {
     returnUrl,
   }, {
     headers: {

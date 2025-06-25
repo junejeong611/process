@@ -1,12 +1,17 @@
 const axios = require('axios');
 const { RateLimiter } = require('limiter');
 const Anthropic = require('@anthropic-ai/sdk');
+const streamingMetricsService = require('./streamingMetricsService');
 require('dotenv').config();
+const { Readable } = require('stream');
 
 // Initialize the Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
+
+console.log('[DEBUG] Importing Anthropic SDK:', typeof anthropic);
+console.log('[DEBUG] CLAUDE_API_KEY present:', !!process.env.CLAUDE_API_KEY);
 
 // Custom error classes
 class ClaudeApiError extends Error {
@@ -304,32 +309,33 @@ What insights are you taking away? What have you learned that feels important to
 
 **Remember: The 6 R's framework completion is essential for effective emotional processing. Always guide users through all six stages when they're ready and able. Only pause or modify the framework for genuine safety concerns. Prioritize authentic connection AND thorough processing - both are crucial for healing.**`;
 
+const AI_MODEL = process.env.CLAUDE_MODEL || 'claude-3-opus-20240229';
+
 // Main sendMessage function
 const sendMessage = async (message, history = [], systemPrompt = null, retryCount = 0) => {
-  if (!process.env.CLAUDE_API_KEY) {
-    throw new ClaudeApiError('Claude API key not set in environment variables', 401, 'missing_api_key');
-  }
-
-  // Check cache
-  const cacheKey = getCacheKey(message, history, systemPrompt);
-  if (responseCache.has(cacheKey)) {
-    console.log('[ClaudeService] Returning cached response.');
-    return responseCache.get(cacheKey);
-  }
-
-  // Prepare request body
-  const requestBody = {
-    model: 'claude-3-opus-20240229',
-    max_tokens: 1024,
-    system: systemPrompt || DEFAULT_SYSTEM_PROMPT,
-    messages: [
-      ...history,
-      { role: 'user', content: message }
-    ]
-  };
-
+  const startTime = Date.now();
   try {
-    console.log(`[ClaudeService] Sending message to Claude API. Attempt ${retryCount + 1}`);
+    if (!process.env.CLAUDE_API_KEY) {
+      throw new ClaudeApiError('Claude API key not set in environment variables', 401, 'missing_api_key');
+    }
+
+    // Check cache
+    const cacheKey = getCacheKey(message, history, systemPrompt);
+    if (responseCache.has(cacheKey)) {
+      return responseCache.get(cacheKey);
+    }
+
+    // Prepare request body
+    const requestBody = {
+      model: 'claude-3-opus-20240229',
+      max_tokens: 1024,
+      system: systemPrompt || DEFAULT_SYSTEM_PROMPT,
+      messages: [
+        ...history,
+        { role: 'user', content: message }
+      ]
+    };
+
     const response = await axios.post('https://api.anthropic.com/v1/messages', requestBody, {
       headers: {
         'x-api-key': process.env.CLAUDE_API_KEY,
@@ -349,6 +355,25 @@ const sendMessage = async (message, history = [], systemPrompt = null, retryCoun
     responseCache.set(cacheKey, formatted);
     return formatted;
   } catch (error) {
+    const duration = Date.now() - startTime;
+    let errorType = 'unknown';
+
+    if (error.response) {
+      const { status, data } = error.response;
+      errorType = data?.error?.type || 'unknown_api_error';
+      if (status === 429) errorType = 'rate_limit_exceeded';
+      if (status === 401) errorType = 'authentication_error';
+    } else if (error.request) {
+      if (error.code === 'ECONNABORTED') errorType = 'timeout';
+      else errorType = 'network_error';
+    } else {
+      errorType = 'request_setup_error';
+    }
+    
+    // Record failure
+    streamingMetricsService.recordAPICall('claude', duration, false, errorType);
+
+    // The original error handling logic remains below
     if (error.response) {
       const { status, data } = error.response;
       if (status === 429) {
@@ -368,7 +393,6 @@ const sendMessage = async (message, history = [], systemPrompt = null, retryCoun
     } else if (error.request) {
       if (error.code === 'ECONNABORTED') {
         if (retryCount < 2) {
-          console.log(`[ClaudeService] Request timeout, retrying (${retryCount + 1}/2)...`);
           return sendMessage(message, history, systemPrompt, retryCount + 1);
         }
         throw new ClaudeApiError('Request timeout after retries', 408, 'timeout');
@@ -393,26 +417,37 @@ const sendMessageStream = async (message, history = [], systemPrompt = null) => 
   ];
 
   try {
-    const stream = await anthropic.messages.create({
+    const streamIterable = await anthropic.messages.create({
       model: model,
       system: systemPrompt || DEFAULT_SYSTEM_PROMPT,
       messages: messages,
       max_tokens: 4096,
       stream: true,
     });
-    stream.on('end', () => {
-      console.log('Claude stream finished.');
+
+    // Wrap the async iterable in a Node.js Readable stream
+    const nodeStream = Readable.from((async function* () {
+      for await (const chunk of streamIterable) {
+        console.log('[DEBUG] Claude stream chunk:', chunk);
+        yield JSON.stringify(chunk);
+      }
+    })());
+
+    nodeStream.on('end', () => {
+      console.log('[DEBUG] Claude stream ended');
     });
-    return stream;
+    nodeStream.on('error', (err) => {
+      console.error('[DEBUG] Claude stream error:', err);
+    });
+    return nodeStream;
   } catch (error) {
+    console.error('[DEBUG] sendMessageStream error:', error);
     if (error instanceof Anthropic.APIError) {
-      console.error(`[ClaudeService] Stream API Error (${error.status}): ${error.message}`);
       if (error.status === 429) {
         throw new RateLimitError(error.message);
       }
       throw new ClaudeApiError(error.message, error.status, error.type);
     } else {
-      console.error(`[ClaudeService] Stream Unexpected error: ${error.message}`);
       throw error;
     }
   }
@@ -439,7 +474,7 @@ const sendFullMessage = async (content) => {
       
     return responseText;
   } catch (error) {
-    console.error('Error sending full message to Claude:', error);
+    console.error('Claude error in sendFullMessage:', error);
     throw new Error('Failed to get full response from Claude.');
   }
 };

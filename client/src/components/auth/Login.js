@@ -5,6 +5,7 @@ import axios from 'axios'; // Import axios
 import './Login.css';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
+import ErrorCard from '../common/ErrorCard';
 
 // Enhanced form validation helper functions
 const validateEmail = (email) => {
@@ -127,6 +128,7 @@ const Login = () => {
   // A temporary token to authorize MFA steps without full login
   const [mfaAuthToken, setMfaAuthToken] = useState(null); 
   const [useBackupCode, setUseBackupCode] = useState(false);
+  const [finalAccessToken, setFinalAccessToken] = useState(null);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -320,88 +322,38 @@ const Login = () => {
     e.preventDefault();
     setHasSubmitted(true);
     
-    // Check for rapid successive submissions
+    if (isLoading || !isOnline || countdown > 0) return;
+    
+    // Prevent multiple quick submissions
     const now = Date.now();
-    if (lastSubmitTime && now - lastSubmitTime < 2000) {
-      setError('please wait a moment before trying again.');
-      return;
-    }
+    if (lastSubmitTime && now - lastSubmitTime < 500) return; // 500ms debounce
     setLastSubmitTime(now);
 
-    // Reset states
-    setError('');
-    setErrorCategory(null);
+    // Cancel any ongoing requests
+    if (controllerRef.current) {
+      controllerRef.current.abort();
+    }
+    controllerRef.current = new AbortController();
 
-    if (!csrfToken) {
-        setError('A security token is missing. Please refresh the page and try again.');
-        return;
-    }
-
-    // Check if offline
-    if (!isOnline) {
-      setError('you appear to be offline. please check your connection and try again.');
-      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
-      return;
-    }
-
-    // Check countdown
-    if (countdown > 0) {
-      setError(`please wait ${formatCountdown(countdown)} before trying again.`);
-      return;
-    }
-    
-    // Client-side validation
-    const emailErr = validateEmail(email);
-    const passwordErr = validatePassword(password);
-    setEmailError(emailErr);
-    setPasswordError(passwordErr);
-    
-    if (emailErr || passwordErr) {
-      setTimeout(() => {
-        if (emailErr) {
-          emailInputRef.current?.focus();
-        } else if (passwordErr) {
-          passwordInputRef.current?.focus();
-        }
-      }, 100);
-      if (emailErr) setShakeEmail(true);
-      if (passwordErr) setShakePassword(true);
-      return;
-    }
-    
     setIsLoading(true);
+    setError('');
+    setMfaError('');
+    setErrorCategory(null);
     setSubmitAttempts(prev => prev + 1);
-    
+
     try {
-      // Abort controller for axios
-      controllerRef.current = new AbortController();
-
-      // Use axios for the login request
-      const response = await axios.post('/api/auth/login', {
-        email: email.trim().toLowerCase(), 
-        password, 
-        rememberMe,
-        timestamp: Date.now(),
-        attempts: submitAttempts
+      const response = await axios.post('/api/v1/auth/login', {
+        email,
+        password,
+        rememberMe
       }, {
-        headers: { 
-          'X-CSRF-TOKEN': csrfToken 
-        },
-        withCredentials: true, // Crucial for sending session cookie
-        signal: controllerRef.current.signal
+        headers: { 'X-CSRF-Token': csrfToken },
+        signal: controllerRef.current.signal,
+        withCredentials: true // Important for sessions/cookies
       });
+
+      const { data } = response;
       
-      const data = response.data;
-
-      // --- Handle Forced Password Reset Response ---
-      if (data.passwordResetRequired) {
-        toast.info('For your security, you must reset your password.');
-        // Redirect to the reset password page with the token
-        navigate(`/reset-password/${data.resetToken}`);
-        return; 
-      }
-
-      // MFA handling
       if (data.mfaRequired) {
         setIsLoading(false);
         setMfaStep('required');
@@ -434,7 +386,7 @@ const Login = () => {
         }
         
         // Use axios for subscription status check too for consistency
-        axios.get('/api/subscription/status', {
+        axios.get('/api/v1/subscription/status', {
           headers: { Authorization: `Bearer ${data.accessToken}` },
           withCredentials: true
         })
@@ -516,11 +468,16 @@ const Login = () => {
     const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
 
     try {
-        const response = await axios.post('/api/auth/mfa/verify', {
-            mfaCode, trustDevice
+        console.log('Submitting MFA code with payload:', { mfaCode, trustDevice, useBackupCode });
+        const response = await axios.post('/api/v1/auth/mfa/verify', {
+            mfaToken: mfaAuthToken,
+            mfaCode,
+            trustDevice,
+            useBackupCode
         }, {
             headers: {
-                'Authorization': `Bearer ${mfaAuthToken}`
+                'Authorization': `Bearer ${mfaAuthToken}`,
+                'X-CSRF-TOKEN': csrfToken
             },
             withCredentials: true,
             signal: controllerRef.current.signal
@@ -528,42 +485,62 @@ const Login = () => {
 
         clearTimeout(timeoutId);
         const data = response.data;
-
-        if (!response.ok) {
-            throw new Error(data.message || 'MFA verification failed.');
-        }
+        console.log('MFA verification successful. Server response:', data);
 
         // Handle successful setup
         if (data.setupComplete) {
             setBackupCodes(data.backupCodes);
-            // Store the final token received after setup
-            if (data.token) {
-                if (rememberMe) {
-                    localStorage.setItem('token', data.token);
-                } else {
-                    sessionStorage.setItem('token', data.token);
-                }
-            }
+            login(data.accessToken, data.user, rememberMe);
+            setFinalAccessToken(data.accessToken); // Store token for final step
             setMfaStep('backup-codes');
             setIsLoading(false);
             return;
         }
 
         // Handle successful login
-        if (data.success && data.token) {
+        if (data.success && data.accessToken) {
             setLoginSuccess(true);
-            if (rememberMe) {
-                localStorage.setItem('token', data.token);
-            } else {
-                sessionStorage.setItem('token', data.token);
-            }
+            login(data.accessToken, data.user, rememberMe);
             toast.success('Login successful!');
-            setTimeout(() => navigate('/options'), 800);
+            
+            // Consistent navigation based on subscription
+            axios.get('/api/v1/subscription/status', {
+              headers: { Authorization: `Bearer ${data.accessToken}` },
+              withCredentials: true
+            })
+            .then(res => res.data)
+            .then(subStatus => {
+                setTimeout(() => {
+                    if (subStatus.subscriptionStatus === 'inactive') {
+                        navigate('/subscribe');
+                    } else {
+                        navigate('/options');
+                    }
+                }, 800);
+            })
+            .catch(error => {
+                console.error('Subscription status check failed:', error);
+                setTimeout(() => {
+                    navigate('/options');
+                }, 800);
+            });
         }
 
     } catch (err) {
-        setMfaError(err.message || 'An error occurred. Please try again.');
-        toast.error(err.message || 'An error occurred.');
+        console.error('MFA verification failed. Full error object:', err);
+        let errorMessage = 'An error occurred. Please try again.';
+        if (axios.isCancel(err)) {
+            errorMessage = 'Request timed out.';
+        } else if (err.response) {
+            console.error('Error response from server:', err.response.data);
+            errorMessage = err.response.data?.message || `Error: ${err.response.statusText || err.response.status}`;
+        } else if (err.request) {
+            errorMessage = 'Connection error. Please check your internet and try again.';
+        } else {
+            errorMessage = err.message;
+        }
+        setMfaError(errorMessage);
+        toast.error(errorMessage);
     } finally {
         setIsLoading(false);
     }
@@ -572,8 +549,32 @@ const Login = () => {
   const finishSetup = () => {
     setLoginSuccess(true);
     toast.success('Setup complete! Welcome!');
-    // The token has already been stored, so we just need to redirect.
-    setTimeout(() => navigate('/options'), 800);
+    
+    if (finalAccessToken) {
+        axios.get('/api/v1/subscription/status', {
+          headers: { Authorization: `Bearer ${finalAccessToken}` },
+          withCredentials: true
+        })
+        .then(res => res.data)
+        .then(subStatus => {
+            setTimeout(() => {
+                if (subStatus.subscriptionStatus === 'inactive') {
+                    navigate('/subscribe');
+                } else {
+                    navigate('/options');
+                }
+            }, 800);
+        })
+        .catch(error => {
+            console.error('Subscription status check failed:', error);
+            setTimeout(() => {
+                navigate('/options');
+            }, 800);
+        });
+    } else {
+        // Fallback if token is somehow missing
+        setTimeout(() => navigate('/options'), 800);
+    }
   };
 
   const formatCountdown = useCallback((seconds) => {
@@ -729,6 +730,11 @@ const Login = () => {
                         <span className="button-text">{isLoading ? 'verifying...' : 'verify & enable'}</span>
                     </button>
                 </form>
+                 <footer className="login-footer">
+                    <p className="support-text">
+                        <Link to="/reset-mfa-request">Having trouble? Reset your authenticator</Link>
+                    </p>
+                </footer>
              </>
           ) : mfaStep === 'backup-codes' ? (
             <>
@@ -760,50 +766,12 @@ const Login = () => {
               </header>
           
               {/* Enhanced error display - consistent with ResetPassword */}
-              {error && (
-                <div 
-                  className={`error-message ${errorCategory?.type || ''}`} 
-                  role="alert"
-                  aria-live="polite"
-                >
-                  <div className="error-content">
-                    <div className="error-icon" aria-hidden="true">
-                      {getErrorIcon(errorCategory)}
-                    </div>
-                    <div className="error-text">
-                      {errorCategory?.type === 'auth' && (
-                        <div className="error-title">login failed</div>
-                      )}
-                      {errorCategory?.type === 'account' && (
-                        <div className="error-title">account issue</div>
-                      )}
-                      {errorCategory?.type === 'network' && (
-                        <div className="error-title">connection problem</div>
-                      )}
-                      {errorCategory?.type === 'rateLimit' && (
-                        <div className="error-title">too many attempts</div>
-                      )}
-                      {errorCategory?.type === 'server' && (
-                        <div className="error-title">server error</div>
-                      )}
-                      {errorCategory?.type === 'validation' && (
-                        <div className="error-title">validation error</div>
-                      )}
-                      {error}
-                    </div>
-                  </div>
-                  {errorCategory?.canRetry && errorCategory?.type !== 'auth' && retryCount < 3 && countdown === 0 && (
-                    <button 
-                      className="retry-button"
-                      onClick={handleRetry}
-                      aria-label={`retry login (attempt ${retryCount + 2})`}
-                      type="button"
-                    >
-                      try again
-                    </button>
-                  )}
-                </div>
-              )}
+              <ErrorCard 
+                error={error}
+                errorCategory={errorCategory}
+                onRetry={handleRetry}
+                retryCount={retryCount}
+              />
           
               {/* Offline indicator */}
               {!isOnline && (
@@ -844,13 +812,11 @@ const Login = () => {
                       onAnimationEnd={() => setShakeEmail(false)}
                     />
                   </div>
-                  <div className="feedback-container">
-                    {emailError && (emailBlurred || hasSubmitted) && !emailFocused && (
-                      <div className="invalid-feedback" id="email-error" role="alert">
-                        {emailError}
-                      </div>
-                    )}
-                  </div>
+                  {emailError && (emailBlurred || hasSubmitted) && !emailFocused && (
+                    <div className="invalid-feedback" id="email-error" role="alert">
+                      {emailError}
+                    </div>
+                  )}
                   <div id="email-help" className="visually-hidden">
                     enter your registered email address
                   </div>
@@ -889,13 +855,11 @@ const Login = () => {
                       {showPassword ? "hide" : "show"}
                     </button>
                   </div>
-                  <div className="feedback-container">
-                    {passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused && (
-                      <div className="invalid-feedback" id="password-error" role="alert">
-                        {passwordError}
-                      </div>
-                    )}
-                  </div>
+                  {passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused && (
+                    <div className="invalid-feedback" id="password-error" role="alert">
+                      {passwordError}
+                    </div>
+                  )}
                   <div id="password-help" className="visually-hidden">
                     enter your account password
                   </div>

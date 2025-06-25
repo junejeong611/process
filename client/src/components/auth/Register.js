@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './Register.css';
+import ErrorCard from '../common/ErrorCard';
+import axios from 'axios';
 
 // Enhanced password strength calculation - consistent with ResetPassword
 const passwordStrength = (password) => {
@@ -23,6 +25,42 @@ const passwordStrength = (password) => {
 const strengthLabels = ['too weak', 'weak', 'fair', 'good', 'strong'];
 const strengthColors = ['#e57373', '#ffb74d', '#fff176', '#81c784', '#4caf50'];
 
+// From Login.js to keep consistency
+const categorizeError = (error, statusCode = null) => {
+  const errorLower = error.toLowerCase();
+  
+  if (errorLower.includes('email already in use')) {
+      return { type: 'validation', canRetry: false, severity: 'warning' };
+  }
+
+  // Network errors
+  if (errorLower.includes('network') || errorLower.includes('connection') || 
+      errorLower.includes('fetch') || errorLower.includes('timeout') ||
+      errorLower.includes('failed to fetch')) {
+    return { type: 'network', canRetry: true, severity: 'warning' };
+  }
+  
+  // Rate limiting
+  if (errorLower.includes('rate limit') || errorLower.includes('too many') ||
+      errorLower.includes('throttle') || statusCode === 429) {
+    return { type: 'rateLimit', canRetry: false, severity: 'warning' };
+  }
+  
+  // Server errors
+  if (errorLower.includes('server') || errorLower.includes('500') ||
+      errorLower.includes('503') || (statusCode >= 500 && statusCode < 600)) {
+    return { type: 'server', canRetry: true, severity: 'error' };
+  }
+  
+  // Validation errors
+  if (errorLower.includes('validation') || errorLower.includes('invalid format') ||
+      statusCode === 400) {
+    return { type: 'validation', canRetry: true, severity: 'warning' };
+  }
+  
+  return { type: 'unknown', canRetry: true, severity: 'error' };
+};
+
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,6 +81,10 @@ const Register = () => {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [touched, setTouched] = useState({ name: false, email: false, password: false, confirmPassword: false });
   const [fieldErrors, setFieldErrors] = useState({});
+  const [retryCount, setRetryCount] = useState(0);
+  const [csrfToken, setCsrfToken] = useState('');
+  const [capsLock, setCapsLock] = useState(false);
+  const passwordInputRef = useRef(null);
   
   const navigate = useNavigate();
 
@@ -56,6 +98,10 @@ const Register = () => {
     meta.name = 'description';
     meta.content = 'Create your Process account. A safe place to process your emotions.';
     document.head.appendChild(meta);
+    // Fetch CSRF token
+    axios.get('/api/v1/csrf-token', { withCredentials: true })
+      .then(res => setCsrfToken(res.data.csrfToken))
+      .catch(() => setCsrfToken(''));
     return () => { 
       const existingMeta = document.querySelector('meta[name="description"]');
       if (existingMeta) document.head.removeChild(existingMeta);
@@ -125,6 +171,14 @@ const Register = () => {
 
   const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
 
+  const handlePasswordKeyDown = (e) => {
+    if (e.getModifierState && e.key.length === 1) {
+      setCapsLock(e.getModifierState('CapsLock'));
+    }
+  };
+
+  const handlePasswordBlur = () => setCapsLock(false);
+
   const validateAll = () => {
     const errors = {
       name: validateName(name),
@@ -151,8 +205,12 @@ const Register = () => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
         body: JSON.stringify({ name, email, password }),
+        credentials: 'include',
       });
       
       const data = await response.json();
@@ -175,15 +233,32 @@ const Register = () => {
           navigate('/subscribe');
         }, 1200);
       } else {
+        const category = categorizeError(data.message, response.status);
         setError(data.message || 'failed to register. please try again.');
+        setErrorCategory(category);
       }
     } catch (err) {
       console.error('Registration error:', err);
+      const category = categorizeError(err.message);
       setError('connection error. please check your internet and try again.');
+      setErrorCategory(category);
     } finally {
       if (!registrationSuccess) setIsLoading(false);
     }
   };
+
+  const handleRetry = useCallback((e) => {
+    if (retryCount >= 3) {
+      setError('Maximum retry attempts reached. Please try again later.');
+      setErrorCategory({ type: 'rateLimit', canRetry: false, severity: 'error' });
+      return;
+    }
+    
+    setRetryCount(prev => prev + 1);
+    setError('');
+    setErrorCategory(null);
+    handleSubmit(e);
+  }, [retryCount]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -207,21 +282,12 @@ const Register = () => {
             <p className="register-subtitle">a safe place for you to process your emotions</p>
           </header>
           
-          {error && (
-            <div className="error-container">
-              <div className="error-card">
-                <div className="error-icon-lock">
-                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" stroke="#e57373" strokeWidth="1.5" />
-                      <path d="M12 7v6" stroke="#e57373" strokeWidth="1.5" strokeLinecap="round" />
-                      <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-                  </svg>
-                </div>
-                <h3 className="error-title-text">registration failed</h3>
-                <p className="error-message-text">{error}</p>
-              </div>
-            </div>
-          )}
+          <ErrorCard 
+            error={error}
+            errorCategory={errorCategory}
+            onRetry={handleRetry}
+            retryCount={retryCount}
+          />
           
           {success && (
             <div className="success-message" role="status">
@@ -296,7 +362,9 @@ const Register = () => {
                   className={`form-control ${(fieldErrors.password && (hasSubmitted || touched.password)) ? 'is-invalid' : ''}`}
                   value={password}
                   onChange={handlePasswordChange}
-                  onBlur={() => handleBlur('password')}
+                  onBlur={(e) => { handleBlur('password'); handlePasswordBlur(e); }}
+                  onKeyDown={handlePasswordKeyDown}
+                  ref={passwordInputRef}
                   required
                   aria-required="true"
                   aria-invalid={!!fieldErrors.password}
@@ -336,6 +404,12 @@ const Register = () => {
                   >
                     {strengthLabels[passwordStrength(password)]}
                   </span>
+                </div>
+              )}
+
+              {capsLock && (
+                <div className="caps-lock-warning" style={{ color: '#e57373', marginTop: '0.25rem', fontSize: '0.95em' }}>
+                  <span role="img" aria-label="Caps Lock is on">⇪</span> Caps Lock is on
                 </div>
               )}
             </div>

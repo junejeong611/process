@@ -1,12 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import axios from 'axios';
 import './ResetMfaRequest.css';
 
 const ResetMfaRequest = () => {
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [csrfToken, setCsrfToken] = useState('');
+
+    useEffect(() => {
+        const fetchCsrfToken = async () => {
+            try {
+                const { data } = await axios.get('/api/v1/csrf-token');
+                setCsrfToken(data.csrfToken);
+            } catch (error) {
+                console.error('Failed to fetch CSRF token:', error);
+                toast.error('Could not load the page securely. Please refresh and try again.');
+            }
+        };
+        fetchCsrfToken();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -18,25 +33,32 @@ const ResetMfaRequest = () => {
             setIsLoading(false);
             return;
         }
+        
+        if (!csrfToken) {
+            toast.error('A required security token is missing. Please refresh the page.');
+            setIsLoading(false);
+            return;
+        }
 
         try {
-            const response = await fetch('/api/auth/mfa/reset-request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
+            const { data } = await axios.post('/api/auth/mfa/reset-request', 
+                { email },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    withCredentials: true
+                }
+            );
 
-            const data = await response.json();
-
-            if (response.ok) {
-                toast.success(data.message);
-                setMessage(data.message);
-            } else {
-                toast.error(data.message || 'An error occurred. Please try again.');
-            }
+            toast.success(data.message);
+            setMessage(data.message);
+            
         } catch (error) {
             console.error('MFA Reset Request Error:', error);
-            toast.error('A network error occurred. Please try again.');
+            const errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
+            toast.error(errorMessage);
         } finally {
             setIsLoading(false);
         }

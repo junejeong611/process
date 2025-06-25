@@ -1,9 +1,11 @@
 import React from 'react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import SubscriptionActions from './SubscriptionActions';
+import { useAuth } from '../../contexts/AuthContext';
 
 const PremiumRoute = ({ children }) => {
   const { status, loading } = useSubscription();
+  const { isAdmin } = useAuth();
 
   if (loading) return (
     <div className="subscription-loading">
@@ -18,7 +20,7 @@ const PremiumRoute = ({ children }) => {
       status.subscriptionStatus === 'trialing') &&
     status.subscriptionStatus !== 'inactive';
 
-  if (isPremium) {
+  if (isPremium || isAdmin) {
     return <>{children}</>;
   }
 

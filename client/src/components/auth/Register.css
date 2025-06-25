@@ -274,7 +274,7 @@
 
 .checkbox-label {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   cursor: pointer;
   font-size: 0.9rem;
   color: #6b7a90;
@@ -288,7 +288,8 @@
   height: 1.1em;
   cursor: pointer;
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 0;
+  vertical-align: middle;
 }
 
 .checkbox-label:hover .checkbox-text {
@@ -298,6 +299,7 @@
 /* Special styling for capitalized 'I' */
 .checkbox-text {
   text-transform: lowercase;
+  line-height: 1.1;
 }
 
 /* This ensures 'I' stays capitalized even with lowercase transform */
@@ -399,61 +401,14 @@
   box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
 }
 
-/* Error message */
-.error-message {
-  background: linear-gradient(90deg, #fff6f6 80%, #f7fafd 100%);
-  color: var(--error-red);
-  border: 2.5px solid var(--error-red);
-  border-radius: var(--border-radius-large);
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.2rem;
-  font-size: 0.95rem;
-  text-align: left;
-  animation: errorSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  position: relative;
-  box-shadow: 0 8px 32px rgba(229, 115, 115, 0.10);
-  overflow: hidden;
-  font-family: var(--font-family);
-}
+/* Error styling is now in common/ErrorCard.css */
 
-.error-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.error-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 2.2rem;
-  width: 2.2rem;
-  font-size: 1.3rem;
-  background: #ffeaea;
-  color: var(--error-red);
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(229, 115, 115, 0.08);
-}
-
-.error-title {
-  font-weight: 700;
-  font-size: 1.08rem;
-  margin-bottom: 0.2rem;
-  color: var(--error-red);
-  text-transform: lowercase;
-  letter-spacing: 0.2px;
-}
-
-/* Success message */
 .success-message {
+  border-radius: var(--border-radius);
+  padding: 1rem 1.2rem;
   background: rgba(240, 251, 231, 0.95);
   color: #388e3c;
   border: 1px solid rgba(182, 230, 160, 0.8);
-  border-radius: 12px;
-  padding: 1.25rem;
   margin-bottom: 1.25rem;
   font-size: 0.9rem;
   animation: successSlideIn 0.5s ease;
@@ -852,4 +807,9 @@
 
 .refresh-button-centered:hover {
   background-color: #5a8fd6;
+}
+
+/* OVERRIDE: Allow normal casing for all input fields */
+input, .form-control, input[type="password"], input[type="email"], input[type="text"] {
+  text-transform: none !important;
 }

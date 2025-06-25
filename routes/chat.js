@@ -21,6 +21,7 @@ const {
   getClaudeAndSpeechStream
 } = require('../services/elevenLabsService');
 const StreamingManager = require('../services/streamingManager');
+const mongoose = require('mongoose');
 
 
 // Initialize Claude API client
@@ -35,22 +36,18 @@ router.use(userLimiter);
 // @desc    Create a new conversation
 // @access  Private
 router.post('/conversations', auth, async (req, res) => {
+  // Debug logging for CSRF/session issues
+  console.log('--- /api/v1/chat/conversations ---');
+  console.log('Headers:', req.headers);
+  console.log('Cookies:', req.cookies);
   try {
     const conversation = new Conversation({
-      userId: req.user._id,
+      userId: req.user.userId,
       title: req.body.title || 'New Conversation',
-      type: req.body.type || 'text'
+      type: req.body.type || 'text',
+      wrappedConversationKey: req.body.wrappedConversationKey
     });
     await conversation.save();
-
-    // AI's first message
-    const aiFirstMessage = new Message({
-      userId: req.user._id,
-      content: "I'm here, ready when you are.",
-      sender: 'ai',
-      conversationId: conversation._id
-    });
-    await aiFirstMessage.save();
 
     res.status(201).json(conversation);
   } catch (error) {
@@ -64,13 +61,13 @@ router.post('/conversations', auth, async (req, res) => {
 // @access  Private
 router.get('/conversations', auth, async (req, res) => {
   try {
-    const conversations = await Conversation.find({ userId: req.user._id })
+    const conversations = await Conversation.find({ userId: req.user.userId })
       .sort({ updatedAt: -1 })
       .limit(50); 
-    res.json(conversations);
+    res.json({ success: true, conversations });
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    res.status(500).json({ error: 'Failed to load conversations.' });
+    res.status(500).json({ success: false, message: 'Failed to load conversations.' });
   }
 });
 
@@ -80,7 +77,7 @@ router.get('/conversations', auth, async (req, res) => {
 router.get('/messages/:conversationId', auth, async (req, res) => {
   try {
     const messages = await Message.find({ 
-      userId: req.user._id,
+      userId: req.user.userId,
       conversationId: req.params.conversationId 
     }).sort({ createdAt: 1 });
     res.json(messages);
@@ -140,7 +137,7 @@ router.post('/send',
       // Verify conversation exists and belongs to user
       const conversation = await Conversation.findOne({
         _id: conversationId,
-        userId: req.user._id
+        userId: req.user.userId
       });
 
       if (!conversation) {
@@ -175,7 +172,7 @@ router.post('/send',
 
       } catch (decryptionError) {
         console.error('Decryption failed:', decryptionError);
-        logEvent(req.user._id, 'DECRYPTION_FAILED', 'FAILURE', { ipAddress: req.ip, targetId: conversationId });
+        logEvent(req.user.userId, 'DECRYPTION_FAILED', 'FAILURE', { ipAddress: req.ip, targetId: conversationId });
         return res.status(500).json({ error: 'Failed to decrypt message for processing.' });
       }
       // --- End Decryption ---
@@ -186,8 +183,11 @@ router.post('/send',
       const emotions = await getEmotionsFromClaude(decryptedContent);
 
       // Save user message (content remains encrypted with the at-rest key)
+      if (!decryptedContent || typeof decryptedContent !== 'string' || decryptedContent.trim() === '') {
+        return res.status(400).json({ error: 'Message content cannot be empty.' });
+      }
       const userMessage = new Message({
-        userId: req.user._id,
+        userId: req.user.userId,
         content: decryptedContent, // mongoose-encryption will re-encrypt this at rest
         sender: 'user',
         conversationId,
@@ -201,8 +201,11 @@ router.post('/send',
       const claudeResponse = await claudeService.sendMessage(decryptedContent);
 
       // Save assistant's response (content will be encrypted at rest)
+      if (!claudeResponse.content || typeof claudeResponse.content !== 'string' || claudeResponse.content.trim() === '') {
+        return res.status(400).json({ error: 'AI response content cannot be empty.' });
+      }
       const assistantMessage = new Message({
-        userId: req.user._id,
+        userId: req.user.userId,
         content: claudeResponse.content,
         sender: 'ai',
         conversationId
@@ -218,7 +221,7 @@ router.post('/send',
       conversation.messageCount = (conversation.messageCount || 0) + 2; // Increment by 2 for both user and AI messages
       await conversation.save();
       
-      logEvent(req.user._id, 'SEND_MESSAGE', 'SUCCESS', {
+      logEvent(req.user.userId, 'SEND_MESSAGE', 'SUCCESS', {
         ipAddress: req.ip,
         targetId: conversation._id,
         targetType: 'Conversation',
@@ -292,11 +295,11 @@ router.post('/conversations/bulk-delete', auth, async (req, res) => {
     // Ensure all conversations belong to the user
     const conversations = await Conversation.find({
       _id: { $in: conversationIds },
-      userId: req.user._id
+      userId: req.user.userId
     });
 
     if (conversations.length !== conversationIds.length) {
-      logEvent(req.user._id, 'DELETE_CONVERSATION', 'FAILURE', {
+      logEvent(req.user.userId, 'DELETE_CONVERSATION', 'FAILURE', {
         ipAddress: req.ip,
         details: { reason: 'Attempt to delete unauthorized conversations', conversationIds }
       });
@@ -310,7 +313,7 @@ router.post('/conversations/bulk-delete', auth, async (req, res) => {
     await Conversation.deleteMany({ _id: { $in: conversationIds } });
 
     conversationIds.forEach(id => {
-      logEvent(req.user._id, 'DELETE_CONVERSATION', 'SUCCESS', {
+      logEvent(req.user.userId, 'DELETE_CONVERSATION', 'SUCCESS', {
         ipAddress: req.ip,
         targetId: id,
         targetType: 'Conversation'
@@ -323,7 +326,7 @@ router.post('/conversations/bulk-delete', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting conversations:', error);
-    logEvent(req.user._id, 'DELETE_CONVERSATION', 'FAILURE', {
+    logEvent(req.user.userId, 'DELETE_CONVERSATION', 'FAILURE', {
       ipAddress: req.ip,
       details: { error: error.message, conversationIds: req.body.conversationIds }
     });
@@ -350,13 +353,19 @@ router.post('/message', auth, aiCallLimiter, async (req, res) => {
   }
 
   try {
-    const conversation = await Conversation.findOne({ _id: conversationId, userId: req.user._id });
+    const userObjectId = mongoose.Types.ObjectId.isValid(req.user.userId) ? new mongoose.Types.ObjectId(req.user.userId) : req.user.userId;
+    console.log('Looking for conversation:', conversationId, 'for user:', req.user.userId, typeof req.user.userId);
+    const conversation = await Conversation.findOne({ _id: conversationId, userId: userObjectId });
+    console.log('Conversation found:', conversation);
     if (!conversation) {
       return res.status(404).json({ error: 'Conversation not found.' });
     }
 
     // 1. Save User Message
-    const userMessage = new Message({ userId: req.user._id, content, sender: 'user', conversationId });
+    if (!content || typeof content !== 'string' || content.trim() === '') {
+      return res.status(400).json({ error: 'Message content cannot be empty.' });
+    }
+    const userMessage = new Message({ userId: req.user.userId, content, sender: 'user', conversationId });
     await userMessage.save();
 
     // 2. Get Full AI Response
@@ -364,7 +373,10 @@ router.post('/message', auth, aiCallLimiter, async (req, res) => {
     const aiContent = await sendFullMessage(content);
     
     // 3. Save AI Message
-    const aiMessage = new Message({ userId: req.user._id, content: aiContent, sender: 'ai', conversationId });
+    if (!aiContent || typeof aiContent !== 'string' || aiContent.trim() === '') {
+      return res.status(400).json({ error: 'AI response content cannot be empty.' });
+    }
+    const aiMessage = new Message({ userId: req.user.userId, content: aiContent, sender: 'ai', conversationId });
     await aiMessage.save();
 
     // 4. Send Response
@@ -374,6 +386,25 @@ router.post('/message', auth, aiCallLimiter, async (req, res) => {
     console.error('Error in fallback message route:', error);
     res.status(500).json({ error: 'Failed to get a response from the AI.' });
   }
+});
+
+// @route   POST /api/chat/stream
+// @desc    Stream AI response (real implementation)
+// @access  Private
+router.post('/stream', auth, aiCallLimiter, async (req, res) => {
+  console.log('[DEBUG] /api/v1/chat/stream called. Body:', req.body);
+  const { conversationId } = req.body;
+  const userObjectId = mongoose.Types.ObjectId.isValid(req.user.userId) ? new mongoose.Types.ObjectId(req.user.userId) : req.user.userId;
+  console.log('Looking for conversation (stream):', conversationId, 'for user:', req.user.userId, typeof req.user.userId);
+  const conversation = await Conversation.findOne({ _id: conversationId, userId: userObjectId });
+  console.log('Conversation found (stream):', conversation);
+  if (!conversation) {
+    console.log('[DEBUG] /api/v1/chat/stream: Conversation not found. Returning 404.');
+    return res.status(404).json({ error: 'Conversation not found.' });
+  }
+  const streamingManager = new StreamingManager(req, res);
+  await streamingManager.handleStream();
+  console.log('[DEBUG] /api/v1/chat/stream: StreamingManager.handleStream() called.');
 });
 
 module.exports = router;

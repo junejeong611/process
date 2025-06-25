@@ -12,6 +12,9 @@ const { logEvent } = require('../services/auditLogService');
 const mongoose = require('mongoose');
 const { checkLoginAnomaly, handleFailedLogin } = require('../services/anomalyService');
 const keyService = require('../services/keyService');
+const mfaAuth = require('../middleware/mfa');
+const { mfaLimiter, forgotPasswordLimiter } = require('../middleware/rateLimiter');
+const adminEmailService = require('../services/adminEmailService');
 
 const router = express.Router();
 
@@ -22,22 +25,6 @@ const loginLimiter = rateLimit({
   message: { success: false, message: 'Too many login attempts from this IP, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
-});
-
-// Rate limiter for MFA verification
-const mfaLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 5, // limit each IP to 5 verification attempts per windowMs
-  message: { success: false, message: 'Too many MFA attempts. Please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Rate limiter for forgot password endpoint
-const forgotPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
-  message: { success: false, message: 'Too many password reset requests. Please try again later.' }
 });
 
 // @route   POST /api/auth/register
@@ -130,7 +117,9 @@ router.post('/login', loginLimiter, async (req, res) => {
             // Device is trusted, bypass MFA and issue tokens
             logEvent(user._id, 'USER_LOGIN', 'SUCCESS', { ipAddress: req.ip, details: { trustedDevice: true } });
             await checkLoginAnomaly(user, req.ip);
-            const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+            const adminEmails = await adminEmailService.getAdminEmails();
+            const isAdmin = adminEmails.includes(user.email);
+            const accessToken = jwt.sign({ userId: user._id, mfa: 'verified', isAdmin }, process.env.JWT_SECRET, {
                 expiresIn: '15m'
             });
 
@@ -176,7 +165,9 @@ router.post('/login', loginLimiter, async (req, res) => {
         // Generate the QR code directly from the otpauth_url provided by generateSecret
         const qrCode = await qrcode.toDataURL(secret.otpauth_url);
 
-        const mfaToken = jwt.sign({ userId: user._id, mfa: 'setup' }, process.env.JWT_SECRET, {
+        const adminEmails = await adminEmailService.getAdminEmails();
+        const isAdmin = adminEmails.includes(user.email);
+        const mfaToken = jwt.sign({ userId: user._id, mfa: 'setup', isAdmin }, process.env.JWT_SECRET, {
             expiresIn: '15m' // Longer time for setup
         });
 
@@ -187,7 +178,9 @@ router.post('/login', loginLimiter, async (req, res) => {
     // Generate full access token if MFA is not applicable
     logEvent(user._id, 'USER_LOGIN', 'SUCCESS', { ipAddress: req.ip });
     await checkLoginAnomaly(user, req.ip);
-    const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+    const adminEmails = await adminEmailService.getAdminEmails();
+    const isAdmin = adminEmails.includes(user.email);
+    const accessToken = jwt.sign({ userId: user._id, mfa: 'verified', isAdmin }, process.env.JWT_SECRET, {
       expiresIn: '15m'
     });
 
@@ -214,32 +207,23 @@ router.post('/login', loginLimiter, async (req, res) => {
 // @route   POST /api/auth/mfa/verify
 // @desc    Verify MFA code for login or setup
 // @access  Private (requires mfaToken)
-router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
+router.post('/mfa/verify', mfaLimiter, mfaAuth, async (req, res) => {
     try {
-        const { mfaCode, trustDevice } = req.body;
+        const { mfaCode, trustDevice, useBackupCode } = req.body;
         const { userId, mfa } = req.user; // Decoded from mfaToken
 
-        if (mfa !== 'pending' && mfa !== 'setup') {
-            return res.status(403).json({ success: false, message: 'Invalid token type for MFA verification' });
-        }
-
         const user = await User.findById(userId).select('+backup_codes').select('+mfa_secret');
-        if (!user || !user.mfa_secret) {
+        if (!user || (!user.mfa_secret && !useBackupCode)) { // Allow backup code even if mfa_secret is somehow missing
             return res.status(400).json({ success: false, message: 'MFA not set up for this user.' });
         }
 
         let isValid = false;
 
-        // 1. Check TOTP code
-        isValid = speakeasy.totp.verify({
-            secret: user.mfa_secret,
-            encoding: 'base32',
-            token: mfaCode,
-            window: 2 // Reset to 2 steps (60s) to account for clock drift
-        });
-
-        // 2. If TOTP is invalid, check backup codes
-        if (!isValid) {
+        if (useBackupCode) {
+            // Verification logic for backup codes
+            if (!user.backup_codes || user.backup_codes.length === 0) {
+                 return res.status(400).json({ success: false, message: 'No backup codes available for this user.' });
+            }
             for (let i = 0; i < user.backup_codes.length; i++) {
                 const isMatch = await bcrypt.compare(mfaCode, user.backup_codes[i]);
                 if (isMatch) {
@@ -250,6 +234,17 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
                     break;
                 }
             }
+        } else {
+            // Verification logic for TOTP codes
+            if (!user.mfa_secret) {
+                return res.status(400).json({ success: false, message: 'MFA not set up for this user.' });
+            }
+            isValid = speakeasy.totp.verify({
+                secret: user.mfa_secret,
+                encoding: 'base32',
+                token: mfaCode,
+                window: 2 // 2 * 30s = 1-minute tolerance window
+            });
         }
 
         if (!isValid) {
@@ -264,12 +259,19 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
             user.mfa_enabled = true;
             user.mfa_setup_completed = true;
 
-            // Generate and store hashed backup codes
-            const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
-            user.backup_codes = backupCodes; // Pre-save hook will hash these
+            // Generate plain-text codes to display to the user once.
+            const plainTextBackupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
+            
+            // Hash the codes before saving them to the database.
+            user.backup_codes = await Promise.all(
+                plainTextBackupCodes.map(code => bcrypt.hash(code, 10))
+            );
+            user.markModified('backup_codes'); // Ensure Mongoose detects the change to the array.
             
             // Generate tokens
-            const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+            const adminEmails = await adminEmailService.getAdminEmails();
+            const isAdmin = adminEmails.includes(user.email);
+            const accessToken = jwt.sign({ userId: user._id, mfa: 'verified', isAdmin }, process.env.JWT_SECRET, {
                 expiresIn: '15m'
             });
             const refreshToken = crypto.randomBytes(40).toString('hex');
@@ -285,8 +287,8 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
                 maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
             
-            // Return backup codes to the user ONCE, along with their new token
-            return res.json({ success: true, setupComplete: true, backupCodes, accessToken });
+            // Return the PLAIN TEXT backup codes to the user ONCE for them to save.
+            return res.json({ success: true, setupComplete: true, backupCodes: plainTextBackupCodes, accessToken });
         }
 
         // Handle "Trust this device"
@@ -307,7 +309,9 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
         }
 
         // Issue final, full-access token
-        const accessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+        const adminEmails = await adminEmailService.getAdminEmails();
+        const isAdmin = adminEmails.includes(user.email);
+        const accessToken = jwt.sign({ userId: user._id, mfa: 'verified', isAdmin }, process.env.JWT_SECRET, {
             expiresIn: '15m'
         });
 
@@ -343,11 +347,15 @@ router.post('/mfa/reset-request', forgotPasswordLimiter, async (req, res) => {
         }
 
         const user = await User.findOne({ email });
-        // Always return a success-like message to prevent user enumeration
-        if (!user || !user.mfa_enabled) {
-            return res.json({ success: true, message: 'if your account exists and has mfa enabled, a reset link has been sent' });
+
+        // If the user doesn't exist, we still send a success-like message 
+        // to prevent email enumeration attacks.
+        if (!user) {
+            return res.json({ success: true, message: 'if your account exists, a reset link has been sent' });
         }
 
+        // --- FIX: Always attempt to send the reset link if the user exists ---
+        // This breaks the loop for users who are stuck in a bad MFA state.
         const rawToken = crypto.randomBytes(32).toString('hex');
         user.mfa_reset_token = crypto.createHash('sha256').update(rawToken).digest('hex');
         user.mfa_reset_expires = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -356,14 +364,21 @@ router.post('/mfa/reset-request', forgotPasswordLimiter, async (req, res) => {
 
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-mfa-confirm/${rawToken}`;
 
-        await sendEmail({
-            to: user.email,
-            subject: 'Authenticator Reset Request',
-            text: `a request was made to reset the authenticator for your account. click the link to proceed: ${resetUrl}`,
-            html: `<p>a request was made to reset the authenticator for your account. click the link to proceed:</p><p><a href="${resetUrl}">reset authenticator</a></p>`
-        });
-
-        res.json({ success: true, message: 'if your account exists and has mfa enabled, a reset link has been sent' });
+        try {
+            // The sendEmail function will now be called, and we will see the diagnostic logs.
+            await sendEmail({
+                to: user.email,
+                subject: 'Authenticator Reset Request',
+                text: `A request was made to reset the authenticator for your account. Click the link to proceed: ${resetUrl}`,
+                html: `<p>A request was made to reset the authenticator for your account. Click the link to proceed:</p><p><a href="${resetUrl}">Reset Authenticator</a></p>`
+            });
+            // If we get here, the email was sent successfully.
+            res.json({ success: true, message: 'if your account exists and has mfa enabled, a reset link has been sent' });
+        } catch (emailError) {
+            console.error("❌ Failed to send MFA reset email:", emailError.message);
+            // Return a more specific error to the client
+            return res.status(500).json({ success: false, message: 'Could not send the reset email. Please check server logs.' });
+        }
 
     } catch (error) {
         console.error('MFA reset request error:', error);
@@ -383,28 +398,41 @@ router.post('/mfa/reset-confirm', async (req, res) => {
 
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
+        // First, try to find a user with a valid, non-expired token.
         const user = await User.findOne({
             mfa_reset_token: hashedToken,
             mfa_reset_expires: { $gt: Date.now() }
         });
 
-        if (!user) {
-            return res.status(400).json({ success: false, message: 'token is invalid or has expired' });
+        // If we found a user with a valid token, this is the happy path.
+        if (user) {
+            // Disable MFA
+            user.mfa_enabled = false;
+            user.mfa_secret = undefined;
+            user.mfa_setup_completed = false;
+            user.backup_codes = [];
+            
+            // Invalidate the reset token so it can't be used again
+            user.mfa_reset_token = undefined;
+            user.mfa_reset_expires = undefined;
+
+            await user.save();
+
+            return res.json({ success: true, message: 'your authenticator has been reset, you can now log in with your password' });
         }
 
-        // Disable MFA
-        user.mfa_enabled = false;
-        user.mfa_secret = undefined;
-        user.mfa_setup_completed = false; // Requires setup again
-        user.backup_codes = []; // Clear backup codes
+        // --- Improved Error Handling ---
+        // If the user wasn't found, it means the token is either invalid or expired.
+        // We can check if a user with this token ever existed to provide a better error message.
+        const expiredOrInvalidUser = await User.findOne({ mfa_reset_token: hashedToken });
         
-        // Invalidate the reset token
-        user.mfa_reset_token = undefined;
-        user.mfa_reset_expires = undefined;
-
-        await user.save();
-
-        res.json({ success: true, message: 'your authenticator has been reset. you can now log in with your password.' });
+        if (expiredOrInvalidUser) {
+            // The token existed but is now expired or has been superseded by a new one.
+            return res.status(400).json({ success: false, message: 'this reset link has expired, please request a new one' });
+        } else {
+            // The token is completely invalid.
+            return res.status(400).json({ success: false, message: 'this reset link is invalid' });
+        }
 
     } catch (error) {
         console.error('MFA reset confirm error:', error);
@@ -529,7 +557,9 @@ router.post('/refresh-token', async (req, res) => {
     user.refreshTokens = user.refreshTokens.filter(rt => rt.token !== hashedRefreshToken);
 
     // Generate new tokens
-    const newAccessToken = jwt.sign({ userId: user._id, mfa: 'verified' }, process.env.JWT_SECRET, {
+    const adminEmails = await adminEmailService.getAdminEmails();
+    const isAdmin = adminEmails.includes(user.email);
+    const newAccessToken = jwt.sign({ userId: user._id, mfa: 'verified', isAdmin }, process.env.JWT_SECRET, {
       expiresIn: '15m'
     });
     const newRefreshToken = crypto.randomBytes(40).toString('hex');

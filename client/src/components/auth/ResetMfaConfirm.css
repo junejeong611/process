@@ -21,17 +21,20 @@
     border-radius: 18px; /* --border-radius-large */
     box-shadow: 0 8px 40px rgba(60, 90, 130, 0.12), 0 3px 12px rgba(60, 90, 130, 0.08); /* --shadow-medium */
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Add consistent spacing between elements */
 }
 
 .reset-mfa-confirm-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0; /* Remove margin as gap will handle spacing */
 }
 
 .reset-mfa-confirm-title {
     font-size: 2rem;
     font-weight: 700;
     color: #3a5a8c; /* --primary-blue */
-    margin: 0 0 0.5rem;
+    margin: 0; /* Let gap handle spacing */
     text-transform: lowercase;
 }
 
@@ -39,7 +42,7 @@
     color: #6b7a90; /* --text-gray */
     font-size: 1rem;
     line-height: 1.5;
-    margin-bottom: 2rem;
+    margin: 0; /* Remove margin as gap will handle spacing */
     text-transform: lowercase;
 }
 
@@ -69,55 +72,18 @@
 }
 
 .warning-text {
-    margin-top: 1.5rem;
+    margin: 0; /* Remove margin as gap will handle spacing */
     font-size: 0.9rem;
     color: #6b7a90; /* --text-gray */
     text-transform: lowercase;
 }
 
-.error-message {
-    background: linear-gradient(90deg, #fff6f6 80%, #f7fafd 100%);
-    color: #e57373; /* --error-red */
-    border: 2.5px solid #e57373; /* --error-red */
-    border-radius: 18px; /* --border-radius-large */
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.95rem;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    box-shadow: 0 8px 32px rgba(229, 115, 115, 0.10);
-    text-transform: lowercase;
-}
-
-.error-content {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.error-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 2.2rem;
-    width: 2.2rem;
-    font-size: 1.3rem;
-    background: #ffeaea;
-    color: #e57373; /* --error-red */
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(229, 115, 115, 0.08);
-}
-
-.error-title {
-    font-weight: 700;
-    font-size: 1.08rem;
-    margin-bottom: 0.2rem;
-    color: #e57373; /* --error-red */
-    text-transform: lowercase;
-    letter-spacing: 0.2px;
-}
+/* 
+  The local error message styling has been removed from this file.
+  All error presentation is now handled by the shared `ErrorCard.js`
+  component and its associated `ErrorCard.css` stylesheet to ensure
+  a consistent look and feel across the application.
+*/
 
 .confirmation-message {
     padding: 1rem;

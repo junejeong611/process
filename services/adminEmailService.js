@@ -14,14 +14,12 @@ class AdminEmailService {
     const now = Date.now();
 
     if (this.cachedEmails && (now - this.lastFetch) < this.cacheDuration) {
-      console.log('Returning cached admin emails.');
       return this.cachedEmails;
     }
 
     try {
-      console.log('Fetching admin emails from Secrets Manager...');
       const secret = await secretsManager.getSecretValue({
-        SecretId: process.env.ADMIN_EMAILS_SECRET_NAME || 'AdminEmails'
+        SecretId: process.env.ADMIN_EMAILS_SECRET_NAME || 'process-it/dev/secrets'
       }).promise();
 
       if (secret.SecretString) {
@@ -31,22 +29,18 @@ class AdminEmailService {
         if (emailString) {
           this.cachedEmails = emailString.split(',').map(email => email.trim());
           this.lastFetch = now;
-          console.log('Successfully fetched and cached admin emails.');
           return this.cachedEmails;
         }
       }
       // If SecretString or ADMIN_EMAILS is not found, fallback.
-      console.log('ADMIN_EMAILS key not found in secret, using fallback.');
       return this.getFallbackEmails();
 
     } catch (error) {
-      console.error('Failed to fetch admin emails from Secrets Manager:', error);
       return this.getFallbackEmails();
     }
   }
 
   getFallbackEmails() {
-    console.log('Using fallback admin emails.');
     const fallbackEmails = process.env.FALLBACK_ADMIN_EMAILS;
     return fallbackEmails ? fallbackEmails.split(',').map(email => email.trim()) : [];
   }
