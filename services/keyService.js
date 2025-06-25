@@ -1,4 +1,4 @@
- // services/keyService.js
+// services/keyService.js
 // Manages loading and providing access to server encryption keys.
 
 const fs = require('fs');
@@ -19,13 +19,10 @@ function loadKeys() {
     if (fs.existsSync(privateKeyPath) && fs.existsSync(publicKeyPath)) {
       privateKey = fs.readFileSync(privateKeyPath, 'utf8');
       publicKey = fs.readFileSync(publicKeyPath, 'utf8');
-      console.log('✅ Server encryption keys loaded successfully.');
     } else {
-      console.error('❌ CRITICAL ERROR: Encryption key files not found.');
       process.exit(1);
     }
   } catch (error) {
-    console.error('❌ CRITICAL ERROR: Failed to load encryption keys.', error);
     process.exit(1);
   }
 }

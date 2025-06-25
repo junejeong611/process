@@ -4,7 +4,7 @@ module.exports = function(app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://server:5001',
+      target: 'http://processnode:5001',
       changeOrigin: true,
       onError: (err, req, res) => {
         console.error('Proxy error:', err.message);

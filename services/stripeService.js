@@ -6,13 +6,11 @@ let stripeInstance = null;
 function getStripeInstance() {
   if (!stripeInstance) {
     if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('❌ STRIPE_SECRET_KEY is missing from environment variables');
       throw new Error('STRIPE_SECRET_KEY is required but not set');
     }
     stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2022-11-15',
     });
-    console.log('✅ Stripe instance initialized successfully');
   }
   return stripeInstance;
 }

@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const streamingMetricsService = require('../services/streamingMetricsService');
+const requireAdmin = require('../middleware/admin');
+const auth = require('../middleware/auth');
+
+// Apply auth and admin middleware to all routes in this file
+router.use(auth);
+router.use(requireAdmin);
 
 // This route is for the frontend to check if the user is an admin.
 // The requireAdmin middleware will have already run, so if the request

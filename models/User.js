@@ -169,6 +169,7 @@ userSchema.virtual('fullName').get(function() {
 });
 
 const encKey = process.env.ENCRYPTION_SECRET;
+console.log('DEBUG: User.js - ENCRYPTION_SECRET present:', !!encKey, 'length:', encKey ? encKey.length : 0);
 if (!encKey) {
   throw new Error('ENCRYPTION_SECRET environment variable is not set!');
 }
@@ -203,16 +204,8 @@ userSchema.pre('save', async function(next) {
     }
   }
 
-  // Hash backup codes
-  if (this.isModified('backup_codes')) {
-    try {
-      this.backup_codes = await Promise.all(
-        this.backup_codes.map(code => bcrypt.hash(code, SALT_WORK_FACTOR))
-      );
-    } catch (err) {
-      return next(err);
-    }
-  }
+  // Hashing of backup codes is now handled explicitly in the auth route
+  // to prevent re-hashing.
   
   return next();
 });
@@ -226,6 +219,17 @@ userSchema.methods.updateLoginTimestamp = async function() {
 // Static method to find user by email
 userSchema.statics.findByEmail = function(email) {
   return this.findOne({ email });
+};
+
+// Add a static method to log decrypted email and userId when finding by ID
+userSchema.statics.findByIdWithDebug = async function(id) {
+  const user = await this.findById(id);
+  if (user) {
+    console.log('DEBUG: User.js - Decrypted user found. userId:', user._id, 'email:', user.email);
+  } else {
+    console.log('DEBUG: User.js - No user found for userId:', id);
+  }
+  return user;
 };
 
 // Instance method to compare password (using async/await)

@@ -200,7 +200,7 @@ const ChatHistoryPage = () => {
       abortControllerRef.current = new AbortController();
       const timeoutId = setTimeout(() => abortControllerRef.current.abort(), 20000);
 
-      const response = await fetch('/api/chat/conversations', {
+      const response = await fetch('/api/v1/chat/conversations', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -274,13 +274,11 @@ const ChatHistoryPage = () => {
   const handleSortChange = useCallback((e) => {
     const newSortOrder = e.target.value;
     setSortOrder(newSortOrder);
-    console.log(`Sort order changed to: ${newSortOrder}`);
   }, []);
 
   const handleFilterChange = useCallback((e) => {
     const newFilterType = e.target.value;
     setFilterType(newFilterType);
-    console.log(`Filter changed to: ${newFilterType}`);
   }, []);
 
   const handleSearchChange = useCallback((e) => {
@@ -343,9 +341,7 @@ const ChatHistoryPage = () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
-      console.log('Deleting conversations:', conversationIds);
-
-      const response = await fetch('/api/chat/conversations/bulk-delete', {
+      const response = await fetch('/api/v1/chat/conversations/bulk-delete', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -361,8 +357,6 @@ const ChatHistoryPage = () => {
         console.error('Failed to parse JSON from bulk-delete response:', jsonErr);
         data = { success: false, message: 'Invalid server response' };
       }
-
-      console.log('Bulk delete API response:', data);
 
       if (response.ok && data.success) {
         // Update local state optimistically

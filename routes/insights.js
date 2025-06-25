@@ -50,7 +50,7 @@ router.get('/:userId', auth, async (req, res) => {
   const { userId } = req.params;
 
   // Only allow access if the authenticated user matches the requested userId
-  if (req.user._id.toString() !== userId) {
+  if (req.user.userId.toString() !== userId) {
     return res.status(403).json({ success: false, error: 'Access denied.' });
   }
 
@@ -120,7 +120,7 @@ router.get('/:userId/trigger-frequency', auth, async (req, res) => {
     const { period } = req.query;
 
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId.toString() !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 
@@ -168,7 +168,7 @@ router.get('/:userId/emotional-timeline', auth, async (req, res) => {
     const { period } = req.query;
 
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId.toString() !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 
@@ -229,7 +229,7 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
     const { userId } = req.params;
 
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId.toString() !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 
@@ -256,20 +256,35 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
     endOfLastWeek.setMilliseconds(-1);
 
     // Aggregate for this week
+    console.log('[DEBUG] Fetching this week messages for user:', userId, 'from', startOfThisWeek);
     const thisWeekMessages = await Message.find({
       userId: new mongoose.Types.ObjectId(userId),
       createdAt: { $gte: startOfThisWeek }
     });
+    console.log('[DEBUG] thisWeekMessages count:', thisWeekMessages.length);
     // Aggregate for last week
-    const lastWeekMessages = await Message.find({
+    console.log('[DEBUG] Fetching last week message IDs for user:', userId, 'from', startOfLastWeek, 'to', startOfThisWeek);
+    const lastWeekMessageIds = await Message.find({
       userId: new mongoose.Types.ObjectId(userId),
       createdAt: { $gte: startOfLastWeek, $lt: startOfThisWeek }
-    });
+    }).select('_id');
+    console.log('[DEBUG] lastWeekMessageIds count:', lastWeekMessageIds.length);
+    const lastWeekMessages = [];
+    for (const doc of lastWeekMessageIds) {
+      try {
+        const msg = await Message.findById(doc._id);
+        lastWeekMessages.push(msg);
+      } catch (err) {
+        console.error('[DECRYPTION ERROR] Could not decrypt message with _id:', doc._id, err.message);
+      }
+    }
+    console.log('[DEBUG] Successfully loaded lastWeekMessages:', lastWeekMessages.length);
 
     // Total conversations/messages
     const totalConversations = thisWeekMessages.length;
 
     // Average mood score (average of all emotion values, per message, then averaged)
+    console.log('[DEBUG] Calculating average mood score for this week...');
     function avgMood(messages) {
       if (!messages.length) return 0;
       let total = 0, count = 0;
@@ -285,6 +300,7 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
     const averageMoodScore = avgMood(thisWeekMessages);
     const lastWeekMoodScore = avgMood(lastWeekMessages);
     const improvementFromLastWeek = lastWeekMoodScore ? +(((averageMoodScore - lastWeekMoodScore) / lastWeekMoodScore) * 100).toFixed(1) : 0;
+    console.log('[DEBUG] averageMoodScore:', averageMoodScore, 'lastWeekMoodScore:', lastWeekMoodScore, 'improvementFromLastWeek:', improvementFromLastWeek);
 
     // Most active day
     const dayCounts = {};
@@ -293,6 +309,7 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
       dayCounts[day] = (dayCounts[day] || 0) + 1;
     }
     const mostActiveDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    console.log('[DEBUG] mostActiveDay:', mostActiveDay);
 
     // Dominant emotion (highest average across all messages)
     const emotionSums = { anger: 0, sadness: 0, fear: 0, shame: 0, disgust: 0 };
@@ -310,8 +327,10 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
       const avgEmotions = Object.entries(emotionSums).map(([k, v]) => [k, v / emotionCount]);
       dominantEmotion = avgEmotions.sort((a, b) => b[1] - a[1])[0][0];
     }
+    console.log('[DEBUG] dominantEmotion:', dominantEmotion);
 
     // Trigger reduction (compare number of triggers this week vs last week)
+    console.log('[DEBUG] Counting triggers...');
     function countTriggers(messages) {
       let count = 0;
       for (const msg of messages) {
@@ -322,6 +341,7 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
     const thisWeekTriggers = countTriggers(thisWeekMessages);
     const lastWeekTriggers = countTriggers(lastWeekMessages);
     const triggerReduction = lastWeekTriggers ? +(((lastWeekTriggers - thisWeekTriggers) / lastWeekTriggers) * 100).toFixed(1) : 0;
+    console.log('[DEBUG] thisWeekTriggers:', thisWeekTriggers, 'lastWeekTriggers:', lastWeekTriggers, 'triggerReduction:', triggerReduction);
 
     // Insights (simple templated for now)
     const insights = [];
@@ -329,6 +349,16 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
     if (triggerReduction > 0) insights.push(`You experienced ${triggerReduction}% fewer triggers than last week.`);
     if (dominantEmotion) insights.push(`Your dominant emotion this week was ${dominantEmotion}.`);
     if (!insights.length) insights.push('Keep chatting to unlock more weekly insights!');
+
+    console.log('[DEBUG] Weekly summary response:', {
+      totalConversations,
+      averageMoodScore,
+      improvementFromLastWeek,
+      mostActiveDay,
+      dominantEmotion,
+      triggerReduction,
+      insights
+    });
 
     res.json({
       success: true,
@@ -355,7 +385,7 @@ router.get('/:userId/emotional-distribution', auth, async (req, res) => {
     const { period } = req.query;
 
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId.toString() !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 

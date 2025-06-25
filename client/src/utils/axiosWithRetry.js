@@ -1,30 +1,52 @@
 import axios from 'axios';
 
-const axiosWithRetry = async (config, retries = 3, delay = 1000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await axios(config);
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      await new Promise(res => setTimeout(res, delay));
-    }
-  }
-};
+const CSRF_ERROR_MSG = 'CSRF token mismatch';
 
-// Also export a default axios instance with retry logic for convenience
+// Helper to detect CSRF error
+function isCsrfError(error) {
+  return (
+    error.response &&
+    error.response.status === 403 &&
+    typeof error.response.data === 'object' &&
+    (error.response.data.message?.includes('CSRF') || error.response.data.error?.includes('CSRF'))
+  );
+}
+
 const axiosInstance = axios.create();
+
 axiosInstance.interceptors.response.use(
   response => response,
   async error => {
     const config = error.config;
-    if (!config || config.__retryCount >= 2) {
-      return Promise.reject(error);
+    if (!config) return Promise.reject(error);
+    // Only retry once for CSRF errors
+    if (!config.__csrfRetried && isCsrfError(error)) {
+      try {
+        // Fetch new CSRF token
+        const { data } = await axios.get('/api/v1/csrf-token', { withCredentials: true });
+        const newToken = data.csrfToken;
+        // Update headers for this request
+        config.headers = config.headers || {};
+        config.headers['X-CSRF-Token'] = newToken;
+        // Mark as retried
+        config.__csrfRetried = true;
+        // Also update axios defaults for future requests
+        axiosInstance.defaults.headers.post['X-CSRF-Token'] = newToken;
+        axiosInstance.defaults.headers.put['X-CSRF-Token'] = newToken;
+        axiosInstance.defaults.headers.delete['X-CSRF-Token'] = newToken;
+        return axiosInstance(config);
+      } catch (fetchErr) {
+        // If fetching CSRF token fails, treat as session expired
+        return Promise.reject({ ...error, message: 'Session expired. Please log in again.' });
+      }
     }
-    config.__retryCount = (config.__retryCount || 0) + 1;
-    await new Promise(res => setTimeout(res, 1000));
-    return axiosInstance(config);
+    // If already retried or not a CSRF error, reject
+    if (isCsrfError(error)) {
+      // After retry, still CSRF error: treat as session expired
+      return Promise.reject({ ...error, message: 'Session expired. Please log in again.' });
+    }
+    return Promise.reject(error);
   }
 );
 
-export default axiosInstance;
-export { axiosWithRetry }; 
+export default axiosInstance; 

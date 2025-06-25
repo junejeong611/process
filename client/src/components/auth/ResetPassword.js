@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import './ResetPassword.css';
 import './ResetPasswordOverride.css';
+import ErrorCard from '../common/ErrorCard';
 
 // Enhanced password strength calculation
 const passwordStrength = (password) => {
@@ -119,6 +121,7 @@ const ResetPassword = () => {
   const [tokenValid, setTokenValid] = useState(true);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [touched, setTouched] = useState({ password: false, confirmPassword: false });
+  const [csrfToken, setCsrfToken] = useState('');
 
   const formRef = useRef(null);
   const passwordInputRef = useRef(null);
@@ -128,6 +131,21 @@ const ResetPassword = () => {
   // Debounced values for real-time validation
   const debouncedPassword = useDebounce(password, 300);
   const debouncedConfirmPassword = useDebounce(confirmPassword, 300);
+
+  // Fetch CSRF token
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const { data } = await axios.get('/api/v1/csrf-token', { withCredentials: true });
+        setCsrfToken(data.csrfToken);
+      } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+        setError('Could not load the form. Please refresh the page.');
+        setErrorCategory({ type: 'network', canRetry: false, severity: 'error' });
+      }
+    };
+    fetchCsrfToken();
+  }, []);
 
   // Enhanced online/offline monitoring
   useEffect(() => {
@@ -371,95 +389,81 @@ const ResetPassword = () => {
       }
 
       controllerRef.current = new AbortController();
-      const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
+      const { signal } = controllerRef.current;
 
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ 
-          token, 
-          password,
-          timestamp: Date.now(),
-          attempts: submitAttempts
-        }),
-        signal: controllerRef.current.signal
-      });
-      
-      clearTimeout(timeoutId);
+      const response = await axios.post(`/api/auth/reset-password/${token}`, 
+        { password },
+        {
+          headers: {
+            'X-CSRF-Token': csrfToken
+          },
+          withCredentials: true,
+          signal,
+          timeout: 15000, // 15-second timeout
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
+      if (response.status === 200) {
+        setSuccess(response.data.message || 'your password has been reset successfully!');
+        setError('');
+        setErrorCategory(null);
         setResetSuccess(true);
-        setSuccess('password has been reset successfully! redirecting to login...');
-        setRetryCount(0);
-        
-        // Analytics tracking
-        if (typeof window.gtag !== 'undefined') {
-          window.gtag('event', 'password_reset_completed', {
-            'event_category': 'auth',
-            'event_label': 'success'
-          });
-        }
-        
-        // Add a slight delay for the success animation
+        // Clear inputs after a short delay to show success state
         setTimeout(() => {
-          navigate('/login', { 
-            state: { message: 'Password reset successful! Please log in with your new password.' }
-          });
-        }, 2500);
-      } else {
-        const errorMessage = data.message || 'failed to reset password. please try again.';
-        const category = categorizeError(errorMessage);
-        
-        setError(errorMessage);
-        setErrorCategory(category);
+          setPassword('');
+          setConfirmPassword('');
+        }, 500);
 
-        // Set countdown for rate limiting
-        if (category.type === 'rateLimit') {
-          setCountdown(300);
-        } else if (category.type === 'token') {
+        // Redirect after a longer delay
+        setTimeout(() => {
+          navigate('/login');
+        }, 5000);
+      } else {
+        // This block might be less likely with axios as it throws on non-2xx
+        const data = response.data;
+        const errCategory = categorizeError(data.error || 'an unexpected error occurred.');
+        setError(data.error || 'an unexpected error occurred.');
+        setErrorCategory(errCategory);
+        
+        if (errCategory.type === 'rateLimit') {
+          setCountdown(60);
+        }
+        if (errCategory.type === 'token') {
           setTokenValid(false);
-        } else if (category.type === 'server') {
-          setCountdown(30);
         }
       }
-    } catch (err) {
-      console.error('Reset password error:', err);
-      let errorMessage;
-      let category;
-
-      if (err.name === 'AbortError') {
-        errorMessage = 'request timed out. please check your connection and try again.';
-        category = categorizeError('network timeout');
-      } else if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
-        errorMessage = 'connection error. please check your internet and try again.';
-        category = categorizeError('network connection');
-      } else if (err.message.includes('HTTP 429')) {
-        errorMessage = 'too many attempts. please wait before trying again.';
-        category = categorizeError('rate limit');
-        setCountdown(300);
-      } else if (err.message.includes('HTTP 5')) {
-        errorMessage = 'server error. please try again in a moment.';
-        category = categorizeError('server error');
-        setCountdown(30);
-      } else {
-        errorMessage = 'connection error. please check your internet and try again.';
-        category = categorizeError('unknown error');
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        console.log('Request canceled:', error.message);
+        return; // Don't set error state if the request was intentionally canceled
       }
 
+      let errorMessage = 'an unexpected error occurred. please try again.';
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorMessage = error.response.data.error || `server error: ${error.response.status}`;
+        const errCategory = categorizeError(errorMessage);
+        setErrorCategory(errCategory);
+        
+        if (errCategory.type === 'rateLimit') {
+          setCountdown(60); // Start a 60-second countdown
+        }
+        if (errCategory.type === 'token') {
+          setTokenValid(false);
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = 'no response from server. check your network connection.';
+        setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        errorMessage = error.message;
+      }
       setError(errorMessage);
-      setErrorCategory(category);
     } finally {
-      if (!resetSuccess) setIsLoading(false);
-      controllerRef.current = null;
+      setIsLoading(false);
+      // Don't clear controllerRef here if you want to use it for cancellation
     }
   };
 
@@ -518,33 +522,12 @@ const ResetPassword = () => {
           </header>
 
           {/* Enhanced error display */}
-          {error && (
-            <div className="error-container">
-              <div className="error-card">
-                <div className="error-icon-lock">
-                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" stroke="#e57373" strokeWidth="1.5" />
-                      <path d="M12 7v6" stroke="#e57373" strokeWidth="1.5" strokeLinecap="round" />
-                      <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-                  </svg>
-                </div>
-                <h3 className="error-title-text">password reset failed</h3>
-                <p className="error-message-text">{error}</p>
-                {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
-                  <div className="error-actions">
-                    <button 
-                      className="refresh-button-centered"
-                      onClick={handleRetry}
-                      aria-label={`retry password reset (attempt ${retryCount + 2})`}
-                      type="button"
-                    >
-                      try again
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <ErrorCard
+            error={error}
+            errorCategory={errorCategory}
+            onRetry={handleRetry}
+            retryCount={retryCount}
+          />
 
           {/* Enhanced success message */}
           {success && (

@@ -41,20 +41,33 @@ const useCreateConversation = () => {
     setIsLoading(true);
     setError('');
 
-    const backendReady = await waitForBackend();
-    if (!backendReady) {
-      setError('Unable to connect to the backend server.');
-      setIsLoading(false);
-      return;
-    }
+    // TEMP: Skip backend health check for local dev
+    // const backendReady = await waitForBackend();
+    // if (!backendReady) {
+    //   setError('Unable to connect to the backend server.');
+    //   setIsLoading(false);
+    //   return;
+    // }
 
     try {
       const token = getToken();
       if (!token) throw new Error('No authentication token found');
 
+      // Guard: Ensure CSRF token is present before making the POST
+      const csrfToken = localStorage.getItem('csrfToken');
+      if (!csrfToken) {
+        setError('CSRF token not ready. Please wait and try again.');
+        setIsLoading(false);
+        return null;
+      }
+
       const response = await axiosWithRetry(() =>
-        axios.post('/api/chat/conversations', { type: 'text' }, {
-          headers: { Authorization: `Bearer ${token}` },
+        axios.post('/api/v1/chat/conversations', {
+          type: 'text',
+          wrappedConversationKey: 'dummy-key-for-testing' // TODO: Replace with real key logic
+        }, {
+          headers: { Authorization: `Bearer ${token}`, 'X-CSRF-Token': csrfToken },
+          withCredentials: true
         })
       );
 
@@ -66,8 +79,10 @@ const useCreateConversation = () => {
         sender: 'bot',
         timestamp: new Date().toISOString(),
       });
+      return response.data;
     } catch (err) {
       setError(err.response?.data?.message || err.message);
+      return null;
     } finally {
       setIsLoading(false);
     }

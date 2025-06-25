@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { sendMessage, sendMessageStream } = require('./claudeService');
 const { streamToBuffer, bufferToStream } = require('../utils/streamUtils');
 const nlp = require('compromise');
+const streamingMetricsService = require('./streamingMetricsService');
 
 const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY,
@@ -42,16 +43,17 @@ const getDefaultVoiceSettings = () => {
 
 // Main synthesizeSpeech function (now using SDK, but not streaming output)
 const synthesizeSpeech = async (text, options = {}) => {
-  if (!process.env.ELEVENLABS_VOICE_ID) {
-    throw new ElevenLabsApiError('ElevenLabs Voice ID not set in environment variables', 400, 'missing_config');
-  }
-  if (!text || typeof text !== 'string' || !text.trim()) {
-    throw new ElevenLabsApiError('Text is required for speech synthesis', 400, 'missing_text');
-  }
-
-  console.log(`[ElevenLabsService] Synthesizing speech. Length: ${text.length} chars.`);
-
+  const startTime = Date.now();
   try {
+    if (!process.env.ELEVENLABS_VOICE_ID) {
+      throw new ElevenLabsApiError('ElevenLabs Voice ID not set in environment variables', 400, 'missing_config');
+    }
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      throw new ElevenLabsApiError('Text is required for speech synthesis', 400, 'missing_text');
+    }
+
+    console.log(`[ElevenLabsService] Synthesizing speech. Length: ${text.length} chars.`);
+
     const audioStream = await elevenlabs.textToSpeech.stream(
       process.env.ELEVENLABS_VOICE_ID,
       {
@@ -70,12 +72,18 @@ const synthesizeSpeech = async (text, options = {}) => {
     }
     const audioBuffer = Buffer.concat(chunks);
 
+    streamingMetricsService.recordAPICall('elevenLabs', Date.now() - startTime, true);
+
     return {
       audio: audioBuffer,
       contentType: `audio/${process.env.AUDIO_FORMAT || 'mp3'}`,
       byteLength: audioBuffer.length,
     };
   } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorType = error.type || 'unknown_api_error';
+    streamingMetricsService.recordAPICall('elevenLabs', duration, false, errorType);
+
     console.error(`[ElevenLabsService] API error: ${error.message}`);
     // The SDK might throw its own specific errors. We can handle them here.
     throw new ElevenLabsApiError(error.message, error.status, error.type);

@@ -2,10 +2,11 @@
 // Express server entry point for the Emotional Support App backend
 // Integrates MongoDB, Claude API, and ElevenLabs API
 
-console.log('UNIQUE LOG: If you see this, the code is up to date!');
-console.log('server.js loaded');
-
 require('dotenv').config(); // Load environment variables from .env file
+
+// Import the new secrets loader first
+const { loadSecrets } = require('./services/secretsManager');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -13,347 +14,169 @@ const morgan = require('morgan');
 const path = require('path');
 const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
-const compression = require('compression'); // Add compression for better performance
-const getSecrets = require('./load');
+const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const lusca = require('lusca');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { loadKeys } = require('./services/keyService');
 
-// Import routes
-// -- Routes will be required inside startServer() after secrets are loaded --
 
-//collect secrets from secrets manager
-(async () => {
+// --- Main application startup logic ---
+async function startApp() {
   try {
-    // Load secrets from AWS Secrets Manager
-    console.log('🔐 Loading secrets from AWS Secrets Manager...');
-    const secrets = await getSecrets('process-it/dev/secrets');
-    console.log('✅ Secrets loaded successfully');
-    console.log('Loaded secrets:', secrets);
+    // Load secrets from AWS Secrets Manager at the very beginning
+    await loadSecrets();
+    console.log('DEBUG: ENCRYPTION_SECRET loaded:', process.env.ENCRYPTION_SECRET ? 'yes' : 'no');
 
-    // Set them as environment variables
-    console.log(secrets);
-    process.env.MONGODB_URI = secrets.MONGODB_URI;
-    process.env.ELEVENLABS_API_KEY = secrets.ELEVENLABS_API_KEY;
-    process.env.CLAUDE_API_KEY = secrets.CLAUDE_API_KEY;
-    process.env.JWT_SECRET = secrets.JWT_SECRET;
-    process.env.COOKIE_SECRET = secrets.COOKIE_SECRET;
-    process.env.ENCRYPTION_SECRET = secrets.ENCRYPTION_SECRET;
-    process.env.EMAIL_USER = secrets.EMAIL_USER;
-    process.env.EMAIL_PASS = secrets.EMAIL_PASS;
-    process.env.EMAIL_FROM = secrets.EMAIL_FROM;
-    process.env.CLIENT_URL = secrets.CLIENT_URL;
-    process.env.STRIPE_WEBHOOK_SECRET = secrets.STRIPE_WEBHOOK_SECRET;
-    process.env.STRIPE_PRODUCT_ID = secrets.STRIPE_PRODUCT_ID;
-    process.env.STRIPE_SECRET_KEY = secrets.STRIPE_SECRET_KEY;
-    process.env.STRIPE_PUBLISHABLE_KEY = secrets.STRIPE_PUBLISHABLE_KEY;
-    process.env.STRIPE_PRICE_ID = secrets.STRIPE_PRICE_ID;
-    console.log('✅ Stripe secrets set successfully');
-
-    // Debug logs for Stripe secrets
-    console.log('Stripe Secret Key:', process.env.STRIPE_SECRET_KEY);
-    console.log('Stripe Publishable Key:', process.env.STRIPE_PUBLISHABLE_KEY);
-    console.log('Stripe Webhook Secret:', process.env.STRIPE_WEBHOOK_SECRET);
-    console.log('Stripe Price ID:', process.env.STRIPE_PRICE_ID);
-
-    // Initialize Stripe after secrets are loaded
-    console.log('🔄 Initializing Stripe service...');
+    // Now that secrets are loaded, we can require all other modules
     const stripeService = require('./services/stripeService');
-    console.log('✅ Stripe service initialized');
-
-    // Start server after secrets are loaded
+    const authRoutes = require('./routes/auth');
+    const chatRoutes = require('./routes/chat');
+    const voiceRoutes = require('./routes/voice');
+    const insightsRoutes = require('./routes/insights');
+    const voiceRecordRoute = require('./routes/record');
+    const subscriptionRoutes = require('./routes/subscription');
+    const stripeWebhook = require('./routes/stripeWebhook');
+    const adminRoutes = require('./routes/admin');
+    const session = require('express-session');
+    const auth = require('./middleware/auth');
+    const requireAdmin = require('./middleware/admin');
+    
     // Load server encryption keys
     loadKeys();
-    startServer();
+
+    // Initialize Express app
+    const app = express();
+    app.set('trust proxy', 1);
+    const PORT = process.env.PORT || 5001;
+
+    // Top-level debug middleware
+    app.use((req, res, next) => {
+      console.log('[DEBUG] Top-level:', req.method, req.originalUrl);
+      next();
+    });
+
+    // --- Start of Express middleware setup ---
+    // Set essential security headers first
+    app.use(helmet()); 
+    
+    // Enable CORS with credentials
+    const corsOptions = {
+      origin: process.env.CLIENT_URL || 'http://localhost:3000',
+      credentials: true
+    };
+    app.use(cors(corsOptions));
+
+    // Then, set up remaining middleware
+    app.use(compression());
+    app.use(cookieParser(process.env.COOKIE_SECRET));
+
+    app.use(session({
+      secret: process.env.COOKIE_SECRET,
+      resave: false,
+      saveUninitialized: true,
+      cookie: { 
+        secure: false,
+        httpOnly: true,
+        sameSite: 'lax'
+      }
+    }));
+
+    // Parse JSON and urlencoded bodies BEFORE routes that need req.body
+    app.use(express.json({ limit: '2mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+    // --- API Routes that should NOT have CSRF protection ---
+    const API_PREFIX = '/api/v1';
+    app.use(`${API_PREFIX}/auth`, authRoutes);
+
+    // Lusca must come after session and cookieParser, but AFTER auth routes
+    app.use(lusca({
+      csrf: {
+        angular: false,
+        methods: ['POST', 'PUT', 'DELETE', 'PATCH'] // Only require CSRF for these methods
+      },
+      xframe: 'SAMEORIGIN',
+      hsts: { maxAge: 31536000 },
+      xssProtection: true,
+      nosniff: true,
+      referrerPolicy: 'same-origin'
+    }));
+
+    // Now req.csrfToken is available!
+    app.get('/api/v1/csrf-token', (req, res) => {
+      res.json({ csrfToken: req.csrfToken() });
+    });
+
+    app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+    app.use('/api/webhooks/stripe', stripeWebhook);
+    
+    // Apply rate limiting AFTER static assets and essential routes
+    app.use('/api/', apiLimiter);
+
+    // --- MongoDB Connection ---
+    let serverReady = false;
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/emotionalsupportapp';
+    mongoose.connect(MONGODB_URI)
+      .then(() => {
+        serverReady = true; // Set ready status after DB connection
+      })
+      .catch(err => console.error('MongoDB connection error:', err.message));
+
+    
+    // --- API Routes ---
+    app.use('/api/admin', auth, requireAdmin, adminRoutes);
+    app.use(`${API_PREFIX}/chat`, chatRoutes);
+    app.use(`${API_PREFIX}/voice`, voiceRoutes);
+    app.use(`${API_PREFIX}/insights`, insightsRoutes);
+    app.use(`${API_PREFIX}/voicerecord`, voiceRecordRoute);
+    app.use(`${API_PREFIX}/subscription`, subscriptionRoutes);
+    
+    // --- Health Checks ---
+    app.get('/api/health', (req, res) => {
+        if (serverReady && mongoose.connection.readyState === 1) {
+            res.status(200).json({ status: 'ok', database: 'connected' });
+        } else {
+            res.status(503).json({ status: 'starting', database: 'connecting' });
+        }
+    });
+
+    // --- 404 and Error Handlers ---
+    // Debug unmatched routes
+    app.use((req, res, next) => {
+        console.log('[DEBUG] Unmatched route:', req.method, req.originalUrl);
+        next();
+    });
+    // Handle 404 - must be after all other routes
+    app.use((req, res, next) => {
+        res.status(404).json({ message: "Sorry, that route doesn't exist." });
+    });
+
+    // Final error handler
+    app.use((err, req, res, next) => {
+        console.error("Global error handler:", err.stack);
+        res.status(500).json({ message: "Something went wrong on our end." });
+    });
+
+    // --- Server Listen ---
+    const server = app.listen(PORT, () => {
+    });
+
+    // --- Graceful Shutdown ---
+    process.on('SIGTERM', () => {
+        server.close(() => {
+            mongoose.connection.close(false).then(() => {
+                process.exit(0);
+            });
+        });
+    });
+
   } catch (err) {
-    console.error('❌ Failed to load secrets:', err.message);
+    console.error('❌ FATAL: Failed to start application:', err.message);
     process.exit(1);
   }
-})();
-
-function startServer() {
-  // Require routes here, after secrets are loaded into process.env
-  const authRoutes = require('./routes/auth');
-  const chatRoutes = require('./routes/chat');
-  const voiceRoutes = require('./routes/voice');
-  const insightsRoutes = require('./routes/insights');
-  const voiceRecordRoute = require('./routes/record');
-  const subscriptionRoutes = require('./routes/subscription');
-  const stripeWebhook = require('./routes/stripeWebhook');
-  const adminRoutes = require('./routes/admin'); // Import admin routes
-  const session = require('express-session');
-
-  // Import middleware for admin routes
-  const auth = require('./middleware/auth');
-  const requireAdmin = require('./middleware/admin');
-
-  // Initialize Express app
-  const app = express();
-  app.set('trust proxy', 1); // trust first proxy for correct rate limiting behind proxy
-  const PORT = process.env.PORT || 5001;
-
-  // Enable compression for all responses
-  app.use(compression());
-
-  // Use cookie-parser middleware
-  app.use(cookieParser(process.env.COOKIE_SECRET));
-
-  // API rate limiting for security - apply general limiter
-  app.use('/api/', apiLimiter);
-
-  // Session middleware configuration
-  app.use(session({
-    secret: process.env.COOKIE_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { 
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      sameSite: 'strict'
-    }
-  }));
-
-  // Enhanced security headers
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for now, but should be removed
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    },
-    hsts: {
-      maxAge: 31536000, // 1 year
-      includeSubDomains: true,
-      preload: true
-    },
-    frameguard: {
-      action: 'deny'
-    }
-  }));
-
-  // Lusca for CSRF protection and other security enhancements
-  app.use(lusca({
-    csrf: true,
-    xframe: 'SAMEORIGIN',
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    xssProtection: true,
-    nosniff: true,
-    referrerPolicy: 'same-origin'
-  }));
-
-  // Logger middleware - different formats for dev and production
-  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-
-  // CORS configuration with more options
-  const corsOptions = {
-    origin: process.env.CLIENT_URL || '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true,
-    maxAge: 86400 // Cache preflight request for 1 day
-  };
-  app.use(cors(corsOptions));
-
-  // For webhooks, mount the raw route directly BEFORE body parsers
-  app.use('/api/webhooks/stripe', stripeWebhook);
-
-  // Request parsing middleware
-  app.use(express.json({ limit: '2mb' })); // Parse JSON request bodies with size limit
-  app.use(express.urlencoded({ extended: true, limit: '2mb' }));
-
-  // Endpoint to get CSRF token
-  app.get('/api/v1/csrf-token', (req, res) => {
-    res.json({ csrfToken: req.csrfToken() });
-  });
-
-  // Apply admin middleware and routes
-  app.use('/api/admin', auth, requireAdmin, adminRoutes);
-
-  // MongoDB connection with improved error handling and options
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/emotionalsupportapp';
-  const mongooseOptions = {
-    // These options are no longer needed with Mongoose 6+ but including for clarity
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-  };
-
-  mongoose.connect(MONGODB_URI, mongooseOptions)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => {
-      console.error('MongoDB connection error:', err.message);
-      console.log('Server will continue running, but database features will not work');
-      // Don't exit in production or development
-      // Just continue running with limited functionality
-    });
-
-  // Check API keys on startup with more detailed messaging
-  const checkRequiredEnvVars = () => {
-    const required = ['JWT_SECRET', 'CLAUDE_API_KEY', 'ELEVENLABS_API_KEY'];
-    const missing = required.filter(varName => !process.env[varName]);
-    
-    if (missing.length > 0) {
-      console.warn(`⚠️ Missing environment variables: ${missing.join(', ')}`);
-      console.warn('Some functionality may not work as expected.');
-      
-      // More specific warnings
-      if (!process.env.JWT_SECRET) {
-        console.warn('JWT_SECRET is missing: Authentication will not work properly');
-      }
-      if (!process.env.CLAUDE_API_KEY) {
-        console.warn('CLAUDE_API_KEY is missing: Text chat functionality will be unavailable');
-      }
-      if (!process.env.ELEVENLABS_API_KEY) {
-        console.warn('ELEVENLABS_API_KEY is missing: Voice synthesis will be unavailable');
-      }
-    } else {
-      console.log('✅ All required environment variables are set');
-    }
-  };
-  checkRequiredEnvVars();
-
-  // API routes with version prefix for future-proofing
-  const API_PREFIX = '/api/v1';
-  app.use(`${API_PREFIX}/auth`, authRoutes);
-  console.log('Registering chat routes');
-  app.use(`${API_PREFIX}/chat`, chatRoutes);
-  app.use(`${API_PREFIX}/voice`, voiceRoutes);
-  app.use(`${API_PREFIX}/insights`, insightsRoutes);
-  app.use(`${API_PREFIX}/voicerecord`, voiceRecordRoute);
-  app.use(`${API_PREFIX}/subscription`, subscriptionRoutes);
-
-  // Maintain backward compatibility with original routes
-  app.use('/api/auth', authRoutes);
-  app.use('/api/chat', chatRoutes);
-  app.use('/api/voice', voiceRoutes);
-  app.use('/api/insights', insightsRoutes);
-
-  app.use('/api/subscription', subscriptionRoutes);
-
-  let serverReady = false;
-
-  // Basic health check that works even during initialization
-  app.get('/api/health/basic', (req, res) => {
-    res.status(200).json({
-      status: 'starting',
-      ready: serverReady
-    });
-  });
-
-  // Full health check - only returns 200 when fully ready
-  app.get('/api/health', (req, res) => {
-    console.log('Health check called. serverReady:', serverReady);
-    try {
-    if (serverReady) {
-      res.status(200).json({ status: 'ok' });
-    } else {
-      res.status(503).json({ status: 'starting' });
-      }
-    } catch (err) {
-      console.error('Health check error:', err);
-      res.status(500).json({ status: 'error', error: err.message });
-    }
-  });
-
-  // 404 handler - must come before error handler
-  app.use((req, res, next) => {
-    res.status(404).json({
-      error: true,
-      message: `Route not found: ${req.originalUrl}`
-    });
-  });
-
-  // Error handling middleware with improved logging
-  app.use((err, req, res, next) => {
-    // Generate request identifier for tracking errors
-    const errorId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-    
-    // Log error details
-    console.error(`ERROR [${errorId}]:`, err.name || 'UnknownError');
-    console.error(`[${errorId}] Path:`, req.method, req.originalUrl);
-    console.error(`[${errorId}] Message:`, err.message);
-    console.error(`[${errorId}] Stack:`, err.stack);
-    
-    // Send appropriate response to client
-    res.status(err.status || 500).json({
-      error: true,
-      errorId: errorId, // Include for support reference
-      message: process.env.NODE_ENV === 'production'
-        ? 'Internal server error'
-        : err.message,
-      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
-    });
-  });
-
-  // Serve static assets in production
-  if (process.env.NODE_ENV === 'production') {
-    // Set cache headers for static assets
-    app.use(express.static(path.join(__dirname, 'client/build'), {
-      maxAge: '1d' // Cache static assets for 1 day
-    }));
-    
-    app.get('*', (req, res) => {
-      res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
-    });
-  }
-
-  // Start the server
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on 0.0.0.0:${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`API URL: http://localhost:${PORT}${API_PREFIX}`);
-  });
-
-  // Set serverReady = true only after database connection and server start
-  mongoose.connection.on('connected', () => {
-    serverReady = true;
-    console.log('serverReady set to true');
-  });
-
-  // Graceful shutdown with timeout
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully');
-    
-    // Set a timeout for forceful shutdown if graceful shutdown takes too long
-    setTimeout(() => {
-      console.error('Forceful shutdown initiated after timeout');
-      process.exit(1);
-    }, 30000); // 30 seconds timeout
-    
-    server.close(() => {
-      console.log('Server closed');
-      mongoose.connection.close(false)
-        .then(() => {
-        console.log('MongoDB connection closed');
-        process.exit(0);
-      });
-    });
-  });
-
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION:');
-    console.error(err);
-    
-    // Gracefully shut down in development, stay running in production
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
-  });
-
-  // Handle unhandled promise rejections
-  process.on('unhandledRejection', (err) => {
-    console.error('Unhandled Promise Rejection:');
-    console.error(err);
-    // Don't crash the server in production
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
-  });
-
 }
+
+// Start the application
+startApp();

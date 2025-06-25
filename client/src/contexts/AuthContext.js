@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { useCsrfToken } from './CsrfContext';
 
 const AuthContext = createContext(null);
 
@@ -8,18 +9,20 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // Will be populated on login
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { refreshCsrfToken } = useCsrfToken();
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      checkAdminStatus(storedToken);
+      checkAdminStatus(storedToken).finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
-  const login = (newToken, userData, rememberMe) => {
+  const login = async (newToken, userData, rememberMe) => {
     if (rememberMe) {
       localStorage.setItem('token', newToken);
     } else {
@@ -29,6 +32,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     checkAdminStatus(newToken);
+    await refreshCsrfToken(); // Always fetch a new CSRF token after login
   };
 
   const logout = () => {
@@ -38,9 +42,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAdmin(false);
     delete axios.defaults.headers.common['Authorization'];
+    refreshCsrfToken(true); // Clear CSRF token on logout
   };
   
   const checkAdminStatus = async (authToken) => {
+    console.log('DEBUG: Checking admin status with token:', authToken);
     if (!authToken) {
         setIsAdmin(false);
         return;
@@ -49,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get('/api/admin/check-access', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
+      console.log('DEBUG: Admin check response:', response);
       if (response.status === 200 && response.data.isAdmin) {
         setIsAdmin(true);
       } else {
@@ -56,6 +63,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       setIsAdmin(false);
+      console.error('DEBUG: Error checking admin status:', error, error?.response);
       // It's expected to fail for non-admins, so we don't need to log every failure.
       if (error.response?.status !== 403 && error.response?.status !== 401) {
         console.error('Error checking admin status:', error);

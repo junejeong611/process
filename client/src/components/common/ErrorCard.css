@@ -1,0 +1,131 @@
+/* ErrorCard.css */
+
+.error-message {
+  border-radius: var(--border-radius);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  animation: slideDown 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+  border: 1px solid;
+  position: relative;
+}
+
+.error-content {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.error-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  margin-right: 1rem;
+}
+
+.error-text {
+  flex-grow: 1;
+}
+
+.error-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  color: inherit;
+}
+
+/* Base styles for different error types */
+.error-message.auth,
+.error-message.token,
+.error-message.validation,
+.error-message.account {
+  border-color: rgba(229, 115, 115, 0.5);
+  background: rgba(255, 240, 240, 0.8);
+  color: #c62828;
+}
+
+.error-message.auth .error-icon,
+.error-message.token .error-icon,
+.error-message.validation .error-icon,
+.error-message.account .error-icon {
+  background: #ffcdd2;
+  color: #c62828;
+}
+
+.error-message.network,
+.error-message.server,
+.error-message.unknown {
+  border-color: rgba(255, 171, 145, 0.8);
+  background: rgba(255, 243, 224, 0.95);
+  color: var(--warning-orange);
+}
+
+.error-message.network .error-icon,
+.error-message.server .error-icon,
+.error-message.unknown .error-icon {
+  background: #fed7aa;
+  color: #c2410c;
+}
+
+.error-message.rateLimit {
+    border-color: rgba(123, 182, 250, 0.5);
+    background: rgba(240, 246, 253, 0.9);
+    color: var(--primary-blue);
+}
+
+.error-message.rateLimit .error-icon {
+    background: #dbe6f3;
+    color: var(--primary-blue);
+}
+
+
+.retry-button {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--light-blue) 0%, var(--medium-blue) 100%);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-medium);
+    text-transform: lowercase;
+    box-shadow: 0 2px 8px rgba(123, 182, 250, 0.3);
+    font-family: inherit;
+    letter-spacing: 0.3px;
+    margin-top: 0.75rem;
+}
+
+.retry-button:hover {
+    background: linear-gradient(135deg, var(--medium-blue) 0%, var(--light-blue) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(123, 182, 250, 0.4);
+}
+
+.retry-button:active {
+    transform: translateY(0);
+}
+
+.retry-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus-blue);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

@@ -13,11 +13,8 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
   try {
     event = verifyWebhookSignature(req.body, sig, webhookSecret);
   } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
-  console.log('📥 Processing Stripe webhook event:', event.type);
 
   try {
     switch (event.type) {
@@ -29,7 +26,6 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
         // Find user by Stripe customer ID
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (!user) {
-          console.error('❌ User not found for customer:', customerId);
           return res.status(404).json({ error: 'User not found' });
         }
 
@@ -46,7 +42,6 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
         }
 
         await user.save();
-        console.log('✅ Updated subscription status for user:', user.email);
         break;
 
       case 'customer.subscription.deleted':
@@ -61,14 +56,12 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
           deletedUser.currentPeriodEnd = null;
           deletedUser.cancelAtPeriodEnd = false;
           await deletedUser.save();
-          console.log('✅ Updated subscription status to canceled for user:', deletedUser.email);
         }
         break;
     }
 
     res.json({ received: true });
   } catch (error) {
-    console.error('❌ Error processing webhook:', error);
     res.status(500).json({ error: 'Error processing webhook' });
   }
 });

@@ -40,7 +40,7 @@ const WeeklySummary = React.memo(() => {
     queryKey: ['weekly-summary', userId],
     queryFn: async () => {
       const token = getToken();
-      const response = await fetch(`/api/insights/${userId}/weekly-summary`, {
+      const response = await fetch(`/api/v1/insights/${userId}/weekly-summary`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const result = await response.json();
@@ -77,7 +77,7 @@ const WeeklySummary = React.memo(() => {
   }
 
   if (!summary) {
-    return <div className="chart-error">no summary data available.</div>;
+    return <div className="chart-error">No weekly summary identified yet. As we chat more, your weekly emotional summary will appear here to support your healing journey.</div>;
   }
 
   return (
@@ -140,7 +140,7 @@ const InsightsContent = () => {
     queryKey: ['insights', userId],
     queryFn: async () => {
       const token = getToken();
-      const response = await fetch(`/api/insights/${userId}`, {
+      const response = await fetch(`/api/v1/insights/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const result = await response.json();
@@ -312,12 +312,6 @@ const InsightsContent = () => {
                   <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
                 </svg>
               </button>
-              <button 
-                className="practice-affirmations-button secondary"
-                onClick={startPractice}
-              >
-                Practice Daily Affirmations
-              </button>
             </div>
           </div>
         </div>
@@ -475,20 +469,22 @@ const InsightsContent = () => {
                     </div>
                   ) : (
                     <div className="no-insights">
-                      <p>Personalized affirmations will appear here based on your conversations. You can still practice with general affirmations above.</p>
+                      <p>No specific affirmations identified yet. As we chat more, personalized affirmations will appear here to support your healing journey.</p>
                     </div>
                   )}
                   
                   <div className="section-action">
-                    <button 
-                      className="practice-section-button"
-                      onClick={startPractice}
-                    >
-                      Practice These Affirmations
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                        <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
-                      </svg>
-                    </button>
+                    {hasEnoughData && insights?.insights?.affirmations?.length > 0 && (
+                      <button 
+                        className="practice-section-button"
+                        onClick={startPractice}
+                      >
+                        Practice These Affirmations
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                          <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -507,23 +503,47 @@ const InsightsContent = () => {
             )}
           </>
         ) : (
-          // Analytics Content
-          <React.Suspense fallback={<div className="loading-state">Loading analytics...</div>}>
-            {/* Weekly Summary */}
-            <div className="insights-section">
-              <WeeklySummary />
-            </div>
+          hasEnoughData ? (
+            <React.Suspense fallback={<div className="loading-state">Loading analytics...</div>}>
+              {/* Weekly Summary */}
+              <div className="insights-section">
+                <WeeklySummary />
+              </div>
 
-            {/* Emotional Timeline Chart */}
-            <div className="insights-section">
-              <EmotionalTimelineChart />
-            </div>
+              {/* Emotional Timeline Chart */}
+              <div className="insights-section">
+                <EmotionalTimelineChart />
+              </div>
 
-            {/* Emotional Distribution Chart */}
-            <div className="insights-section">
-              <EmotionDistributionChart />
+              {/* Emotional Distribution Chart */}
+              <div className="insights-section">
+                <EmotionDistributionChart />
+              </div>
+            </React.Suspense>
+          ) : (
+            <div className="insufficient-data-state">
+              <div className="insufficient-data-card">
+                <div className="insufficient-data-icon">
+                  <svg width="64" height="64" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </div>
+                <h3>Not Enough Data for Analytics</h3>
+                <p>No specific analytics or trends identified yet. As we chat more, we'll better understand your emotional patterns and trends.</p>
+                <div className="insufficient-data-actions">
+                  <button 
+                    className="start-conversation-button"
+                    onClick={() => window.location.href = '/chat'}
+                  >
+                    Continue Chatting
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
-          </React.Suspense>
+          )
         )}
       </div>
     </div>

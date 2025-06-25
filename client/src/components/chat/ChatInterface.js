@@ -3,11 +3,14 @@ import axios from 'axios';
 import './ChatInterface.css';
 import UnifiedStreamingService from '../../services/streamingService';
 import useCreateConversation from '../../utils/useCreateConversation';
+import { useCsrfToken } from '../../contexts/CsrfContext';
+import ErrorCard from '../common/ErrorCard';
 
 // Constants
 const MAX_MESSAGE_LENGTH = 2000;
 const SCROLL_DELAY = 100;
 const UI_READY_DELAY = 800;
+const AI_BUBBLE_DELAY = 900; // ms between AI bubbles
 
 // Helper Functions
 const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -15,6 +18,17 @@ const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).
 const sanitizeMessage = (content) => {
   if (typeof content !== 'string') return '';
   return content.trim().substring(0, MAX_MESSAGE_LENGTH);
+};
+
+const categorizeError = (error) => {
+  const errorLower = (error || '').toLowerCase();
+  if (errorLower.includes('csrf')) return { type: 'token', canRetry: true, severity: 'error' };
+  if (errorLower.includes('auth') || errorLower.includes('token')) return { type: 'auth', canRetry: true, severity: 'warning' };
+  if (errorLower.includes('network') || errorLower.includes('connection') || errorLower.includes('timeout')) return { type: 'network', canRetry: true, severity: 'warning' };
+  if (errorLower.includes('rate limit') || errorLower.includes('too many') || errorLower.includes('throttle')) return { type: 'rateLimit', canRetry: false, severity: 'warning' };
+  if (errorLower.includes('server') || errorLower.includes('500') || errorLower.includes('503')) return { type: 'server', canRetry: true, severity: 'error' };
+  if (errorLower.includes('validation') || errorLower.includes('invalid format')) return { type: 'validation', canRetry: true, severity: 'warning' };
+  return { type: 'unknown', canRetry: true, severity: 'error' };
 };
 
 const ChatInterface = () => {
@@ -27,11 +41,19 @@ const ChatInterface = () => {
   const [uiReady, setUiReady] = useState(false);
   const [fallbackMessage, setFallbackMessage] = useState('');
   const { conversationId, createConversation, loading: creatingConversation } = useCreateConversation('text');
+  const { isCsrfReady } = useCsrfToken();
+  const [errorCategory, setErrorCategory] = useState(null);
+
+  // AI message queue and timer
+  const aiBubbleQueue = useRef([]); // queue of { sender, content, id, timestamp, isFinal }
+  const aiBubbleTimer = useRef(null);
+  const isProcessingQueue = useRef(false);
 
   // Refs
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const streamingServiceRef = useRef(null);
+  const hasLoadedInitialMessages = useRef(false);
   
   // Memoized Values
   const charCount = useMemo(() => input.length, [input]);
@@ -60,12 +82,17 @@ const ChatInterface = () => {
 
   // Initialize conversation
   useEffect(() => {
+    if (!isCsrfReady || hasLoadedInitialMessages.current) {
+      return;
+    }
+    hasLoadedInitialMessages.current = true;
     let isMounted = true;
     const initializeChat = async () => {
       try {
         let convoId = conversationId;
         if (!convoId) {
             const newConvo = await createConversation();
+            console.log('Created new conversation:', newConvo);
             if (!newConvo || !newConvo._id) throw new Error("Failed to create conversation.");
             convoId = newConvo._id;
         }
@@ -74,8 +101,9 @@ const ChatInterface = () => {
         if (!token) throw new Error('Authentication token not found.');
         
         // Load initial messages for the new conversation
-        const messagesRes = await axios.get(`/api/chat/messages/${convoId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const messagesRes = await axios.get(`/api/v1/chat/messages/${convoId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          withCredentials: true
         });
 
         if(isMounted && messagesRes.data) {
@@ -85,6 +113,18 @@ const ChatInterface = () => {
               sender: msg.sender,
               timestamp: msg.createdAt || new Date().toISOString()
             }));
+           // If there are no user or AI messages with non-empty content, add the static AI welcome message
+           const hasUserOrAiMessage = loadedMessages.some(
+             m => (m.sender === 'user' || m.sender === 'bot' || m.sender === 'ai') && m.text && m.text.trim() !== ''
+           );
+           if (!hasUserOrAiMessage) {
+             loadedMessages.push({
+               id: generateMessageId(),
+               sender: 'bot',
+               content: "ready when you are to help you process what you're feeling",
+               timestamp: new Date().toISOString()
+             });
+           }
            setMessages(loadedMessages);
         }
         setTimeout(() => setUiReady(true), UI_READY_DELAY);
@@ -92,13 +132,15 @@ const ChatInterface = () => {
       } catch (err) {
         if (isMounted) {
           setBackendError('Failed to start a conversation. Please refresh the page.');
+          setErrorCategory(categorizeError(err?.message || ''));
           console.error('Initialization error:', err);
+          console.log('initializeChat error:', err);
         }
       }
     };
     initializeChat();
     return () => { isMounted = false; };
-  }, [conversationId, createConversation, getToken]);
+  }, [conversationId, createConversation, getToken, isCsrfReady]);
   
   useEffect(() => {
     return () => {
@@ -112,10 +154,39 @@ const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Helper to process the AI bubble queue
+  const processAIBubbleQueue = useCallback(() => {
+    if (isProcessingQueue.current) return;
+    isProcessingQueue.current = true;
+    const processNext = () => {
+      if (aiBubbleQueue.current.length === 0) {
+        isProcessingQueue.current = false;
+        aiBubbleTimer.current = null;
+        return;
+      }
+      const nextBubble = aiBubbleQueue.current.shift();
+      setMessages(prev => [...prev, nextBubble]);
+      aiBubbleTimer.current = setTimeout(processNext, AI_BUBBLE_DELAY);
+    };
+    processNext();
+  }, []);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (aiBubbleTimer.current) {
+        clearTimeout(aiBubbleTimer.current);
+        aiBubbleTimer.current = null;
+      }
+    };
+  }, []);
+
   // Core Logic: Sending a message
   const handleSendMessage = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!input.trim() || isLoading) return;
+
+    console.log('handleSendMessage called. conversationId:', conversationId, 'input:', input);
 
     const userMessage = { sender: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
@@ -127,17 +198,25 @@ const ChatInterface = () => {
     // Initialize the streaming service
     streamingServiceRef.current = new UnifiedStreamingService({
       onTextChunk: (textChunk) => {
-        setIsTyping(false); // Stop typing indicator as soon as first chunk arrives
-        setFallbackMessage(''); // Clear fallback message on first chunk
-        setMessages(prev => {
-          const lastMessage = prev[prev.length - 1];
-          if (lastMessage && lastMessage.sender === 'ai') {
-            const updatedMessage = { ...lastMessage, content: lastMessage.content + textChunk };
-            return [...prev.slice(0, -1), updatedMessage];
-          } else {
-            return [...prev, { sender: 'ai', content: textChunk }];
-          }
+        setIsTyping(false);
+        setFallbackMessage('');
+        let chunkText = '';
+        if (typeof textChunk === 'object' && textChunk !== null) {
+          chunkText = textChunk.content || textChunk.text || '';
+        } else if (typeof textChunk === 'string') {
+          chunkText = textChunk;
+        }
+        if (!chunkText) return;
+
+        // Each chunk is already a complete sentence from the backend
+        aiBubbleQueue.current.push({
+          sender: 'bot',
+          content: chunkText,
+          id: generateMessageId(),
+          timestamp: new Date().toISOString(),
+          isFinal: true
         });
+        processAIBubbleQueue();
       },
       onStreamEnd: () => {
         setIsLoading(false);
@@ -150,7 +229,7 @@ const ChatInterface = () => {
       },
       onError: (error) => {
         console.error('Streaming error:', error);
-        setMessages(prev => [...prev, { sender: 'ai', content: `sorry, something went wrong. please try again.` }]);
+        setMessages(prev => [...prev, { sender: 'bot', content: `sorry, something went wrong. please try again.` }]);
         setIsLoading(false);
         setIsTyping(false);
         setFallbackMessage('');
@@ -172,66 +251,90 @@ const ChatInterface = () => {
 
   // Render Method
   return (
-    <div className="chat-container">
+    <div className="improved-chat-interface">
       {creatingConversation && !backendError ? (
-        <div className="chat-loading-overlay">
-          <div className="chat-spinner"></div>
-          <div className="chat-loading-text">Starting conversation...</div>
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <div>Starting conversation...</div>
         </div>
       ) : backendError ? (
-         <div className="chat-loading-overlay">
-            <div className="chat-error-icon">⚠️</div>
-            <div className="chat-error-message">{backendError}</div>
+        <div className="loading-state">
+          <ErrorCard error={backendError} errorCategory={errorCategory} onRetry={() => window.location.reload()} retryCount={0} />
         </div>
       ) : (
         <>
-          <header className="chat-header">
-            <h1 className="chat-title">process</h1>
-            <p className="chat-subtitle">a safe place to feel and be heard</p>
-          </header>
-          <main className="chat-messages" aria-live="polite">
-            {messages.map(msg => (
-              <div key={msg.id} className={`chat-message-wrapper ${msg.sender}`}>
-                <div className={`chat-message ${msg.isError ? 'error' : ''}`}>
-                  <p className="chat-message-text">
-                    {msg.text}
-                    {msg.isTyping && <span className="typing-indicator"></span>}
-                  </p>
-                  <span className="chat-message-timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                </div>
+          <header className="chat-header-enhanced">
+            <div className="header-main">
+              <div className="header-content">
+                <h1 className="chat-title-enhanced">process</h1>
+                <p className="chat-subtitle-enhanced">a safe place to feel and be heard</p>
               </div>
-            ))}
-            {isTyping && <div className="typing-indicator"><span>.</span><span>.</span><span>.</span></div>}
-            {fallbackMessage && <div className="fallback-indicator">{fallbackMessage}</div>}
-            <div ref={messagesEndRef} />
+            </div>
+            <div className="header-divider"></div>
+          </header>
+          <main className="chat-messages-enhanced" aria-live="polite">
+            <div className="messages-list">
+              {messages.map((msg, idx) => (
+                <div key={msg.id || idx} className={`message-enhanced ${msg.sender}${msg.isError ? ' error' : ''}`.trim()}>
+                  <div className="message-wrapper">
+                    <div className="message-avatar">
+                      {msg.sender === 'user' ? '🧑' : msg.sender === 'bot' ? '🤖' : '💬'}
+                    </div>
+                    <div className="message-bubble-enhanced">
+                      <div className="message-content-enhanced">{msg.content || msg.text}</div>
+                      <div className="message-meta">
+                        <span className="message-time-enhanced">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="message-enhanced bot typing-message">
+                  <div className="message-wrapper">
+                    <div className="message-avatar">🤖</div>
+                    <div className="message-bubble-enhanced typing-bubble">
+                      <div className="typing-indicator-enhanced">
+                        <span></span><span></span><span></span>
+                      </div>
+                      <span className="typing-text">typing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {fallbackMessage && <div className="fallback-indicator">{fallbackMessage}</div>}
+              <div ref={messagesEndRef} />
+            </div>
           </main>
-          <footer className="chat-input-area">
-            <form onSubmit={handleSendMessage} className="chat-input-form">
-              <div className="chat-input-wrapper">
+          <footer className="chat-input-enhanced">
+            <form onSubmit={handleSendMessage} className="input-form-enhanced">
+              <div className="input-wrapper-enhanced">
                 <textarea
                   ref={textareaRef}
-                  className="chat-input"
+                  className="message-input-enhanced"
                   placeholder="share what's on your mind..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   rows="1"
-                  disabled={isLoading || !uiReady}
+                  disabled={isLoading || !uiReady || !isCsrfReady}
                   aria-label="Chat message input"
                 />
-                <button 
-                  type="submit" 
-                  className="send-button" 
-                  disabled={!input.trim() || isLoading || !uiReady}
+                <button
+                  type="submit"
+                  className="send-button-enhanced"
+                  disabled={!input.trim() || isLoading || !uiReady || !isCsrfReady}
                   aria-label="Send message"
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 12L21 3L12 21L10 14L3 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <span className="send-label">Send</span>
+                  {isLoading && <span className="spinner"></span>}
                 </button>
               </div>
-              <div className={`char-counter ${isCharLimitWarning ? 'warning' : ''}`} aria-live="polite">
+              <div className={`char-counter${isCharLimitWarning ? ' warning' : ''}`} aria-live="polite">
                 {charCount} / {MAX_MESSAGE_LENGTH}
+              </div>
+              <div className="input-footer">
+                <span className="input-hint-enhanced">Press Enter to send</span>
               </div>
             </form>
           </footer>

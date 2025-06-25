@@ -18,7 +18,7 @@ class UnifiedStreamingService {
     this.isCancelled = false;
     let attempts = 0;
 
-    const streamUrl = '/api/chat/unified-stream';
+    const streamUrl = '/api/v1/chat/stream';
     const body = { mode, conversationId, content, history, enableSubtitles };
     const token = this._getToken();
     if (!token) {
@@ -29,13 +29,14 @@ class UnifiedStreamingService {
     while (attempts <= MAX_RETRIES) {
       if (this.isCancelled) return;
       try {
+        console.log('[DEBUG] UnifiedStreamingService: Attempting stream, attempt', attempts + 1);
         await this._attemptStream(mode, streamUrl, body, token);
         return; // Success, exit the loop
       } catch (error) {
-        console.warn(`Stream attempt ${attempts + 1} failed:`, error.message);
+        console.error('[DEBUG] UnifiedStreamingService: Stream attempt failed:', error);
         attempts++;
         if (attempts > MAX_RETRIES) {
-          console.error("All streaming attempts failed. Executing fallback.");
+          console.error('[DEBUG] UnifiedStreamingService: All streaming attempts failed. Executing fallback.');
           if (this.onFallback) {
             this.onFallback('streaming connection failed. getting the full response...');
           }
@@ -51,13 +52,25 @@ class UnifiedStreamingService {
     this.controller = new AbortController();
     const { signal } = this.controller;
 
+    // Get CSRF token from localStorage (set by CsrfContext.js)
+    const csrfToken = localStorage.getItem('csrfToken');
+    console.log('[DEBUG] StreamingService: CSRF token:', csrfToken);
+    console.log('[DEBUG] StreamingService: document.cookie:', document.cookie);
+    console.log('[DEBUG] StreamingService: Fetching', url, 'with body', body);
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'X-CSRF-Token': csrfToken || ''
+      },
       body: JSON.stringify(body),
       signal,
+      credentials: 'include',
     });
 
+    console.log('[DEBUG] StreamingService: Fetch response status:', response.status);
     if (!response.ok || !response.body) {
       throw new Error(`Server error: ${response.status}`);
     }
@@ -77,6 +90,7 @@ class UnifiedStreamingService {
             }
             if (dataStr) {
               const data = JSON.parse(dataStr);
+              console.log('[DEBUG] StreamingService: Received chunk:', data);
               if (data.type === 'audio' && this.onAudioChunk) {
                   // Assuming server sends base64 encoded audio chunk
                   const byteCharacters = atob(data.chunk);
@@ -89,17 +103,18 @@ class UnifiedStreamingService {
               } else if (data.type === 'subtitle' && this.onSubtitleChunk) {
                   this.onSubtitleChunk(data.subtitle);
               } else if (data.type === 'chunk' && this.onTextChunk) {
-                  this.onTextChunk(data.text);
+                  this.onTextChunk(data);
               }
             }
         } catch (e) {
-            console.error("Error parsing stream data chunk:", e);
+            console.error('[DEBUG] StreamingService: Error parsing stream data chunk:', e);
         }
     };
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
+        console.log('[DEBUG] StreamingService: Stream ended');
         this.onStreamEnd();
         break;
       }
@@ -119,9 +134,15 @@ class UnifiedStreamingService {
 
   async _executeFallback(body, token) {
     try {
-      const response = await fetch('/api/chat/message', {
+      // Get CSRF token from localStorage (set by CsrfContext.js)
+      const csrfToken = localStorage.getItem('csrfToken');
+      const response = await fetch('/api/v1/chat/message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-CSRF-Token': csrfToken || ''
+        },
         body: JSON.stringify(body),
       });
 

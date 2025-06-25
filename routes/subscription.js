@@ -57,7 +57,7 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
     if (!customerId) {
       console.log('Creating new Stripe customer for user:', user.email);
       const customer = await createCustomer(user.email, {
-        userId: user._id.toString()
+        userId: user.userId
       });
       customerId = customer.id;
       user.stripeCustomerId = customerId;
