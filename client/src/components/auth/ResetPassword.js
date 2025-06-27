@@ -679,15 +679,6 @@ const ResetPassword = () => {
                  countdown > 0 ? `wait ${formatCountdown(countdown)}` :
                  'reset password'}
               </span>
-              {retryCount > 0 && !isLoading && !resetSuccess && (
-                <span 
-                  className="retry-count" 
-                  aria-label={`attempt ${retryCount + 1}`}
-                  aria-hidden="true"
-                >
-                  #{retryCount + 1}
-                </span>
-              )}
             </button>
 
             <div id="reset-status" className="visually-hidden" aria-live="polite">

@@ -26,7 +26,6 @@ const mfaAuth = (req, res, next) => {
             isMfaVerified: decoded.isMfaVerified || decoded.mfa, // fallback for legacy tokens
             isAdmin: decoded.isAdmin
         };
-        console.log('DEBUG: req.user set to (mfa):', req.user);
         next();
     } catch (err) {
         res.status(401).json({ message: 'Token is not valid' });

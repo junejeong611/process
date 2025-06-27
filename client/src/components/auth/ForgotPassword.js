@@ -441,7 +441,7 @@ const ForgotPassword = () => {
                     <button 
                       className="refresh-button-centered"
                       onClick={handleRetry}
-                      aria-label={`retry password reset request (attempt ${retryCount + 2})`}
+                      aria-label={`retry password reset request`}
                       type="button"
                     >
                       try again

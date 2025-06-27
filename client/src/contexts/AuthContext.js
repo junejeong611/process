@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }) => {
   };
   
   const checkAdminStatus = async (authToken) => {
-    console.log('DEBUG: Checking admin status with token:', authToken);
     if (!authToken) {
         setIsAdmin(false);
         return;
@@ -55,7 +54,6 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get('/api/admin/check-access', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
-      console.log('DEBUG: Admin check response:', response);
       if (response.status === 200 && response.data.isAdmin) {
         setIsAdmin(true);
       } else {
@@ -63,8 +61,6 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       setIsAdmin(false);
-      console.error('DEBUG: Error checking admin status:', error, error?.response);
-      // It's expected to fail for non-admins, so we don't need to log every failure.
       if (error.response?.status !== 403 && error.response?.status !== 401) {
         console.error('Error checking admin status:', error);
       }

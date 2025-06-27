@@ -10,9 +10,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
 
-console.log('[DEBUG] Importing Anthropic SDK:', typeof anthropic);
-console.log('[DEBUG] CLAUDE_API_KEY present:', !!process.env.CLAUDE_API_KEY);
-
 // Custom error classes
 class ClaudeApiError extends Error {
   constructor(message, statusCode, errorType) {
@@ -42,6 +39,8 @@ function getCacheKey(message, history, systemPrompt) {
 // Default system prompt to enforce concise responses
 const DEFAULT_SYSTEM_PROMPT = `# The 6 R's: Trauma Processing with Gestalt Inner Child Work
 
+**IMPORTANT: Do NOT reintroduce yourself, explain your role, or describe the framework at the start of each message or session. Assume the user already knows who you are and why you are here. Get straight to supporting the user's feelings and experience.**
+
 You are an empathetic AI companion trained in EMDR and IFS focused on providing emotional support and understanding while guiding someone through the 6 R's trauma processing framework. Your role is to help process emotions-
 
 ## CORE APPROACH:
@@ -52,13 +51,18 @@ You are an empathetic AI companion trained in EMDR and IFS focused on providing 
 5. Maintain a warm, supportive, conversational tone
 
 ## COMMUNICATION GUIDELINES:
-- Keep responses concise (2-3 short paragraphs maximum) unless guiding through specific exercises
+- Keep responses concise (2-4 sentences, under 400 characters) for voice replies, unless guiding through specific exercises
 - Use natural, conversational language - never clinical or overly formal
 - Avoid medical advice or diagnoses - focus on emotional support and processing
 - Use "I" statements to share perspectives ("I hear you," "I understand," "I notice")
 - Express empathy authentically rather than using rehearsed phrases
 - Maintain appropriate therapeutic boundaries
 - Prioritize safety and grounding throughout all 6 R's
+
+## FOR VOICE REPLIES:
+- Speak as if you are talking to someone in distress—be gentle, clear, and brief
+- Keep your response to 2-4 sentences, under 400 characters
+- If you need to say more, offer to continue after the user responds
 
 ## CRISIS RECOGNITION:
 If you detect signs of crisis, serious mental health concerns, active self-harm, or overwhelming dissociation, gently pause the process:
@@ -311,6 +315,15 @@ What insights are you taking away? What have you learned that feels important to
 
 const AI_MODEL = process.env.CLAUDE_MODEL || 'claude-3-opus-20240229';
 
+// Helper to truncate at sentence boundary for voice
+function truncateAtSentence(text, maxChars = 400) {
+  if (text.length <= maxChars) return text;
+  const truncated = text.slice(0, maxChars);
+  const lastPeriod = truncated.lastIndexOf('.')
+  if (lastPeriod > 100) return truncated.slice(0, lastPeriod + 1);
+  return truncated + '...';
+}
+
 // Main sendMessage function
 const sendMessage = async (message, history = [], systemPrompt = null, retryCount = 0) => {
   const startTime = Date.now();
@@ -346,9 +359,12 @@ const sendMessage = async (message, history = [], systemPrompt = null, retryCoun
     });
 
     // Format response for easy consumption
+    let content = response.data.content?.[0]?.text || '';
+    // Truncate for voice
+    content = truncateAtSentence(content, 400);
     const formatted = {
       id: response.data.id,
-      content: response.data.content?.[0]?.text || '',
+      content,
       raw: response.data
     };
     // Cache response
@@ -428,20 +444,17 @@ const sendMessageStream = async (message, history = [], systemPrompt = null) => 
     // Wrap the async iterable in a Node.js Readable stream
     const nodeStream = Readable.from((async function* () {
       for await (const chunk of streamIterable) {
-        console.log('[DEBUG] Claude stream chunk:', chunk);
+        console.log('[Claude Stream Chunk]', chunk);
         yield JSON.stringify(chunk);
       }
     })());
 
     nodeStream.on('end', () => {
-      console.log('[DEBUG] Claude stream ended');
     });
     nodeStream.on('error', (err) => {
-      console.error('[DEBUG] Claude stream error:', err);
     });
     return nodeStream;
   } catch (error) {
-    console.error('[DEBUG] sendMessageStream error:', error);
     if (error instanceof Anthropic.APIError) {
       if (error.status === 429) {
         throw new RateLimitError(error.message);
@@ -474,7 +487,6 @@ const sendFullMessage = async (content) => {
       
     return responseText;
   } catch (error) {
-    console.error('Claude error in sendFullMessage:', error);
     throw new Error('Failed to get full response from Claude.');
   }
 };

@@ -9,6 +9,9 @@ const { streamToBuffer, bufferToStream } = require('../utils/streamUtils');
 const nlp = require('compromise');
 const streamingMetricsService = require('./streamingMetricsService');
 
+// Add this at the very top for debugging
+console.log('ELEVENLABS_VOICE_ID at startup:', process.env.ELEVENLABS_VOICE_ID);
+
 const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY,
 });
@@ -171,90 +174,53 @@ const synthesizeSpeechStream = (textStream) => {
 
 const synthesizeSpeechWithTimestampsStream = (textStream) => {
   const combinedStream = new (require('stream').PassThrough)({ objectMode: true });
-  const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_multilingual_v2';
-  const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=${modelId}&output_format=mp3_22050_32`;
 
-  const ws = new WebSocket(wsUrl);
-  let textBuffer = '';
-  let wordCounter = 0;
+  // Sequential sentence queue
+  let sentenceQueue = [];
+  let processing = false;
+  let streamEnded = false;
 
-  ws.on('open', () => {
-    console.log('[ElevenLabsService] Subtitle WebSocket connection opened.');
-    const bosMessage = {
-      text: " ",
-      voice_settings: getDefaultVoiceSettings(),
-      xi_api_key: process.env.ELEVENLABS_API_KEY,
-      generation_config: {
-        chunk_length_schedule: [50],
-      },
-    };
-    ws.send(JSON.stringify(bosMessage));
-
-    textStream.on('data', (chunk) => {
-      textBuffer += chunk.toString();
-      // Use compromise to split into sentences
-      const doc = nlp(textBuffer);
-      const sentences = doc.sentences().out('array');
-      
-      if (sentences.length > 1) {
-        const sentencesToSend = sentences.slice(0, -1).join(' ');
-        const request = {
-          text: sentencesToSend + " ", // Add space to ensure last word is processed
-        };
-        ws.send(JSON.stringify(request));
-        textBuffer = sentences[sentences.length - 1];
+  const processQueue = async () => {
+    if (processing) return;
+    processing = true;
+    while (sentenceQueue.length > 0) {
+      const sentence = sentenceQueue.shift();
+      if (!sentence.trim()) continue;
+      try {
+        const result = await module.exports.synthesizeSpeech(sentence);
+        const audioBase64 = result.audio.toString('base64');
+        combinedStream.write({ type: 'audio_subtitle', audio: audioBase64, subtitle: sentence });
+      } catch (err) {
+        combinedStream.emit('error', err);
       }
-    });
-
-    textStream.on('end', () => {
-      if (textBuffer.trim().length > 0) {
-        const request = {
-          text: textBuffer,
-        };
-        ws.send(JSON.stringify(request));
-      }
-      const eosMessage = { text: "" };
-      ws.send(JSON.stringify(eosMessage));
-      console.log('[ElevenLabsService] Subtitle text stream ended. Sent EOS message.');
-    });
-  });
-
-  ws.on('message', (message) => {
-    const data = JSON.parse(message);
-    if (data.audio) {
-      combinedStream.write({ type: 'audio', chunk: data.audio }); // audio is already base64
     }
-    if (data.normalizedAlignment) {
-        // The new format for word boundaries
-        const { words } = data.normalizedAlignment;
-        for (const word of words) {
-             const subtitle = {
-                text: word.word,
-                startTime: word.start,
-                endTime: word.end,
-            };
-            combinedStream.write({ type: 'subtitle', subtitle });
-        }
-    }
-    if (data.isFinal) {
+    processing = false;
+    if (streamEnded) {
       combinedStream.end();
     }
-    if (data.error) {
-        combinedStream.emit('error', new Error(data.error));
+  };
+
+  let sentenceBuffer = '';
+  textStream.on('data', (chunk) => {
+    sentenceBuffer += chunk.toString();
+    // Split on period, question mark, or exclamation mark followed by a space or end of string
+    const sentences = sentenceBuffer.match(/[^.?!]+[.?!]+(\s|$)/g) || [];
+    if (sentences.length > 0) {
+      for (let i = 0; i < sentences.length; i++) {
+        sentenceQueue.push(sentences[i].trim());
+      }
+      // Remove emitted sentences from buffer
+      sentenceBuffer = sentenceBuffer.replace(/([^\.?!]+[\.?!]+(\s|$))/g, '');
+      processQueue();
     }
   });
 
-  ws.on('error', (error) => {
-    console.error('[ElevenLabsService] Subtitle WebSocket error:', error);
-    combinedStream.emit('error', error);
-  });
-
-  ws.on('close', (code, reason) => {
-    console.log(`[ElevenLabsService] Subtitle WebSocket closed: ${code} ${reason}`);
-    if (!combinedStream.writableEnded) {
-      combinedStream.end();
+  textStream.on('end', () => {
+    if (sentenceBuffer.trim().length > 0) {
+      sentenceQueue.push(sentenceBuffer);
     }
+    streamEnded = true;
+    processQueue();
   });
 
   return combinedStream;

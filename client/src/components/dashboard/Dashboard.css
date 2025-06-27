@@ -35,6 +35,7 @@
   align-items: center;
   position: relative;
   margin-left: 280px; /* Offset for fixed navbar */
+  background: #eaf2fa;
 }
 
 /* Dashboard Container */

@@ -26,7 +26,6 @@ async function startApp() {
   try {
     // Load secrets from AWS Secrets Manager at the very beginning
     await loadSecrets();
-    console.log('DEBUG: ENCRYPTION_SECRET loaded:', process.env.ENCRYPTION_SECRET ? 'yes' : 'no');
 
     // Now that secrets are loaded, we can require all other modules
     const stripeService = require('./services/stripeService');
@@ -52,7 +51,6 @@ async function startApp() {
 
     // Top-level debug middleware
     app.use((req, res, next) => {
-      console.log('[DEBUG] Top-level:', req.method, req.originalUrl);
       next();
     });
 
@@ -145,7 +143,6 @@ async function startApp() {
     // --- 404 and Error Handlers ---
     // Debug unmatched routes
     app.use((req, res, next) => {
-        console.log('[DEBUG] Unmatched route:', req.method, req.originalUrl);
         next();
     });
     // Handle 404 - must be after all other routes

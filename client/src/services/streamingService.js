@@ -29,14 +29,11 @@ class UnifiedStreamingService {
     while (attempts <= MAX_RETRIES) {
       if (this.isCancelled) return;
       try {
-        console.log('[DEBUG] UnifiedStreamingService: Attempting stream, attempt', attempts + 1);
         await this._attemptStream(mode, streamUrl, body, token);
         return; // Success, exit the loop
       } catch (error) {
-        console.error('[DEBUG] UnifiedStreamingService: Stream attempt failed:', error);
         attempts++;
         if (attempts > MAX_RETRIES) {
-          console.error('[DEBUG] UnifiedStreamingService: All streaming attempts failed. Executing fallback.');
           if (this.onFallback) {
             this.onFallback('streaming connection failed. getting the full response...');
           }
@@ -54,9 +51,6 @@ class UnifiedStreamingService {
 
     // Get CSRF token from localStorage (set by CsrfContext.js)
     const csrfToken = localStorage.getItem('csrfToken');
-    console.log('[DEBUG] StreamingService: CSRF token:', csrfToken);
-    console.log('[DEBUG] StreamingService: document.cookie:', document.cookie);
-    console.log('[DEBUG] StreamingService: Fetching', url, 'with body', body);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -70,7 +64,6 @@ class UnifiedStreamingService {
       credentials: 'include',
     });
 
-    console.log('[DEBUG] StreamingService: Fetch response status:', response.status);
     if (!response.ok || !response.body) {
       throw new Error(`Server error: ${response.status}`);
     }
@@ -90,7 +83,8 @@ class UnifiedStreamingService {
             }
             if (dataStr) {
               const data = JSON.parse(dataStr);
-              console.log('[DEBUG] StreamingService: Received chunk:', data);
+              // LOG: Print every incoming event type and relevant data
+              console.log('[UnifiedStreamingService] Received event:', data.type, data);
               if (data.type === 'audio' && this.onAudioChunk) {
                   // Assuming server sends base64 encoded audio chunk
                   const byteCharacters = atob(data.chunk);
@@ -102,19 +96,31 @@ class UnifiedStreamingService {
                   this.onAudioChunk(byteArray);
               } else if (data.type === 'subtitle' && this.onSubtitleChunk) {
                   this.onSubtitleChunk(data.subtitle);
+              } else if (data.type === 'audio_subtitle') {
+                  // New: handle paired audio+subtitle event
+                  if (this.onAudioChunk) {
+                    const byteCharacters = atob(data.audio);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    this.onAudioChunk(byteArray);
+                  }
+                  if (this.onSubtitleChunk) {
+                    this.onSubtitleChunk(data.subtitle);
+                  }
               } else if (data.type === 'chunk' && this.onTextChunk) {
                   this.onTextChunk(data);
               }
             }
         } catch (e) {
-            console.error('[DEBUG] StreamingService: Error parsing stream data chunk:', e);
         }
     };
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        console.log('[DEBUG] StreamingService: Stream ended');
         this.onStreamEnd();
         break;
       }
