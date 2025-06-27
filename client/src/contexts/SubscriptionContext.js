@@ -76,14 +76,14 @@ export const SubscriptionProvider = ({ children }) => {
 
   // Fetch status from API and update cache
   const fetchStatus = useCallback(async () => {
-    console.log('[SubscriptionContext] Fetching status...');
+    console.log('[SubscriptionContext] Fetching subscription status from backend...');
     setLoading(true);
     setError(null);
-
     try {
       const data = await getSubscriptionStatus();
       console.log('[SubscriptionContext] Fetched data:', data);
-      setStatus(data.subscriptionStatus || 'inactive');
+      // Store the full status object instead of just the string
+      setStatus(data);
       setTrialEnd(data.trialEnd);
       setCurrentPeriodEnd(data.currentPeriodEnd);
       setCancelAtPeriodEnd(data.cancelAtPeriodEnd);
@@ -91,34 +91,22 @@ export const SubscriptionProvider = ({ children }) => {
     } catch (err) {
       console.error('[SubscriptionContext] Error fetching status:', err);
       setError('Failed to load subscription status.');
-      setStatus('inactive'); // Default to inactive on error
+      setStatus({ subscriptionStatus: 'inactive' }); // Default to inactive object on error
     } finally {
-      console.log('[SubscriptionContext] Fetch complete. Loading set to false.');
       setLoading(false);
     }
   }, [token]);
 
-  // On mount and when token changes, try cache first, then fetch
+  // Always fetch latest status on mount and when token changes
   useEffect(() => {
-    if (!token) {
-      setStatus(null);
-      setLoading(false);
-      return;
-    }
-    const cachedStatus = loadFromCache();
-    if (cachedStatus) {
-      setStatus(cachedStatus);
-      setLoading(false);
-    } else {
-      fetchStatus();
-    }
-    // eslint-disable-next-line
-  }, [fetchStatus, token]);
+    fetchStatus();
+  }, [fetchStatus]);
 
-  // Allow manual refresh (e.g., after checkout)
-  const forceRefresh = async () => {
-    await fetchStatus();
-  };
+  // Expose forceRefresh to always fetch latest status
+  const forceRefresh = useCallback(() => {
+    console.log('[SubscriptionContext] forceRefresh called!');
+    fetchStatus();
+  }, [fetchStatus]);
 
   return (
     <SubscriptionContext.Provider value={{ status, setStatus, loading, error, forceRefresh }}>

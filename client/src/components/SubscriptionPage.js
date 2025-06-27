@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import SubscriptionStatusBanner from './subscription/SubscriptionStatusBanner';
 import Navbar from './navigation/Navbar';
@@ -8,14 +8,14 @@ import './subscription/SubscriptionPage.css';
 const SubscriptionPage = () => {
   const { loading, forceRefresh } = useSubscription();
   const location = useLocation();
+  const navigate = useNavigate();
   const refreshTriggered = useRef(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     if (searchParams.has('session_id') && !refreshTriggered.current) {
-      console.log('Checkout success detected, forcing subscription status refresh.');
+      console.log('[SubscriptionPage] Checkout success detected, forcing subscription status refresh.');
       refreshTriggered.current = true;
-      // Use a small timeout to give the webhook a moment to arrive
       setTimeout(() => {
         forceRefresh();
       }, 500);
@@ -43,6 +43,13 @@ const SubscriptionPage = () => {
       <Navbar />
       <div className="subscription-main">
         <div className="subscription-container">
+          <button
+            className="subscription-back-button"
+            onClick={() => navigate('/settings')}
+            style={{ marginBottom: '1.5rem', background: 'none', border: 'none', color: '#4b7bec', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            ← Back to Settings
+          </button>
           <div className="subscription-header">
             <h1 className="subscription-title">Subscription Details</h1>
             <p className="subscription-subtitle">Manage your subscription and billing</p>
