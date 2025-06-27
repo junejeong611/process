@@ -29,6 +29,9 @@ const SettingsPage = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Get token directly from localStorage/sessionStorage
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -77,7 +80,7 @@ const SettingsPage = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch('/api/user/change-password', {
+      const response = await fetch('/api/users/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,39 +120,72 @@ const SettingsPage = () => {
           <form className="settings-form" onSubmit={handleChangePassword} autoComplete="off">
             <div className="settings-form-group">
               <label htmlFor="currentPassword">Current Password</label>
-              <input
-                id="currentPassword"
-                type="password"
-                className="settings-form-input"
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  id="currentPassword"
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  className="settings-form-input"
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(v => !v)}
+                  style={{ marginLeft: 8 }}
+                  tabIndex="-1"
+                >
+                  {showCurrentPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
             <div className="settings-form-group">
               <label htmlFor="newPassword">New Password</label>
-              <input
-                id="newPassword"
-                type="password"
-                className="settings-form-input"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-              />
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  id="newPassword"
+                  type={showNewPassword ? 'text' : 'password'}
+                  className="settings-form-input"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(v => !v)}
+                  style={{ marginLeft: 8 }}
+                  tabIndex="-1"
+                >
+                  {showNewPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
             <div className="settings-form-group">
               <label htmlFor="confirmPassword">Confirm New Password</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                className="settings-form-input"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-              />
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className="settings-form-input"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(v => !v)}
+                  style={{ marginLeft: 8 }}
+                  tabIndex="-1"
+                >
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
             <button className="settings-button primary-button" type="submit" disabled={loading}>
               {loading ? 'Updating...' : 'Change Password'}
