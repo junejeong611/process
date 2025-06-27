@@ -12,19 +12,11 @@ const Navbar = () => {
   const { status, loading } = useSubscription();
   const { isAdmin } = useAuth();
 
-  // Debug logs
-  console.log('Navbar - Subscription Status:', status);
-  console.log('Navbar - Loading:', loading);
-
   // Check if user has premium access
   const hasPremiumAccess = status && (
     status.subscriptionStatus === 'active' ||
     status.subscriptionStatus === 'trialing'
   ) && status.subscriptionStatus !== 'inactive';
-
-  // Debug log for premium access
-  console.log('Navbar - Has Premium Access:', hasPremiumAccess);
-  console.log('Navbar - Current Status:', status?.subscriptionStatus);
 
   const navItems = [
     {

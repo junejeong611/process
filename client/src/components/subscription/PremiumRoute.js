@@ -25,9 +25,9 @@ const PremiumRoute = ({ children }) => {
   }
 
   return (
-    <div className="subscription-status-banner inactive">
-      <h3>This is a premium feature.</h3>
-      <p>Start your free trial or subscribe to access this feature.</p>
+    <div className="subscription-status-banner premium-feature-banner">
+      <h3>this is a premium feature.</h3>
+      <p>start your free trial or subscribe to access this feature.</p>
       <div className="subscription-actions">
         <SubscriptionActions />
       </div>

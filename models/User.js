@@ -169,7 +169,6 @@ userSchema.virtual('fullName').get(function() {
 });
 
 const encKey = process.env.ENCRYPTION_SECRET;
-console.log('DEBUG: User.js - ENCRYPTION_SECRET present:', !!encKey, 'length:', encKey ? encKey.length : 0);
 if (!encKey) {
   throw new Error('ENCRYPTION_SECRET environment variable is not set!');
 }
@@ -224,11 +223,6 @@ userSchema.statics.findByEmail = function(email) {
 // Add a static method to log decrypted email and userId when finding by ID
 userSchema.statics.findByIdWithDebug = async function(id) {
   const user = await this.findById(id);
-  if (user) {
-    console.log('DEBUG: User.js - Decrypted user found. userId:', user._id, 'email:', user.email);
-  } else {
-    console.log('DEBUG: User.js - No user found for userId:', id);
-  }
   return user;
 };
 

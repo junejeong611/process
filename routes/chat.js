@@ -392,19 +392,16 @@ router.post('/message', auth, aiCallLimiter, async (req, res) => {
 // @desc    Stream AI response (real implementation)
 // @access  Private
 router.post('/stream', auth, aiCallLimiter, async (req, res) => {
-  console.log('[DEBUG] /api/v1/chat/stream called. Body:', req.body);
   const { conversationId } = req.body;
   const userObjectId = mongoose.Types.ObjectId.isValid(req.user.userId) ? new mongoose.Types.ObjectId(req.user.userId) : req.user.userId;
   console.log('Looking for conversation (stream):', conversationId, 'for user:', req.user.userId, typeof req.user.userId);
   const conversation = await Conversation.findOne({ _id: conversationId, userId: userObjectId });
   console.log('Conversation found (stream):', conversation);
   if (!conversation) {
-    console.log('[DEBUG] /api/v1/chat/stream: Conversation not found. Returning 404.');
     return res.status(404).json({ error: 'Conversation not found.' });
   }
   const streamingManager = new StreamingManager(req, res);
   await streamingManager.handleStream();
-  console.log('[DEBUG] /api/v1/chat/stream: StreamingManager.handleStream() called.');
 });
 
 module.exports = router;

@@ -16,8 +16,6 @@ class StreamingManager {
     const { content, conversationId, mode = 'text', enableSubtitles } = this.req.body;
     const startTime = Date.now();
 
-    console.log('[DEBUG] StreamingManager: handleStream called with', { content, conversationId, mode, enableSubtitles });
-
     if (!content || !conversationId) {
       this.res.status(400).json({ error: 'Content and conversationId are required.' });
       return;
@@ -42,14 +40,12 @@ class StreamingManager {
       // A new stream to collect the full text from Claude
       const textCaptureStream = new (require('stream').PassThrough)();
       claudeStream.on('data', (chunk) => {
-        console.log('[DEBUG] StreamingManager: Claude stream chunk:', chunk);
         // If chunk is a Buffer or string, parse it
         let parsedChunk = chunk;
         if (typeof chunk === 'string') {
           try {
             parsedChunk = JSON.parse(chunk);
           } catch (e) {
-            console.error('[DEBUG] StreamingManager: Error parsing Claude chunk:', e);
             return;
           }
         }
@@ -57,7 +53,6 @@ class StreamingManager {
           try {
             parsedChunk = JSON.parse(chunk.toString('utf8'));
           } catch (e) {
-            console.error('[DEBUG] StreamingManager: Error parsing Claude chunk buffer:', e);
             return;
           }
         }
@@ -106,12 +101,10 @@ class StreamingManager {
         }
       });
       claudeStream.on('end', () => {
-        console.log('[DEBUG] StreamingManager: Claude stream ended');
         textCaptureStream.end();
         this.saveAiMessage(fullTextResponse, conversationId);
       });
       claudeStream.on('error', (err) => {
-        console.error('[DEBUG] StreamingManager: Claude stream error:', err);
         streamingMetricsService.recordAPICall('claude', Date.now() - claudeApiCallStart, false, err.name);
         textCaptureStream.emit('error', err)
       });
@@ -127,7 +120,6 @@ class StreamingManager {
       }
 
     } catch (error) {
-      console.error('[DEBUG] StreamingManager: Error in stream handler:', error);
       // Ensure a response is sent on error
       if (!this.res.headersSent) {
         this.res.status(500).json({ error: 'Failed to handle stream.' });
@@ -143,11 +135,9 @@ class StreamingManager {
     
     let firstChunk = true;
     let responseEnded = false;
-    console.log('[DEBUG] streamText: Handler attached.');
 
     textStream.on('data', (chunk) => {
       if (responseEnded) {
-        console.warn('[DEBUG] streamText: Received data after response ended!');
         return;
       }
       if (firstChunk) {
@@ -155,52 +145,41 @@ class StreamingManager {
         const latency = Date.now() - startTime;
         streamingMetricsService.recordFirstChunk('text', latency);
       }
-      console.log('[DEBUG] streamText: Sending chunk to client:', chunk.toString());
       try {
         this.res.write(`data: ${JSON.stringify({ type: 'chunk', text: chunk.toString() })}\n\n`);
       } catch (err) {
-        console.error('[DEBUG] streamText: Error writing chunk to response:', err);
       }
     });
 
     textStream.on('end', () => {
       if (responseEnded) {
-        console.warn('[DEBUG] streamText: end event after response already ended!');
         return;
       }
       streamingMetricsService.recordTextCompletion(true);
-      console.log('[DEBUG] streamText: Stream to client ended');
       try {
         this.res.write(`data: ${JSON.stringify({ type: 'end' })}\n\n`);
         this.res.end();
         responseEnded = true;
-        console.log('[DEBUG] streamText: Response ended (normal).');
       } catch (err) {
-        console.error('[DEBUG] streamText: Error ending response:', err);
       }
     });
 
     textStream.on('error', (err) => {
       if (responseEnded) {
-        console.warn('[DEBUG] streamText: error event after response already ended!', err);
         return;
       }
       streamingMetricsService.recordTextCompletion(false);
       streamingMetricsService.recordErrorEvent('TEXT_STREAM_FAILURE', { error: err.message });
-      console.error('[DEBUG] streamText: Error in streamText:', err);
       try {
         this.res.write(`data: ${JSON.stringify({ type: 'error', message: 'Text stream failed' })}\n\n`);
         this.res.end();
         responseEnded = true;
-        console.log('[DEBUG] streamText: Response ended (error).');
       } catch (endErr) {
-        console.error('[DEBUG] streamText: Error ending response after error:', endErr);
       }
     });
 
     this.res.on('close', () => {
       responseEnded = true;
-      console.log('[DEBUG] streamText: Response closed by client.');
     });
   }
 
@@ -223,7 +202,10 @@ class StreamingManager {
             const elevenLabsLatency = Date.now() - elevenLabsApiCallStart;
             streamingMetricsService.recordAPICall('elevenLabs', elevenLabsLatency, true);
         }
-        this.res.write(`data: ${JSON.stringify(data)}\n\n`);
+        // Only forward audio_subtitle events
+        if (data.type === 'audio_subtitle') {
+          this.res.write(`data: ${JSON.stringify(data)}\n\n`);
+        }
     });
 
     combinedStream.on('end', () => {

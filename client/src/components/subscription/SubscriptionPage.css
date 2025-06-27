@@ -438,4 +438,11 @@
   .subscription-button {
     display: none;
   }
+}
+
+.premium-feature-banner {
+  background: var(--bg-light);
+  margin-top: 4rem;
+  margin-bottom: 0;
+  box-shadow: var(--shadow-light);
 } 

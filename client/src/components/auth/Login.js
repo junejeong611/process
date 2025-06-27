@@ -218,18 +218,6 @@ const Login = () => {
     };
   }, []);
 
-  // Real-time validation
-  useEffect(() => {
-    let validationError = '';
-    if (debouncedEmail && debouncedEmail.trim()) {
-      validationError = validateEmail(debouncedEmail);
-    }
-    
-    if (validationError !== emailError) {
-      setEmailError(validationError);
-    }
-  }, [debouncedEmail, emailError]);
-
   // Real-time validation for password only
   useEffect(() => {
     if (debouncedPassword) {
@@ -314,15 +302,16 @@ const Login = () => {
 
   const handleEmailBlur = () => {
     setEmailBlurred(true);
-    const validationError = validateEmail(email);
-    setEmailError(validationError);
+    setEmailFocused(false);
+    setEmailError(validateEmail(email));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setHasSubmitted(true);
-    
+    setEmailError(validateEmail(email));
     if (isLoading || !isOnline || countdown > 0) return;
+    if (validateEmail(email)) return; // Prevent submit if invalid
     
     // Prevent multiple quick submissions
     const now = Date.now();
@@ -799,7 +788,7 @@ const Login = () => {
                       value={email}
                       onChange={handleEmailChange}
                       onFocus={() => setEmailFocused(true)}
-                      onBlur={() => { setEmailBlurred(true); setEmailFocused(false); }}
+                      onBlur={handleEmailBlur}
                       required
                       aria-required="true"
                       aria-invalid={!!emailError}
@@ -896,15 +885,6 @@ const Login = () => {
                      countdown > 0 ? `wait ${formatCountdown(countdown)}` :
                      'sign in'}
                   </span>
-                  {retryCount > 0 && !isLoading && !loginSuccess && (
-                    <span 
-                      className="retry-count" 
-                      aria-label={`attempt ${retryCount + 1}`}
-                      aria-hidden="true"
-                    >
-                      #{retryCount + 1}
-                    </span>
-                  )}
                 </button>
 
                 <div id="login-status" className="visually-hidden" aria-live="polite">

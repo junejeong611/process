@@ -1,8 +1,10 @@
+@import '../InsightsPage.css';
+
 /* AdminDashboard.css */
 
 .admin-dashboard {
   padding: 2rem;
-  background-color: #f0f2f5; /* A light grey background, consistent with modern dashboards */
+  background-color: #eaf2fa; /* Match the page and layout background */
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }

@@ -44,11 +44,35 @@ const AdminDashboard = () => {
     };
 
     if (loading && !metrics) {
-        return <div className="admin-dashboard"><h2>Loading metrics...</h2></div>;
+        return (
+            <div className="loading-state">
+                <div className="loading-spinner" />
+                <p>Loading admin metrics and system health...</p>
+            </div>
+        );
     }
 
     if (error) {
-        return <div className="admin-dashboard"><div className="error-card">{error}</div></div>;
+        return (
+            <div className="error-container">
+                <div className="error-card">
+                    <div className="error-icon-lock">
+                        <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="1.5" />
+                            <path d="M12 7v6" stroke="#e53e3e" strokeWidth="1.5" strokeLinecap="round" />
+                            <circle cx="12" cy="16" r="1" fill="#e53e3e" />
+                        </svg>
+                    </div>
+                    <h3 className="error-title-text">application error</h3>
+                    <p className="error-message-text">Failed to load admin metrics. Please refresh the page.</p>
+                    <div className="error-actions">
+                        <button className="refresh-button-centered" onClick={() => window.location.reload()}>
+                            refresh page
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (!metrics) {

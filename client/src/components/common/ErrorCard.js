@@ -51,7 +51,7 @@ const ErrorCard = ({ error, errorCategory, onRetry, retryCount }) => {
         <button
           className="retry-button"
           onClick={onRetry}
-          aria-label={`Retry action (attempt ${retryCount + 2})`}
+          aria-label={`Retry action`}
           type="button"
         >
           Try Again

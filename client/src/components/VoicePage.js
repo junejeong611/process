@@ -5,6 +5,15 @@ import PulsingHeart from './PulsingHeart';
 import UnifiedStreamingService from '../services/streamingService';
 import useCreateConversation from '../utils/useCreateConversation';
 import AnimatedSubtitles from './chat/AnimatedSubtitles';
+import { useCsrfToken } from '../contexts/CsrfContext';
+
+const traumaGreetings = [
+  "you are safe here, ready when you are",
+  "take your time, I'm here to listen",
+  "I'm here for you",
+  "this is a judgment-free space",
+  "how are you feeling now?"
+];
 
 const VoicePage = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -16,6 +25,7 @@ const VoicePage = () => {
   const audioChunksRef = useRef([]);
   const audioPlayerRef = useRef(null); // For <audio> element
   const audioQueueRef = useRef([]); // To queue blobs for playback
+  const subtitleQueueRef = useRef([]); // To queue completed subtitle sentences
   const isPlayingRef = useRef(false);
   
   // --- Web Audio API Refs ---
@@ -23,10 +33,15 @@ const VoicePage = () => {
   const decodedAudioQueueRef = useRef([]);
   const nextStartTimeRef = useRef(0);
   const isPlayingAudioRef = useRef(false);
+  const pendingSubtitleLinesRef = useRef([]); // Buffer for subtitle lines (not used in new logic)
+  const currentSentenceRef = useRef([]); // Buffer for current sentence words
   // -------------------------
 
   const { conversationId, createConversation, loading: creatingConversation } = useCreateConversation('voice');
   const streamingServiceRef = useRef(null);
+  const [greeting, setGreeting] = useState(traumaGreetings[0]);
+  const { csrfToken, isCsrfReady } = useCsrfToken();
+  const [csrfError, setCsrfError] = useState('');
 
   const getAudioContext = () => {
     if (!audioContextRef.current) {
@@ -79,55 +94,49 @@ const VoicePage = () => {
     };
   }, []);
 
-  const processAudioQueue = useCallback(() => {
-    if (isPlayingRef.current || audioQueueRef.current.length === 0) {
-      return;
-    }
+  // NOTE: For perfect sync, the backend must send each audio chunk and its corresponding subtitle sentence together, or provide explicit timing info for each. Currently, we pair by order of arrival, which is only an approximation.
 
+  const processAudioSubtitleQueue = useCallback(() => {
+    if (isPlayingRef.current) return;
+    if (audioQueueRef.current.length === 0 || subtitleQueueRef.current.length === 0) return;
     isPlayingRef.current = true;
     const audioBlob = audioQueueRef.current.shift();
+    const subtitle = subtitleQueueRef.current.shift();
+    console.log('[processAudioSubtitleQueue] Playing audio and showing subtitle:', subtitle);
+    setSubtitles([subtitle]);
     const url = URL.createObjectURL(audioBlob);
-    
-    // Cleanup previous URL if it exists to prevent memory leaks
     if (audioPlayerRef.current && audioPlayerRef.current.src) {
-        URL.revokeObjectURL(audioPlayerRef.current.src);
+      URL.revokeObjectURL(audioPlayerRef.current.src);
     }
-
     audioPlayerRef.current.src = url;
     audioPlayerRef.current.play().catch(e => console.error("Audio playback failed:", e));
-    
-    // setIsResponding should be true while playing
-    setIsResponding(true); 
+    setIsResponding(true);
   }, []);
-
 
   const handleAudioEnd = useCallback(() => {
     isPlayingRef.current = false;
-    // If there's more audio in the queue, play it
-    if (audioQueueRef.current.length > 0) {
-        processAudioQueue();
+    setSubtitles([]);
+    console.log('[handleAudioEnd] Audio ended, clearing subtitle. Queues:', audioQueueRef.current.length, subtitleQueueRef.current.length);
+    if (audioQueueRef.current.length > 0 && subtitleQueueRef.current.length > 0) {
+      setTimeout(() => {
+        processAudioSubtitleQueue();
+      }, 50);
     } else {
-        // Only set to false if the queue is empty
-        setIsResponding(false);
-        setSubtitles([]);
+      setIsResponding(false);
     }
-  }, [processAudioQueue]);
-
+  }, [processAudioSubtitleQueue]);
 
   useEffect(() => {
-    // Create an audio element and attach listeners
     const audioPlayer = new Audio();
     audioPlayerRef.current = audioPlayer;
     audioPlayer.addEventListener('ended', handleAudioEnd);
-
     return () => {
-      // Cleanup
       mediaRecorderRef.current?.stop();
       streamingServiceRef.current?.close();
       if (audioPlayerRef.current) {
         audioPlayer.removeEventListener('ended', handleAudioEnd);
         if (audioPlayerRef.current.src) {
-            URL.revokeObjectURL(audioPlayerRef.current.src);
+          URL.revokeObjectURL(audioPlayerRef.current.src);
         }
       }
     };
@@ -139,37 +148,24 @@ const VoicePage = () => {
       setIsResponding(false);
       return;
     }
-    
     setSubtitles([]);
     audioQueueRef.current = [];
+    subtitleQueueRef.current = [];
     isPlayingRef.current = false;
     setIsFallbackActive(false);
     setFallbackText('');
-    
-    let accumulatedAudio = [];
-
     streamingServiceRef.current = new UnifiedStreamingService({
       onAudioChunk: (audioChunk) => {
-        accumulatedAudio.push(audioChunk);
+        // Only push when paired with subtitle
+        audioQueueRef.current.push(new Blob([audioChunk], { type: 'audio/mpeg' }));
+      },
+      onSubtitleChunk: (subtitleSentence) => {
+        // Only push when paired with audio
+        subtitleQueueRef.current.push(subtitleSentence);
+        processAudioSubtitleQueue();
       },
       onStreamEnd: () => {
-        if (isFallbackActive) {
-            setIsResponding(false);
-            return;
-        }
-
-        if(accumulatedAudio.length > 0) {
-            const audioBlob = new Blob(accumulatedAudio, { type: 'audio/mpeg' });
-            audioQueueRef.current.push(audioBlob);
-            processAudioQueue();
-            accumulatedAudio = [];
-        } else {
-            // If no audio was ever queued, end the responding state.
-            if(audioQueueRef.current.length === 0 && !isPlayingRef.current) {
-                setIsResponding(false);
-                setSubtitles([]);
-            }
-        }
+        setIsResponding(false);
       },
       onFallback: (message) => {
         console.warn('Voice stream fallback:', message);
@@ -186,21 +182,14 @@ const VoicePage = () => {
         if (isFallbackActive) {
           setFallbackText(prev => prev === "I'm having a little trouble with my voice, so I'll type my response here..." ? textChunk : prev + textChunk);
         }
-        // This is where we'd handle the old text-only stream if needed
       },
-       onSubtitleChunk: (subtitle) => {
-         // New handler for word-level subtitles
-         setSubtitles(prev => [...prev, subtitle]);
-       },
     });
-
     streamingServiceRef.current.start('voice', {
       conversationId: convoId,
       content: text,
-      enableSubtitles: true // New flag to request subtitles
+      enableSubtitles: true
     });
-  }, [isFallbackActive, processAudioQueue]);
-
+  }, [isFallbackActive, processAudioSubtitleQueue]);
 
   const handleTranscriptionAndStream = async (audioBlob) => {
     setIsResponding(true);
@@ -245,9 +234,21 @@ const VoicePage = () => {
   };
 
   const startRecording = async () => {
-    if (isResponding) return;
+    console.log('startRecording called');
+    if (isResponding) {
+      console.log('startRecording aborted: isResponding is true');
+      return;
+    }
+    if (!isCsrfReady || !csrfToken) {
+      setCsrfError('Security token not ready. Please wait and try again.');
+      console.warn('CSRF token not ready, aborting recording.');
+      return;
+    } else {
+      setCsrfError('');
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone stream obtained', stream);
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
@@ -257,18 +258,16 @@ const VoicePage = () => {
       };
 
       recorder.onstop = () => {
+        console.log('MediaRecorder stopped');
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         handleTranscriptionAndStream(audioBlob);
-        // We no longer stop all tracks here, as the microphone should be released
-        // only after we are sure we are done with it.
-        // Let's move track stopping to a more controlled place, e.g., after transcription.
       };
 
       recorder.start(1000);
       setIsRecording(true);
+      console.log('MediaRecorder started');
     } catch (err) {
       console.error('Error starting recording:', err);
-      // Ensure microphone tracks are stopped on error
       if (mediaRecorderRef.current?.stream) {
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       }
@@ -276,10 +275,14 @@ const VoicePage = () => {
   };
 
   const stopRecording = () => {
+    console.log('stopRecording called');
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
       // The onstop handler will be invoked, which releases the mic tracks
       setIsRecording(false);
+      console.log('MediaRecorder stop requested');
+    } else {
+      console.log('stopRecording: no active recording');
     }
   };
 
@@ -290,27 +293,70 @@ const VoicePage = () => {
     return "start recording";
   }
 
+  useEffect(() => {
+    // Cycle through greetings using localStorage
+    const key = 'voicepage_greeting_idx';
+    let idx = parseInt(localStorage.getItem(key) || '0', 10);
+    if (isNaN(idx) || idx < 0 || idx >= traumaGreetings.length) idx = 0;
+    setGreeting(traumaGreetings[idx]);
+    const nextIdx = (idx + 1) % traumaGreetings.length;
+    localStorage.setItem(key, nextIdx.toString());
+  }, []);
+
+  // Add a log in the render to see subtitle state changes
+  console.log('[VoicePage render] subtitles:', subtitles, 'isResponding:', isResponding);
+
   return (
-    <div className="voice-page-container">
-        <div className="status-indicator">
-            {isRecording ? 'recording...' : isResponding ? 'responding...' : 'ready'}
-        </div>
-        <div className={`heart-container ${isRecording || isResponding ? 'active' : ''}`}>
+    <div className="voice-bg">
+      <div className="voice-main-centered">
+        <div className="voice-center">
+          <div className="voice-title-status-container">
+            <div className={`voice-greeting ${(!isRecording && !isResponding) ? 'show' : 'hide'}`}>{greeting}</div>
+            <div className={`voice-status ${(isRecording || isResponding) ? 'show' : 'hide'}`}>{isRecording ? 'recording...' : isResponding ? 'responding...' : ''}</div>
+          </div>
+          <div className={`voice-heart-container${isRecording || isResponding ? ' active' : ''}`}> {/* active is not styled in CSS, but keep for logic */}
             <PulsingHeart />
+          </div>
+          {csrfError && (
+            <div className="csrf-error-message" style={{ color: 'red', marginBottom: '1em' }}>{csrfError}</div>
+          )}
+          <button 
+            onClick={() => {
+              console.log('Mic button clicked, isRecording:', isRecording, 'isResponding:', isResponding, 'creatingConversation:', creatingConversation);
+              if (isRecording) stopRecording(); else startRecording();
+            }}
+            className="bottom-mic-button"
+            disabled={isResponding || creatingConversation || !isCsrfReady || !csrfToken}
+            aria-label={
+              creatingConversation
+                ? "initializing"
+                : isRecording
+                ? "stop recording"
+                : isResponding
+                ? "ai is responding"
+                : !isCsrfReady || !csrfToken
+                ? "security token not ready"
+                : "start recording"
+            }
+          >
+            {creatingConversation ? (
+              <span className="mic-spinner" />
+            ) : (
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="10" r="4" />
+                <line x1="12" y1="14" x2="12" y2="19" />
+                <line x1="9" y1="19" x2="15" y2="19" />
+              </svg>
+            )}
+          </button>
+          <AnimatedSubtitles subtitles={subtitles} audioPlayer={audioPlayerRef} isResponding={isResponding} />
+          {isFallbackActive && (
+            <div className="fallback-text-container">
+                <p>{fallbackText}</p>
+            </div>
+          )}
         </div>
-        <AnimatedSubtitles subtitles={subtitles} audioPlayer={audioPlayerRef} isResponding={isResponding} />
-      <button 
-        onClick={isRecording ? stopRecording : startRecording}
-        className="record-button"
-        disabled={isResponding || creatingConversation}
-      >
-        {buttonText()}
-      </button>
-      {isFallbackActive && (
-        <div className="fallback-text-container">
-            <p>{fallbackText}</p>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

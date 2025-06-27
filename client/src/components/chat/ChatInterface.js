@@ -31,6 +31,14 @@ const categorizeError = (error) => {
   return { type: 'unknown', canRetry: true, severity: 'error' };
 };
 
+// Trauma-informed greetings for chat
+const traumaGreetings = [
+  "You're safe here. Ready when you are.",
+  "Take your time—I'm here to listen.",
+  "Whenever you're ready, I'm here for you.",
+  "Your voice matters. Let's begin when you feel comfortable."
+];
+
 const ChatInterface = () => {
   // State Management
   const [messages, setMessages] = useState([]);
@@ -113,15 +121,22 @@ const ChatInterface = () => {
               sender: msg.sender,
               timestamp: msg.createdAt || new Date().toISOString()
             }));
-           // If there are no user or AI messages with non-empty content, add the static AI welcome message
+           // If there are no user or AI messages with non-empty content, add the cycling AI welcome message
            const hasUserOrAiMessage = loadedMessages.some(
              m => (m.sender === 'user' || m.sender === 'bot' || m.sender === 'ai') && m.text && m.text.trim() !== ''
            );
            if (!hasUserOrAiMessage) {
+             // Cycle through greetings using localStorage
+             const key = 'chat_greeting_idx';
+             let idx = parseInt(localStorage.getItem(key) || '0', 10);
+             if (isNaN(idx) || idx < 0 || idx >= traumaGreetings.length) idx = 0;
+             const greeting = traumaGreetings[idx];
+             const nextIdx = (idx + 1) % traumaGreetings.length;
+             localStorage.setItem(key, nextIdx.toString());
              loadedMessages.push({
                id: generateMessageId(),
                sender: 'bot',
-               content: "ready when you are to help you process what you're feeling",
+               content: greeting,
                timestamp: new Date().toISOString()
              });
            }
