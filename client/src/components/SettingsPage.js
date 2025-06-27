@@ -23,7 +23,13 @@ const deleteAccount = async (token) => {
 const SettingsPage = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
-  
+  const [success, setSuccess] = useState(null);
+  const [loading, setLoading] = useState(false);
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   // Get token directly from localStorage/sessionStorage
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
@@ -57,6 +63,44 @@ const SettingsPage = () => {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSuccess('Password updated successfully');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setError(data.message || 'Failed to change password');
+      }
+    } catch (err) {
+      setError('Failed to change password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       <div className="settings-container">
@@ -64,11 +108,53 @@ const SettingsPage = () => {
         <p className="settings-subtitle">Manage your account and preferences</p>
 
         {error && <p className="error-message">{error}</p>}
+        {success && <p className="success-message">{success}</p>}
 
         {/* Change Password Section */}
         <div className="settings-card">
           <h2 className="settings-card-title">Change Password</h2>
-          <p className="settings-card-description">Update your password for better security. (Feature coming soon)</p>
+          <p className="settings-card-description">Update your password for better security.</p>
+          <form className="settings-form" onSubmit={handleChangePassword} autoComplete="off">
+            <div className="settings-form-group">
+              <label htmlFor="currentPassword">Current Password</label>
+              <input
+                id="currentPassword"
+                type="password"
+                className="settings-form-input"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="settings-form-group">
+              <label htmlFor="newPassword">New Password</label>
+              <input
+                id="newPassword"
+                type="password"
+                className="settings-form-input"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="settings-form-group">
+              <label htmlFor="confirmPassword">Confirm New Password</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                className="settings-form-input"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            <button className="settings-button primary-button" type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Change Password'}
+            </button>
+          </form>
         </div>
 
         {/* Manage Subscription Section */}

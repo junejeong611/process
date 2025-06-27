@@ -15,7 +15,7 @@ const Navbar = () => {
   console.log('Navbar - Loading:', loading);
 
   // Check if user has premium access
-  const hasPremiumAccess = !loading && status && status !== 'inactive';
+  const hasPremiumAccess = (!loading && status && (status.subscriptionStatus === 'active' || status.subscriptionStatus === 'trialing'));
 
   // Debug log for premium access
   console.log('Navbar - Has Premium Access:', hasPremiumAccess);
@@ -74,18 +74,6 @@ const Navbar = () => {
       requiresPremium: true
     },
     {
-      key: 'subscribe',
-      icon: (
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2"/>
-          <circle cx="12" cy="16" r="1" fill="currentColor"/>
-        </svg>
-      ),
-      label: getSubscriptionLabel(),
-      path: '/subscribe'
-    },
-    {
       key: 'settings',
       icon: (
         <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -108,7 +96,6 @@ const Navbar = () => {
     // Handle route variations
     if (currentPath.startsWith('/chat-history')) return 'history';
     if (currentPath.startsWith('/insights')) return 'insights';
-    if (currentPath.startsWith('/subscribe')) return 'subscribe';
     if (currentPath.startsWith('/dashboard') || currentPath === '/') return 'dashboard';
     
     return 'dashboard'; // Default fallback
