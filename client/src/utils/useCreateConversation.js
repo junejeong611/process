@@ -53,20 +53,12 @@ const useCreateConversation = () => {
       const token = getToken();
       if (!token) throw new Error('No authentication token found');
 
-      // Guard: Ensure CSRF token is present before making the POST
-      const csrfToken = localStorage.getItem('csrfToken');
-      if (!csrfToken) {
-        setError('CSRF token not ready. Please wait and try again.');
-        setIsLoading(false);
-        return null;
-      }
-
       const response = await axiosWithRetry(() =>
         axios.post('/api/v1/chat/conversations', {
           type: 'text',
           wrappedConversationKey: 'dummy-key-for-testing' // TODO: Replace with real key logic
         }, {
-          headers: { Authorization: `Bearer ${token}`, 'X-CSRF-Token': csrfToken },
+          headers: { Authorization: `Bearer ${token}` },
           withCredentials: true
         })
       );

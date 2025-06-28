@@ -16,7 +16,6 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
-const lusca = require('lusca');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { loadKeys } = require('./services/keyService');
 
@@ -87,24 +86,6 @@ async function startApp() {
     // --- API Routes that should NOT have CSRF protection ---
     const API_PREFIX = '/api/v1';
     app.use(`${API_PREFIX}/auth`, authRoutes);
-
-    // Lusca must come after session and cookieParser, but AFTER auth routes
-    app.use(lusca({
-      csrf: {
-        angular: false,
-        methods: ['POST', 'PUT', 'DELETE', 'PATCH'] // Only require CSRF for these methods
-      },
-      xframe: 'SAMEORIGIN',
-      hsts: { maxAge: 31536000 },
-      xssProtection: true,
-      nosniff: true,
-      referrerPolicy: 'same-origin'
-    }));
-
-    // Now req.csrfToken is available!
-    app.get('/api/v1/csrf-token', (req, res) => {
-      res.json({ csrfToken: req.csrfToken() });
-    });
 
     app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 

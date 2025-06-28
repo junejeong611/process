@@ -116,8 +116,7 @@ const Login = () => {
   const [shakeEmail, setShakeEmail] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
-  const [csrfToken, setCsrfToken] = useState('');
-  
+
   // New states for MFA
   const [mfaStep, setMfaStep] = useState(null); // null, 'required', 'setup', 'backup-codes'
   const [mfaCode, setMfaCode] = useState('');
@@ -140,21 +139,6 @@ const Login = () => {
   // Debounced values for real-time validation
   const debouncedEmail = useDebounce(email, 500);
   const debouncedPassword = useDebounce(password, 300);
-
-  // Fetch CSRF token on component mount using axios
-  useEffect(() => {
-    const fetchCsrfToken = async () => {
-      try {
-        const response = await axios.get('/api/v1/csrf-token', { withCredentials: true });
-        setCsrfToken(response.data.csrfToken);
-      } catch (error) {
-        console.error('Failed to fetch CSRF token:', error);
-        setError('Could not initialize login form. Please refresh the page.');
-        setErrorCategory({ type: 'network', canRetry: true, severity: 'error' });
-      }
-    };
-    fetchCsrfToken();
-  }, []);
 
   // Enhanced online/offline monitoring
   useEffect(() => {
@@ -336,7 +320,6 @@ const Login = () => {
         password,
         rememberMe
       }, {
-        headers: { 'X-CSRF-Token': csrfToken },
         signal: controllerRef.current.signal,
         withCredentials: true // Important for sessions/cookies
       });
@@ -459,15 +442,11 @@ const Login = () => {
     try {
         console.log('Submitting MFA code with payload:', { mfaCode, trustDevice, useBackupCode });
         const response = await axios.post('/api/v1/auth/mfa/verify', {
-            mfaToken: mfaAuthToken,
             mfaCode,
             trustDevice,
             useBackupCode
         }, {
-            headers: {
-                'Authorization': `Bearer ${mfaAuthToken}`,
-                'X-CSRF-TOKEN': csrfToken
-            },
+            headers: { Authorization: `Bearer ${mfaAuthToken}` },
             withCredentials: true,
             signal: controllerRef.current.signal
         });
@@ -494,7 +473,6 @@ const Login = () => {
             
             // Consistent navigation based on subscription
             axios.get('/api/v1/subscription/status', {
-              headers: { Authorization: `Bearer ${data.accessToken}` },
               withCredentials: true
             })
             .then(res => res.data)
@@ -541,7 +519,6 @@ const Login = () => {
     
     if (finalAccessToken) {
         axios.get('/api/v1/subscription/status', {
-          headers: { Authorization: `Bearer ${finalAccessToken}` },
           withCredentials: true
         })
         .then(res => res.data)

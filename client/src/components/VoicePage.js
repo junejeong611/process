@@ -5,7 +5,6 @@ import PulsingHeart from './PulsingHeart';
 import UnifiedStreamingService from '../services/streamingService';
 import useCreateConversation from '../utils/useCreateConversation';
 import AnimatedSubtitles from './chat/AnimatedSubtitles';
-import { useCsrfToken } from '../contexts/CsrfContext';
 
 const traumaGreetings = [
   "you are safe here, ready when you are",
@@ -40,8 +39,6 @@ const VoicePage = () => {
   const { conversationId, createConversation, loading: creatingConversation } = useCreateConversation('voice');
   const streamingServiceRef = useRef(null);
   const [greeting, setGreeting] = useState(traumaGreetings[0]);
-  const { csrfToken, isCsrfReady } = useCsrfToken();
-  const [csrfError, setCsrfError] = useState('');
 
   const getAudioContext = () => {
     if (!audioContextRef.current) {
@@ -239,13 +236,6 @@ const VoicePage = () => {
       console.log('startRecording aborted: isResponding is true');
       return;
     }
-    if (!isCsrfReady || !csrfToken) {
-      setCsrfError('Security token not ready. Please wait and try again.');
-      console.warn('CSRF token not ready, aborting recording.');
-      return;
-    } else {
-      setCsrfError('');
-    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log('Microphone stream obtained', stream);
@@ -317,16 +307,13 @@ const VoicePage = () => {
           <div className={`voice-heart-container${isRecording || isResponding ? ' active' : ''}`}> {/* active is not styled in CSS, but keep for logic */}
             <PulsingHeart />
           </div>
-          {csrfError && (
-            <div className="csrf-error-message" style={{ color: 'red', marginBottom: '1em' }}>{csrfError}</div>
-          )}
           <button 
             onClick={() => {
               console.log('Mic button clicked, isRecording:', isRecording, 'isResponding:', isResponding, 'creatingConversation:', creatingConversation);
               if (isRecording) stopRecording(); else startRecording();
             }}
             className="bottom-mic-button"
-            disabled={isResponding || creatingConversation || !isCsrfReady || !csrfToken}
+            disabled={isResponding || creatingConversation}
             aria-label={
               creatingConversation
                 ? "initializing"
@@ -334,8 +321,6 @@ const VoicePage = () => {
                 ? "stop recording"
                 : isResponding
                 ? "ai is responding"
-                : !isCsrfReady || !csrfToken
-                ? "security token not ready"
                 : "start recording"
             }
           >
