@@ -24,21 +24,6 @@ const ResetMfaConfirm = () => {
     const [error, setError] = useState('');
     const [errorCategory, setErrorCategory] = useState(null);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [csrfToken, setCsrfToken] = useState('');
-
-    useEffect(() => {
-        const fetchCsrfToken = async () => {
-            try {
-                const { data } = await axios.get('/api/v1/csrf-token');
-                setCsrfToken(data.csrfToken);
-            } catch (error) {
-                toast.error('Could not load the page securely, please refresh');
-                setError('A security error occurred, please refresh the page and try again');
-                setErrorCategory(categorizeError('network'));
-            }
-        };
-        fetchCsrfToken();
-    }, []);
 
     const handleConfirm = async () => {
         setIsLoading(true);
@@ -46,19 +31,10 @@ const ResetMfaConfirm = () => {
         setMessage('');
         setErrorCategory(null);
 
-        if (!csrfToken) {
-            toast.error('A required security token is missing, please refresh the page');
-            setError('A security error occurred, please refresh the page and try again');
-            setErrorCategory(categorizeError('unknown'));
-            setIsLoading(false);
-            return;
-        }
-
         try {
             const { data } = await axios.post('/api/auth/mfa/reset-confirm', 
                 { token },
                 {
-                    headers: { 'X-CSRF-TOKEN': csrfToken },
                     withCredentials: true
                 }
             );
@@ -108,7 +84,7 @@ const ResetMfaConfirm = () => {
                         <button
                             onClick={handleConfirm}
                             className={`confirm-button ${isLoading ? 'loading' : ''}`}
-                            disabled={isLoading || !csrfToken}
+                            disabled={isLoading}
                         >
                             {isLoading ? 'Resetting...' : 'Reset My Authenticator'}
                         </button>

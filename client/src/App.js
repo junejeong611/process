@@ -4,7 +4,6 @@ import VoiceErrorBoundary from './components/VoiceErrorBoundary';
 import { VoiceProvider } from './contexts/VoiceContext';
 import AppRoutes from './routes/AppRoutes';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { CsrfProvider } from './contexts/CsrfContext';
 import axios from 'axios';
 
 const AxiosInterceptor = ({ children }) => {
@@ -33,13 +32,11 @@ function App() {
   return (
     <VoiceErrorBoundary>
       <AuthProvider>
-        <CsrfProvider>
-          <AxiosInterceptor>
-            <VoiceProvider>
-              <AppRoutes />
-            </VoiceProvider>
-          </AxiosInterceptor>
-        </CsrfProvider>
+        <AxiosInterceptor>
+          <VoiceProvider>
+            <AppRoutes />
+          </VoiceProvider>
+        </AxiosInterceptor>
       </AuthProvider>
     </VoiceErrorBoundary>
   );

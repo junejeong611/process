@@ -82,7 +82,6 @@ const Register = () => {
   const [touched, setTouched] = useState({ name: false, email: false, password: false, confirmPassword: false });
   const [fieldErrors, setFieldErrors] = useState({});
   const [retryCount, setRetryCount] = useState(0);
-  const [csrfToken, setCsrfToken] = useState('');
   const [capsLock, setCapsLock] = useState(false);
   const passwordInputRef = useRef(null);
   
@@ -98,10 +97,6 @@ const Register = () => {
     meta.name = 'description';
     meta.content = 'Create your Process account. A safe place to process your emotions.';
     document.head.appendChild(meta);
-    // Fetch CSRF token
-    axios.get('/api/v1/csrf-token', { withCredentials: true })
-      .then(res => setCsrfToken(res.data.csrfToken))
-      .catch(() => setCsrfToken(''));
     return () => { 
       const existingMeta = document.querySelector('meta[name="description"]');
       if (existingMeta) document.head.removeChild(existingMeta);
@@ -203,11 +198,10 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ name, email, password }),
         credentials: 'include',

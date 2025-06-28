@@ -49,15 +49,11 @@ class UnifiedStreamingService {
     this.controller = new AbortController();
     const { signal } = this.controller;
 
-    // Get CSRF token from localStorage (set by CsrfContext.js)
-    const csrfToken = localStorage.getItem('csrfToken');
-
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
-        'X-CSRF-Token': csrfToken || ''
       },
       body: JSON.stringify(body),
       signal,
@@ -140,14 +136,11 @@ class UnifiedStreamingService {
 
   async _executeFallback(body, token) {
     try {
-      // Get CSRF token from localStorage (set by CsrfContext.js)
-      const csrfToken = localStorage.getItem('csrfToken');
       const response = await fetch('/api/v1/chat/message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-CSRF-Token': csrfToken || ''
         },
         body: JSON.stringify(body),
       });

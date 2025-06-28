@@ -121,7 +121,6 @@ const ResetPassword = () => {
   const [tokenValid, setTokenValid] = useState(true);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [touched, setTouched] = useState({ password: false, confirmPassword: false });
-  const [csrfToken, setCsrfToken] = useState('');
 
   const formRef = useRef(null);
   const passwordInputRef = useRef(null);
@@ -131,21 +130,6 @@ const ResetPassword = () => {
   // Debounced values for real-time validation
   const debouncedPassword = useDebounce(password, 300);
   const debouncedConfirmPassword = useDebounce(confirmPassword, 300);
-
-  // Fetch CSRF token
-  useEffect(() => {
-    const fetchCsrfToken = async () => {
-      try {
-        const { data } = await axios.get('/api/v1/csrf-token', { withCredentials: true });
-        setCsrfToken(data.csrfToken);
-      } catch (error) {
-        console.error('Failed to fetch CSRF token:', error);
-        setError('Could not load the form. Please refresh the page.');
-        setErrorCategory({ type: 'network', canRetry: false, severity: 'error' });
-      }
-    };
-    fetchCsrfToken();
-  }, []);
 
   // Enhanced online/offline monitoring
   useEffect(() => {
@@ -394,9 +378,6 @@ const ResetPassword = () => {
       const response = await axios.post(`/api/auth/reset-password/${token}`, 
         { password },
         {
-          headers: {
-            'X-CSRF-Token': csrfToken
-          },
           withCredentials: true,
           signal,
           timeout: 15000, // 15-second timeout

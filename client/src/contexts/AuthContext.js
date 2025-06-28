@@ -1,6 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { useCsrfToken } from './CsrfContext';
 
 const AuthContext = createContext(null);
 
@@ -9,7 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // Will be populated on login
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { refreshCsrfToken } = useCsrfToken();
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -32,7 +30,6 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     checkAdminStatus(newToken);
-    await refreshCsrfToken(); // Always fetch a new CSRF token after login
   };
 
   const logout = () => {
@@ -42,7 +39,6 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAdmin(false);
     delete axios.defaults.headers.common['Authorization'];
-    refreshCsrfToken(true); // Clear CSRF token on logout
   };
   
   const checkAdminStatus = async (authToken) => {

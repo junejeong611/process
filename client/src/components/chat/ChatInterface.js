@@ -3,7 +3,6 @@ import axios from 'axios';
 import './ChatInterface.css';
 import UnifiedStreamingService from '../../services/streamingService';
 import useCreateConversation from '../../utils/useCreateConversation';
-import { useCsrfToken } from '../../contexts/CsrfContext';
 import ErrorCard from '../common/ErrorCard';
 
 // Constants
@@ -22,7 +21,6 @@ const sanitizeMessage = (content) => {
 
 const categorizeError = (error) => {
   const errorLower = (error || '').toLowerCase();
-  if (errorLower.includes('csrf')) return { type: 'token', canRetry: true, severity: 'error' };
   if (errorLower.includes('auth') || errorLower.includes('token')) return { type: 'auth', canRetry: true, severity: 'warning' };
   if (errorLower.includes('network') || errorLower.includes('connection') || errorLower.includes('timeout')) return { type: 'network', canRetry: true, severity: 'warning' };
   if (errorLower.includes('rate limit') || errorLower.includes('too many') || errorLower.includes('throttle')) return { type: 'rateLimit', canRetry: false, severity: 'warning' };
@@ -49,7 +47,6 @@ const ChatInterface = () => {
   const [uiReady, setUiReady] = useState(false);
   const [fallbackMessage, setFallbackMessage] = useState('');
   const { conversationId, createConversation, loading: creatingConversation } = useCreateConversation('text');
-  const { isCsrfReady } = useCsrfToken();
   const [errorCategory, setErrorCategory] = useState(null);
 
   // AI message queue and timer
@@ -90,7 +87,7 @@ const ChatInterface = () => {
 
   // Initialize conversation
   useEffect(() => {
-    if (!isCsrfReady || hasLoadedInitialMessages.current) {
+    if (hasLoadedInitialMessages.current) {
       return;
     }
     hasLoadedInitialMessages.current = true;
@@ -155,7 +152,7 @@ const ChatInterface = () => {
     };
     initializeChat();
     return () => { isMounted = false; };
-  }, [conversationId, createConversation, getToken, isCsrfReady]);
+  }, [conversationId, createConversation, getToken]);
   
   useEffect(() => {
     return () => {
@@ -332,13 +329,13 @@ const ChatInterface = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   rows="1"
-                  disabled={isLoading || !uiReady || !isCsrfReady}
+                  disabled={isLoading || !uiReady}
                   aria-label="Chat message input"
                 />
                 <button
                   type="submit"
                   className="send-button-enhanced"
-                  disabled={!input.trim() || isLoading || !uiReady || !isCsrfReady}
+                  disabled={!input.trim() || isLoading || !uiReady}
                   aria-label="Send message"
                 >
                   <span className="send-label">Send</span>
