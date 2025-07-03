@@ -638,6 +638,7 @@ const Login = () => {
                   autoComplete="current-password"
                   maxLength="128"
                   onAnimationEnd={() => setShakePassword(false)}
+                  style={{ textTransform: 'none' }}
                 />
                 <button 
                   type="button"

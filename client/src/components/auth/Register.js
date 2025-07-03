@@ -244,6 +244,7 @@ const Register = () => {
                   placeholder="full name"
                   disabled={isLoading}
                   autoComplete="name"
+                  style={{ textTransform: 'none' }}
                 />
               </div>
               {fieldErrors.name && (
@@ -294,6 +295,7 @@ const Register = () => {
                   placeholder="password"
                   disabled={isLoading}
                   autoComplete="new-password"
+                  style={{ textTransform: 'none' }}
                 />
                 <button
                   type="button"
@@ -348,6 +350,7 @@ const Register = () => {
                   placeholder="confirm password"
                   disabled={isLoading}
                   autoComplete="new-password"
+                  style={{ textTransform: 'none' }}
                 />
               </div>
               {fieldErrors.confirmPassword && (

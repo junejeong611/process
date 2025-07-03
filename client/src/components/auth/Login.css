@@ -112,7 +112,6 @@ body {
   font-weight: 700;
   margin-bottom: 0.25rem;
   text-align: center;
-  text-transform: lowercase;
 }
 
 .login-subtitle {
@@ -121,7 +120,6 @@ body {
   margin-bottom: 0;
   text-align: center;
   white-space: nowrap;
-  text-transform: lowercase;
 }
 
 .login-form {
@@ -155,7 +153,6 @@ body {
   margin-bottom: 0;
   text-align: left;
   margin-left: 0;
-  text-transform: lowercase;
 }
 
 .input-wrapper {
@@ -192,7 +189,6 @@ body {
 .form-control::placeholder {
   color: var(--light-gray);
   transition: color var(--transition-fast);
-  text-transform: lowercase;
 }
 
 .form-control:focus::placeholder {
@@ -219,7 +215,6 @@ body {
   border-radius: 4px;
   transition: all var(--transition-fast);
   z-index: 2;
-  text-transform: lowercase;
 }
 
 .toggle-password:hover {
@@ -831,4 +826,5 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 input[type="password"] {
   appearance: none;
   -webkit-appearance: none;
+  text-transform: none !important;
 }
