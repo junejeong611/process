@@ -161,3 +161,6 @@ If you're still having issues:
 ---
 
 **Remember**: Keep the `stripe listen` terminal window open while testing subscription features! 
+
+
+For credit card info Pls use 4242424242424242 with any date, secuirty number and zipcode
