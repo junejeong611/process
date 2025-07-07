@@ -1,0 +1,100 @@
+/* SettingsPage.css */
+
+.settings-page {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.settings-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  margin-bottom: 0.5rem;
+}
+
+.settings-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-gray);
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.settings-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.settings-card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.settings-card-description {
+  color: var(--text-gray);
+  margin-bottom: 1.5rem;
+}
+
+.danger-zone {
+  border-left: 4px solid var(--error-red);
+}
+
+.danger-zone .settings-card-title {
+  color: var(--error-red);
+}
+
+.settings-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.primary-button {
+  background-color: var(--primary-blue);
+  color: white;
+}
+
+.primary-button:hover {
+  background-color: #314d7a;
+}
+
+.danger-button {
+  background-color: var(--error-red);
+  color: white;
+}
+
+.danger-button:hover {
+  background-color: #d32f2f;
+}
+
+.settings-form-group {
+    margin-bottom: 1rem;
+}
+
+.settings-form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.settings-form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+} 
