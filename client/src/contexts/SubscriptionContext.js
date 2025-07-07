@@ -4,7 +4,14 @@ import { getSubscriptionStatus } from '../services/subscription';
 const CACHE_KEY = 'subscriptionStatusCache';
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-const SubscriptionContext = createContext();
+export const SubscriptionContext = createContext({
+  status: null,
+  loading: true,
+  trialEnd: null,
+  currentPeriodEnd: null,
+  cancelAtPeriodEnd: false,
+  forceRefresh: () => {},
+});
 
 export const useSubscription = () => useContext(SubscriptionContext);
 
@@ -13,6 +20,9 @@ export const SubscriptionProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('token') || sessionStorage.getItem('token'));
+  const [trialEnd, setTrialEnd] = useState(null);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
 
   // Watch for token changes (e.g., after login)
   useEffect(() => {
@@ -66,42 +76,37 @@ export const SubscriptionProvider = ({ children }) => {
 
   // Fetch status from API and update cache
   const fetchStatus = useCallback(async () => {
+    console.log('[SubscriptionContext] Fetching subscription status from backend...');
     setLoading(true);
     setError(null);
     try {
       const data = await getSubscriptionStatus();
-      setStatus(data); // Store the full object
+      console.log('[SubscriptionContext] Fetched data:', data);
+      // Store the full status object instead of just the string
+      setStatus(data);
+      setTrialEnd(data.trialEnd);
+      setCurrentPeriodEnd(data.currentPeriodEnd);
+      setCancelAtPeriodEnd(data.cancelAtPeriodEnd);
       saveToCache(data); // Cache the full object
-      setLoading(false);
-      return data;
     } catch (err) {
-      setError(err);
+      console.error('[SubscriptionContext] Error fetching status:', err);
+      setError('Failed to load subscription status.');
+      setStatus({ subscriptionStatus: 'inactive' }); // Default to inactive object on error
+    } finally {
       setLoading(false);
-      return null;
     }
-  }, []);
+  }, [token]);
 
-  // On mount and when token changes, try cache first, then fetch
+  // Always fetch latest status on mount and when token changes
   useEffect(() => {
-    if (!token) {
-      setStatus(null);
-      setLoading(false);
-      return;
-    }
-    const cachedStatus = loadFromCache();
-    if (cachedStatus) {
-      setStatus(cachedStatus);
-      setLoading(false);
-    } else {
-      fetchStatus();
-    }
-    // eslint-disable-next-line
-  }, [fetchStatus, token]);
+    fetchStatus();
+  }, [fetchStatus]);
 
-  // Allow manual refresh (e.g., after checkout)
-  const forceRefresh = async () => {
-    await fetchStatus();
-  };
+  // Expose forceRefresh to always fetch latest status
+  const forceRefresh = useCallback(() => {
+    console.log('[SubscriptionContext] forceRefresh called!');
+    fetchStatus();
+  }, [fetchStatus]);
 
   return (
     <SubscriptionContext.Provider value={{ status, setStatus, loading, error, forceRefresh }}>

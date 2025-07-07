@@ -1,5 +1,5 @@
 /* global gtag */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './OptionsPage.css';
 import { toast } from 'react-toastify';
@@ -89,9 +89,6 @@ const OptionsPage = () => {
   const [loadingKey, setLoadingKey] = useState(null);
   const [userName] = useState(getUserName());
   const [greeting] = useState(getTimeBasedGreeting());
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const userMenuRef = useRef(null);
 
   // Handle success message from login
   useEffect(() => {
@@ -126,30 +123,6 @@ const OptionsPage = () => {
     };
   }, []);
 
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setShowUserMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Enhanced keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && showUserMenu) {
-        setShowUserMenu(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showUserMenu]);
-
   const handleCardClick = async (key, to) => {
     if (loadingKey) return;
     
@@ -181,68 +154,9 @@ const OptionsPage = () => {
     }
   }, [loadingKey]);
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    setShowUserMenu(false);
-    
-    try {
-      // Clear tokens
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      
-      // Analytics tracking
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'logout', {
-          'event_category': 'auth',
-          'event_label': 'success'
-        });
-      }
-      
-      toast.success('Logged out successfully');
-      
-      // Brief delay for feedback
-      await new Promise(resolve => setTimeout(resolve, 500));
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      toast.error('Logout failed. Please try again.');
-      setIsLoggingOut(false);
-    }
-  };
-
   return (
     <main className="options-main" role="main">
       <div className="options-inner">
-        {/* User menu */}
-        <div className="user-menu-container" ref={userMenuRef}>
-          <button
-            className="user-menu-trigger"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            aria-expanded={showUserMenu}
-            aria-haspopup="true"
-            aria-label="user menu"
-            disabled={isLoggingOut}
-          >
-            <UserIcon />
-          </button>
-          {showUserMenu && (
-            <div className="user-menu" role="menu">
-              <div className="user-menu-header">
-                <span className="user-name">Hello, {userName}!</span>
-              </div>
-              <button
-                className="user-menu-item logout-button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                role="menuitem"
-              >
-                <LogoutIcon />
-                <span>{isLoggingOut ? 'logging out...' : 'logout'}</span>
-                {isLoggingOut && <div className="logout-spinner" />}
-              </button>
-            </div>
-          )}
-        </div>
         <div className="options-center">
           <div className="options-heart" aria-hidden="true">
             <HeartIcon />

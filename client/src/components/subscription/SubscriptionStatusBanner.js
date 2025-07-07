@@ -1,130 +1,134 @@
 import React from 'react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import { createCheckoutSession, createPortalSession } from '../../services/subscription';
 
 const SubscriptionStatusBanner = () => {
   const { status, loading, error } = useSubscription();
 
-  if (loading) return <div>Loading subscription status...</div>;
-  if (error) return <div>Error loading subscription status</div>;
+  const handleManage = async () => {
+    const url = await createPortalSession();
+    window.location.href = url;
+  };
 
-  const isActive = status.subscriptionStatus === 'active';
-  const isTrial = status.subscriptionStatus === 'trialing';
-  const isCanceled = status.subscriptionStatus === 'canceled';
-  const isPastDue = status.subscriptionStatus === 'past_due';
-  const hasStripeCustomer = !!status.stripeCustomerId;
-  const hasTrialEnd = !!status.trialEnd;
+  const handleSubscribe = async () => {
+    const url = await createCheckoutSession();
+    window.location.href = url;
+  };
+
+  if (loading) {
+    return (
+      <div className="subscription-status-banner loading">
+        <div className="subscription-spinner"></div>
+        <p>Loading subscription details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="subscription-status-banner error">
+        <h3>Something Went Wrong</h3>
+        <p>We couldn't load your subscription details. Please try again later.</p>
+      </div>
+    );
+  }
+
+  if (!status) {
+    // This can happen on initial load or if user is logged out
+    return (
+      <div className="subscription-status-banner loading">
+        <div className="subscription-spinner"></div>
+        <p>Verifying subscription...</p>
+      </div>
+    );
+  }
+
+  const {
+    subscriptionStatus,
+    trialEnd,
+    currentPeriodEnd,
+    cancelAtPeriodEnd,
+  } = status;
+
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString();
   const now = new Date();
 
-  // Calculate days left in trial
-  let trialDaysLeft = null;
-  if (isTrial && hasTrialEnd) {
-    const end = new Date(status.trialEnd);
-    trialDaysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-  }
+  // --- Canceled State ---
+  // This is the most specific state, so we check it first.
+  // Applies to both trial and paid users who have canceled.
+  if (cancelAtPeriodEnd) {
+    const endDate = isTrial ? trialEnd : currentPeriodEnd;
+    const daysLeft = Math.max(0, Math.ceil((new Date(endDate) - now) / (1000 * 60 * 60 * 24)));
 
-  // Calculate days left in current period (for canceled)
-  let periodDaysLeft = null;
-  if (isCanceled && status.currentPeriodEnd) {
-    const end = new Date(status.currentPeriodEnd);
-    periodDaysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
-  }
-
-  // Cancellation banner
-  if (isCanceled && status.cancelAtPeriodEnd && periodDaysLeft > 0) {
     return (
-      <div style={{ background: '#fffbe6', color: '#ad6800', padding: 12, textAlign: 'center', border: '1px solid #ffe58f', borderRadius: 8 }}>
-        Your subscription is canceled but you have access until <b>{new Date(status.currentPeriodEnd).toLocaleDateString()}</b> ({periodDaysLeft} day{periodDaysLeft !== 1 ? 's' : ''} left).
-        <br />
-        <button
-          onClick={async () => {
-            const { createCheckoutSession } = await import('../../services/subscription');
-            const url = await createCheckoutSession();
-            window.location.href = url;
-          }}
-          style={{ marginTop: 8 }}
-        >
+      <div className="subscription-status-banner canceled">
+        <h3>Subscription Canceled</h3>
+        <p>
+          Your plan will not renew. Your premium access ends in <b>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</b> on {formatDate(endDate)}.
+        </p>
+        <button className="subscription-button warning" onClick={handleSubscribe}>
           Reactivate Subscription
         </button>
       </div>
     );
   }
 
-  // Past due banner
-  if (isPastDue) {
+  const isTrial = subscriptionStatus === 'trialing';
+
+  // --- Trialing State ---
+  if (isTrial && trialEnd) {
+    const trialDaysLeft = Math.max(0, Math.ceil((new Date(trialEnd) - now) / (1000 * 60 * 60 * 24)));
     return (
-      <div style={{ background: '#fff1f0', color: '#cf1322', padding: 12, textAlign: 'center', border: '1px solid #ffa39e', borderRadius: 8 }}>
-        Your payment failed. Please update your payment method to avoid losing access.
-        <br />
-        <button
-          onClick={async () => {
-            const { createPortalSession } = await import('../../services/subscription');
-            const url = await createPortalSession();
-            window.location.href = url;
-          }}
-          style={{ marginTop: 8 }}
-        >
+      <div className="subscription-status-banner trial">
+        <h3>Free Trial Active</h3>
+        <p>
+          You have <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}</b> of your free trial remaining.
+          <br />
+          Your trial ends on {formatDate(trialEnd)}. After that, your paid subscription will begin.
+        </p>
+        <button className="subscription-button" onClick={handleManage}>
+          Manage Subscription
+        </button>
+      </div>
+    );
+  }
+
+  // --- Active State ---
+  if (subscriptionStatus === 'active' && currentPeriodEnd) {
+    return (
+      <div className="subscription-status-banner active">
+        <h3>Subscription Active</h3>
+        <p>Your plan is active and will automatically renew on <b>{formatDate(currentPeriodEnd)}</b>.</p>
+        <button className="subscription-button success" onClick={handleManage}>
+          Manage Subscription
+        </button>
+      </div>
+    );
+  }
+  
+  // --- Past Due State ---
+  if (subscriptionStatus === 'past_due') {
+    return (
+      <div className="subscription-status-banner past-due">
+        <h3>Payment Needed</h3>
+        <p>Your last payment failed. Please update your payment method to restore access.</p>
+        <button className="subscription-button warning" onClick={handleManage}>
           Update Payment Method
         </button>
       </div>
     );
   }
 
-  // Trial banner
-  if (isTrial && hasStripeCustomer && hasTrialEnd) {
-    return (
-      <div style={{ background: '#e6f7ff', color: '#0050b3', padding: 12, textAlign: 'center', border: '1px solid #91d5ff', borderRadius: 8 }}>
-        You are on a free trial. {trialDaysLeft > 0 ? (
-          <>
-            <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} left</b> (ends {new Date(status.trialEnd).toLocaleDateString()})
-          </>
-        ) : (
-          <>Trial ended.</>
-        )}
-        <br />
-        <button onClick={async () => {
-          const { createPortalSession } = await import('../../services/subscription');
-          const url = await createPortalSession();
-          window.location.href = url;
-        }} style={{ marginTop: 8 }}>
-          Manage Subscription
-        </button>
-      </div>
-    );
-  }
-
-  // Active subscription banner
-  if (isActive && hasStripeCustomer && status.currentPeriodEnd) {
-    return (
-      <div style={{ background: '#f6ffed', color: '#389e0d', padding: 12, textAlign: 'center', border: '1px solid #b7eb8f', borderRadius: 8 }}>
-        Your subscription is active. Next renewal: <b>{new Date(status.currentPeriodEnd).toLocaleDateString()}</b>
-        <br />
-        <button onClick={async () => {
-          const { createPortalSession } = await import('../../services/subscription');
-          const url = await createPortalSession();
-          window.location.href = url;
-        }} style={{ marginTop: 8 }}>
-          Manage Subscription
-        </button>
-      </div>
-    );
-  }
-
-  // Inactive or new user
-  if (!status.subscriptionStatus || status.subscriptionStatus === 'inactive') {
-    return (
-      <div style={{ background: '#fffbe6', color: '#ad6800', padding: 12, textAlign: 'center', border: '1px solid #ffe58f', borderRadius: 8 }}>
-        <h3>Welcome to Emotional Support Chat!</h3>
-        <p>Start your free trial to access all premium features.</p>
-        <button onClick={async () => {
-          const { createCheckoutSession } = await import('../../services/subscription');
-          const url = await createCheckoutSession();
-          window.location.href = url;
-        }} style={{ marginTop: 12, padding: '8px 16px', fontSize: '16px' }}>
-          Start Free Trial
-        </button>
-      </div>
-    );
-  }
+  // --- Inactive or Default State ---
+  return (
+    <div className="subscription-status-banner inactive">
+      <h3>Get Full Access</h3>
+      <p>Unlock all premium features by starting your free 7-day trial today.</p>
+      <button className="subscription-button" onClick={handleSubscribe}>
+        Start Free Trial
+      </button>
+    </div>
+  );
 };
 
 export default SubscriptionStatusBanner; 
