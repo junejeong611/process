@@ -163,6 +163,7 @@ userSchema.virtual('fullName').get(function() {
 });
 
 const encKey = process.env.ENCRYPTION_SECRET;
+console.log('ENCRYPTION_SECRET at User.js model init:', encKey);
 if (!encKey) {
   throw new Error('ENCRYPTION_SECRET environment variable is not set!');
 }

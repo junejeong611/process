@@ -159,8 +159,8 @@ const Register = () => {
       
       if (data.success) {
         setRegistrationSuccess(true);
-        localStorage.setItem('token', data.token);
-        setSuccess('registration successful! redirecting...');
+        // localStorage.setItem('token', data.token); // Remove auto-login
+        setSuccess('registration successful! redirecting to MFA setup...');
         
         // Analytics tracking for registration
         if (typeof gtag !== 'undefined') {
@@ -170,9 +170,9 @@ const Register = () => {
           });
         }
         
-        // Redirect new users to subscription page
+        // Redirect new users to login page (let login flow handle MFA setup)
         setTimeout(() => {
-          navigate('/subscribe');
+          navigate('/login', { state: { email } });
         }, 1200);
       } else {
         setError(data.message || 'failed to register. please try again.');

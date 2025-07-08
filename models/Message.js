@@ -50,6 +50,7 @@ messageSchema.pre('save', function(next) {
 });
 
 const encKey = process.env.ENCRYPTION_SECRET;
+console.log('ENCRYPTION_SECRET at Message.js model init:', encKey);
 if (!encKey) {
   throw new Error('ENCRYPTION_SECRET environment variable is not set!');
 }

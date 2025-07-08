@@ -1,7 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { sendEmail } = require('../utils/email');
@@ -48,6 +47,7 @@ router.post('/register', async (req, res) => {
     const { email, password, name } = req.body;
 
     // Check if user already exists
+    const User = require('../models/User');
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'Email already registered' });
@@ -76,6 +76,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     // Find user and select the mfa_secret field
+    const User = require('../models/User');
     const user = await User.findOne({ email }).select('+mfa_secret').select('+refreshTokens');
     if (!user) {
       logEvent(null, 'USER_LOGIN_FAILED', 'FAILURE', { ipAddress: req.ip, details: { email } });
@@ -199,6 +200,7 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Invalid token type for MFA verification' });
         }
 
+        const User = require('../models/User');
         const user = await User.findById(userId).select('+backup_codes').select('+mfa_secret');
         if (!user || !user.mfa_secret) {
             return res.status(400).json({ success: false, message: 'MFA not set up for this user.' });
@@ -308,6 +310,54 @@ router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
     }
 });
 
+// @route   POST /api/auth/mfa/setup
+// @desc    Initiate MFA setup: generate secret and QR code
+// @access  Public (user must provide email)
+router.post('/mfa/setup', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+    const User = require('../models/User');
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    if (user.mfa_enabled) {
+      return res.status(400).json({ success: false, message: 'MFA is already enabled for this user.' });
+    }
+    // Generate a new secret if not present
+    if (!user.mfa_secret) {
+      const secret = speakeasy.generateSecret({ 
+        name: `Process (${user.email})`,
+        issuer: 'Process'
+      });
+      user.mfa_secret = secret.base32;
+      await user.save();
+      // Generate the QR code from the otpauth_url
+      var otpauth_url = secret.otpauth_url;
+    } else {
+      // If secret already exists, use it
+      var otpauth_url = speakeasy.otpauthURL({
+        secret: user.mfa_secret,
+        label: `Process (${user.email})`,
+        issuer: 'Process',
+        encoding: 'base32'
+      });
+    }
+    const qrCode = await qrcode.toDataURL(otpauth_url);
+    // Issue a temporary token for MFA setup
+    const mfaToken = jwt.sign({ userId: user._id, mfa: 'setup' }, process.env.JWT_SECRET, {
+      expiresIn: '15m'
+    });
+    return res.json({ success: true, qrCode, mfaToken });
+  } catch (error) {
+    console.error('MFA setup error:', error);
+    res.status(500).json({ success: false, message: 'An error occurred during MFA setup.' });
+  }
+});
+
 // @route   POST /api/auth/mfa/reset-request
 // @desc    Initiate a request to reset MFA authenticator
 // @access  Public
@@ -318,6 +368,7 @@ router.post('/mfa/reset-request', forgotPasswordLimiter, async (req, res) => {
             return res.status(400).json({ success: false, message: 'email is required' });
         }
 
+        const User = require('../models/User');
         const user = await User.findOne({ email });
         // Always return a success-like message to prevent user enumeration
         if (!user || !user.mfa_enabled) {
@@ -359,6 +410,7 @@ router.post('/mfa/reset-confirm', async (req, res) => {
 
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
+        const User = require('../models/User');
         const user = await User.findOne({
             mfa_reset_token: hashedToken,
             mfa_reset_expires: { $gt: Date.now() }
@@ -394,6 +446,7 @@ router.post('/mfa/reset-confirm', async (req, res) => {
 router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ success: false, message: 'Email is required.' });
+  const User = require('../models/User');
   const user = await User.findOne({ email });
   if (!user) {
     // Do not reveal if email exists
@@ -420,6 +473,7 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
 // @access  Public
 router.get('/reset-password/:token', async (req, res) => {
   const { token } = req.params;
+  const User = require('../models/User');
   const user = await User.findOne({
     resetPasswordToken: token,
     resetPasswordExpires: { $gt: Date.now() }
@@ -437,6 +491,7 @@ router.post('/reset-password', async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) return res.status(400).json({ success: false, message: 'Token and new password are required.' });
   // Find user with unexpired token
+  const User = require('../models/User');
   const user = await User.findOne({ resetPasswordExpires: { $gt: Date.now() } }).select('+resetPasswordToken');
   if (!user) {
     return res.status(400).json({ success: false, message: 'Invalid or expired token.' });
@@ -464,6 +519,7 @@ router.post('/refresh-token', async (req, res) => {
   try {
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
+    const User = require('../models/User');
     const user = await User.findOne({ 
       'refreshTokens.token': hashedRefreshToken 
     }).select('+refreshTokens');
@@ -517,6 +573,7 @@ router.post('/logout', auth, async (req, res) => {
             const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
             
             // Remove the specific refresh token from the user's document
+            const User = require('../models/User');
             await User.updateOne(
                 { _id: req.user.userId },
                 { $pull: { refreshTokens: { token: hashedRefreshToken } } }
@@ -546,6 +603,7 @@ router.delete('/account', auth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Password is required to delete your account.' });
         }
 
+        const User = require('../models/User');
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });

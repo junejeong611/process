@@ -304,25 +304,59 @@ const ForgotPassword = () => {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Only treat 5xx as server error, otherwise show generic message
+        if (response.status >= 500) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        } else {
+          // For 4xx, try to parse the response and show the message if available
+          let data;
+          try {
+            data = await response.json();
+          } catch {
+            data = {};
+          }
+          if (data.success) {
+            setSuccess('if that email is registered, a password reset link has been sent.');
+            setRetryCount(0);
+            setCountdown(60); // 60 second cooldown
+            setError('');
+            setTimeout(() => {
+              setEmail('');
+              setEmailError('');
+            }, 2000);
+            if (typeof window.gtag !== 'undefined') {
+              window.gtag('event', 'password_reset_requested', {
+                'event_category': 'auth',
+                'event_label': 'forgot_password'
+              });
+            }
+            return;
+          } else {
+            const errorMsg = data.message || 'failed to send reset link. please try again.';
+            const category = categorizeError(errorMsg);
+            setError(errorMsg);
+            setErrorCategory(category);
+            if (category.type === 'rateLimit') {
+              setCountdown(300);
+            } else if (category.type === 'server') {
+              setCountdown(30);
+            }
+            return;
+          }
+        }
       }
 
       const data = await response.json();
-
 
       if (data.success) {
         setSuccess('if that email is registered, a password reset link has been sent.');
         setRetryCount(0);
         setCountdown(60); // 60 second cooldown
-        setError(''); 
-        
-        // Clear form after successful submission
+        setError('');
         setTimeout(() => {
           setEmail('');
           setEmailError('');
         }, 2000);
-
-        // Analytics tracking (if available)
         if (typeof window.gtag !== 'undefined') {
           window.gtag('event', 'password_reset_requested', {
             'event_category': 'auth',
@@ -332,15 +366,12 @@ const ForgotPassword = () => {
       } else {
         const errorMsg = data.message || 'failed to send reset link. please try again.';
         const category = categorizeError(errorMsg);
-        
         setError(errorMsg);
         setErrorCategory(category);
-
-        // Set countdown for rate limiting
         if (category.type === 'rateLimit') {
-          setCountdown(300); // 5 minute cooldown for rate limiting
+          setCountdown(300);
         } else if (category.type === 'server') {
-          setCountdown(30); // 30 second cooldown for server errors
+          setCountdown(30);
         }
       }
     } catch (err) {

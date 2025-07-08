@@ -3,8 +3,6 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
-const Message = require('../models/Message');
-const Conversation = require('../models/Conversation');
 const auth = require('../middleware/auth');
 const claudeService = require('../services/claudeService');
 const { userLimiter, aiCallLimiter } = require('../middleware/rateLimiter');
@@ -33,6 +31,9 @@ router.post('/conversations', auth, async (req, res) => {
     if (!wrappedConversationKey) {
       return res.status(400).json({ error: 'wrappedConversationKey is required.' });
     }
+
+    const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
 
     const conversation = new Conversation({
       userId: req.user._id,
@@ -74,6 +75,9 @@ router.post('/conversations', auth, async (req, res) => {
 // @access  Private
 router.get('/conversations', auth, async (req, res) => {
   try {
+    const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
+
     const conversations = await Conversation.find({ userId: req.user._id })
       .sort({ updatedAt: -1 })
       .limit(20); // Limit to 20 for testing
@@ -110,6 +114,9 @@ router.get('/conversations', auth, async (req, res) => {
 // @access  Private
 router.get('/messages/:conversationId', auth, async (req, res) => {
   try {
+    const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
+
     const messages = await Message.find({ 
       userId: req.user._id,
       conversationId: req.params.conversationId 
@@ -131,6 +138,7 @@ router.get('/messages/:conversationId', auth, async (req, res) => {
 // Helper to get triggers from Claude
 async function getTriggersFromClaude(text) {
   const prompt = `\nExtract the emotional triggers from the following message. \nReturn ONLY a JSON array of trigger keywords (e.g., [\"perfectionism\", \"fear of failure\"]).\n\nMessage: \"${text}\"\n`;
+  const claudeService = require('../services/claudeService');
   const aiResponse = await claudeService.sendMessage(prompt);
   try {
     const triggers = JSON.parse(aiResponse.content);
@@ -143,6 +151,7 @@ async function getTriggersFromClaude(text) {
 async function getEmotionsFromClaude(text) {
   const prompt = `\nAnalyze the following message and rate the intensity of each emotion (anger, sadness, fear, shame, disgust) on a scale from 0 (not present) to 10 (very strong).\nReturn ONLY a JSON object like {\"anger\": 0, \"sadness\": 0, \"fear\": 0, \"shame\": 0, \"disgust\": 0}.\n\nMessage: \"${text}\"\n`;
   console.log('Claude prompt:', prompt);
+  const claudeService = require('../services/claudeService');
   const aiResponse = await claudeService.sendMessage(prompt);
   console.log('Claude response:', aiResponse.content);
   try {
@@ -167,6 +176,21 @@ router.post('/send',
     body('conversationId', 'Invalid conversation ID').isMongoId(),
   ],
   async (req, res) => {
+    const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
+    const { body, validationResult } = require('express-validator');
+    const crypto = require('crypto');
+    const Anthropic = require('@anthropic-ai/sdk');
+    const auth = require('../middleware/auth');
+    const claudeService = require('../services/claudeService');
+    const { userLimiter, aiCallLimiter } = require('../middleware/rateLimiter');
+    const { logEvent } = require('../services/auditLogService');
+    const keyService = require('../services/keyService');
+    const axios = require('axios');
+    const { ElevenLabsClient, play } = require('@elevenlabs/elevenlabs-js');
+    require("dotenv").config();
+
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -280,6 +304,9 @@ router.post('/send',
 // @access  Private
 router.post('/elevenlabs', auth, aiCallLimiter, async (req, res) => {
   try {
+    const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
+    const { ElevenLabsClient, play } = require('@elevenlabs/elevenlabs-js');
     const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
     const { text } = req.body;
 
@@ -322,6 +349,8 @@ router.post('/elevenlabs', auth, aiCallLimiter, async (req, res) => {
 // @access  Private
 router.post('/conversations/bulk-delete', auth, async (req, res) => {
   try {
+    const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
     const { conversationIds } = req.body; // expects an array of IDs
     if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
       return res.status(400).json({ error: 'No conversation IDs provided' });

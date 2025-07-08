@@ -1,6 +1,7 @@
 /* global gtag */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import './Login.css';
 import { toast } from 'react-toastify';
 
@@ -91,6 +92,7 @@ const useDebounce = (value, delay) => {
 };
 
 const Login = () => {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -196,6 +198,44 @@ const Login = () => {
       metas.forEach(meta => meta.remove());
     };
   }, []);
+
+  // Check for mfaSetup redirect from registration
+  useEffect(() => {
+    if (location.state && location.state.mfaSetup) {
+      setMfaStep('setup');
+      if (location.state.email) {
+        setEmail(location.state.email);
+      }
+    }
+  }, [location.state]);
+
+  // Fetch QR code and MFA token when entering setup step
+  useEffect(() => {
+    if (mfaStep === 'setup' && !qrCode) {
+      // Call backend to get QR code and mfaToken
+      (async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch('/api/auth/mfa/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const data = await response.json();
+          if (response.ok && data.qrCode && data.mfaToken) {
+            setQrCode(data.qrCode);
+            setMfaAuthToken(data.mfaToken);
+          } else {
+            setMfaError(data.message || 'Failed to load MFA setup.');
+          }
+        } catch (err) {
+          setMfaError('Failed to load MFA setup.');
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+    }
+  }, [mfaStep, qrCode, email]);
 
   // Real-time validation
   useEffect(() => {
@@ -561,11 +601,11 @@ const Login = () => {
         if (data.setupComplete) {
             setBackupCodes(data.backupCodes);
             // Store the final token received after setup
-            if (data.token) {
+            if (data.accessToken) {
                 if (rememberMe) {
-                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('token', data.accessToken);
                 } else {
-                    sessionStorage.setItem('token', data.token);
+                    sessionStorage.setItem('token', data.accessToken);
                 }
             }
             setMfaStep('backup-codes');
@@ -574,12 +614,12 @@ const Login = () => {
         }
 
         // Handle successful login
-        if (data.success && data.token) {
+        if (data.success && data.accessToken) {
             setLoginSuccess(true);
             if (rememberMe) {
-                localStorage.setItem('token', data.token);
+                localStorage.setItem('token', data.accessToken);
             } else {
-                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('token', data.accessToken);
             }
             toast.success('Login successful!');
             setTimeout(() => navigate('/options'), 800);

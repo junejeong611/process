@@ -6,7 +6,7 @@ function getTransporter() {
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
+      port: parseInt(process.env.EMAIL_PORT, 10),
       secure: false, // true for 465, false for 587 and others
       auth: {
         user: process.env.EMAIL_USER,
