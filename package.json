@@ -34,7 +34,6 @@
         "geoip-lite": "^1.4.10",
         "helmet": "^7.1.0",
         "jsonwebtoken": "^9.0.2",
-        "lusca": "^1.7.0",
         "mic": "^2.1.2",
         "mongodb": "^6.16.0",
         "mongoose": "^8.14.2",

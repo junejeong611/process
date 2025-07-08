@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth');
-const User = require('../models/User');
 const {
   createCustomer,
   createCheckoutSession,
@@ -12,6 +11,7 @@ const {
 router.get('/status', authenticateToken, async (req, res) => {
   console.log('📊 Fetching subscription status for user:', req.user.userId);
   try {
+    const User = require('../models/User');
     const user = await User.findById(req.user.userId);
     if (!user) {
       console.error('❌ User not found');
@@ -46,6 +46,7 @@ router.get('/status', authenticateToken, async (req, res) => {
 router.post('/create-checkout-session', authenticateToken, async (req, res) => {
   console.log('🔑 Creating Stripe Checkout session for user:', req.user.userId);
   try {
+    const User = require('../models/User');
     const user = await User.findById(req.user.userId);
     if (!user) {
       console.error('❌ User not found');
@@ -87,6 +88,7 @@ router.post('/create-checkout-session', authenticateToken, async (req, res) => {
 router.post('/create-portal-session', authenticateToken, async (req, res) => {
   console.log('🔑 Creating Stripe Customer Portal session for user:', req.user.userId);
   try {
+    const User = require('../models/User');
     const user = await User.findById(req.user.userId);
     if (!user || !user.stripeCustomerId) {
       console.error('❌ User or Stripe customer ID not found');

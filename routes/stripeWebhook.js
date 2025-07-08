@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { verifyWebhookSignature } = require('../services/stripeService');
-const User = require('../models/User');
 
 // Important: This route must use express.raw() to get the raw body
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -33,6 +32,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         const customerId = session.customer;
         console.log('🔄 Handling completed checkout session for customer:', customerId);
         
+        const User = require('../models/User');
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (user) {
           console.log('👤 Found user:', user.email);
@@ -61,6 +61,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         console.log('🔄 Handling subscription event for customer:', customerId);
         console.log('Subscription status:', subscription.status);
         
+        const User = require('../models/User');
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (user) {
           console.log('👤 Found user:', user.email);
@@ -93,6 +94,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
         const customerId = subscription.customer;
+        const User = require('../models/User');
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (user) {
           user.subscriptionStatus = 'canceled';
@@ -105,6 +107,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
         const customerId = invoice.customer;
+        const User = require('../models/User');
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (user) {
           user.subscriptionStatus = 'past_due';

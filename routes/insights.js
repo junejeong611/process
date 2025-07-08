@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
-const Message = require('../models/Message');
 const claudeService = require('../services/claudeService');
 const auth = require('../middleware/auth');
 
@@ -47,6 +46,7 @@ Return your analysis as a JSON object with keys: triggerThemes, negativeCoreBeli
 // @desc    Get user message analysis (insights)
 // @access  Private (protected by auth middleware)
 router.get('/:userId', auth, async (req, res) => {
+  const Message = require('../models/Message');
   const { userId } = req.params;
 
   // Only allow access if the authenticated user matches the requested userId
@@ -115,6 +115,7 @@ router.get('/:userId', auth, async (req, res) => {
 
 // GET /api/insights/:userId/trigger-frequency?period=week|month
 router.get('/:userId/trigger-frequency', auth, async (req, res) => {
+  const Message = require('../models/Message');
   try {
     const { userId } = req.params;
     const { period } = req.query;
@@ -163,6 +164,7 @@ router.get('/:userId/trigger-frequency', auth, async (req, res) => {
 
 // GET /api/insights/:userId/emotional-timeline?period=week|month
 router.get('/:userId/emotional-timeline', auth, async (req, res) => {
+  const Message = require('../models/Message');
   try {
     const { userId } = req.params;
     const { period } = req.query;
@@ -225,6 +227,7 @@ router.get('/:userId/emotional-timeline', auth, async (req, res) => {
 
 // GET /api/insights/:userId/weekly-summary
 router.get('/:userId/weekly-summary', auth, async (req, res) => {
+  const Message = require('../models/Message');
   try {
     const { userId } = req.params;
 
@@ -350,6 +353,7 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
 
 // GET /api/insights/:userId/emotional-distribution?period=week|month
 router.get('/:userId/emotional-distribution', auth, async (req, res) => {
+  const Message = require('../models/Message');
   try {
     const { userId } = req.params;
     const { period } = req.query;
