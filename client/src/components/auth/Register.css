@@ -99,8 +99,8 @@
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
-  animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1) 0.2s both;
+  gap: 1rem;
+  animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1);
 }
 
 @keyframes fadeIn {
