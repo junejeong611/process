@@ -155,15 +155,14 @@ body {
   margin-bottom: 0;
   text-align: left;
   margin-left: 0;
-  text-transform: lowercase;
+  /* text-transform: lowercase; */
 }
 
 .input-wrapper {
+  background: transparent;
+  border: none;
+  padding: 0;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
 }
 
 .form-control {
@@ -183,16 +182,13 @@ body {
 
 .form-control:focus {
   border-color: var(--light-blue);
-  box-shadow: 0 0 0 2px var(--focus-blue);
   outline: none;
-  background: #fff;
-  transform: translateY(-2px);
 }
 
 .form-control::placeholder {
   color: var(--light-gray);
   transition: color var(--transition-fast);
-  text-transform: lowercase;
+  /* text-transform: lowercase; */
 }
 
 .form-control:focus::placeholder {
@@ -248,10 +244,6 @@ body {
   background: rgba(255, 246, 246, 0.9);
 }
 
-.form-control.shake {
-  animation: shake 0.2s ease-in-out;
-}
-
 .is-valid {
   border-color: var(--success-green);
   background: rgba(249, 255, 249, 0.9);
@@ -268,11 +260,15 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   text-align: left;
-  padding-top: 0.2rem;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
 }
 
 .feedback-container {
-  /* min-height: 1.2em; */ /* This ensures space is reserved for feedback */
+  display: flex;
+  align-items: center;
+  height: 1.2em;
   position: relative;
   transition: all .2s ease-in-out;
 }
@@ -929,4 +925,43 @@ input[type="password"] {
   margin-left: auto;
   margin-right: auto;
   text-transform: none;
+}
+
+.input-shaker {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.input-shaker > .form-control {
+  width: 100%;
+  z-index: 1;
+}
+.input-shaker.shake {
+  transition: transform 0.3s cubic-bezier(.36,.07,.19,.97);
+  transform: translateX(-5px);
+  animation: shake 0.2s ease-in-out;
+}
+.input-shaker:not(.shake) {
+  transform: none;
+}
+
+.error-container {
+  height: 80px;
+  min-height: 80px;
+  max-height: 80px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 100%;
+  transition: height 0.2s;
+}
+
+input.form-control.is-invalid {
+  border-color: var(--error-red) !important;
+  background: rgba(255, 246, 246, 0.9) !important;
 }
