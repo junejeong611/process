@@ -1,23 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import './ResetMfaRequest.css';
+
+// Custom debounce hook with flush
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  const flush = useCallback(() => {
+    setDebouncedValue(value);
+  }, [value]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return [debouncedValue, flush];
+};
 
 const ResetMfaRequest = () => {
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [emailBlurred, setEmailBlurred] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [shakeEmail, setShakeEmail] = useState(false);
+    const [emailFocused, setEmailFocused] = useState(false);
+    const emailInputRef = useRef(null);
+
+    const validateEmail = (email) => {
+        if (!email.trim()) return 'email is required';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return 'please enter a valid email address';
+        return '';
+    };
+
+    const handleEmailChange = (e) => {
+        setEmail(e.target.value);
+        if (emailError) setEmailError('');
+    };
+
+    const handleEmailInput = (e) => {
+        setEmail(e.target.value);
+        if (emailBlurred) {
+            const validationError = validateEmail(e.target.value);
+            setEmailError(validationError);
+        }
+    };
+    const [debouncedEmail, flushDebouncedEmail] = useDebounce(email, 500);
+    const handleEmailBlur = () => {
+        setEmailBlurred(true);
+        flushDebouncedEmail();
+        const validationError = validateEmail(email);
+        setEmailError(validationError);
+        if (validationError) setShakeEmail(true);
+        setEmailFocused(false);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setMessage('');
-
-        if (!email) {
-            toast.error('Please enter your email address.');
-            setIsLoading(false);
+        setHasSubmitted(true);
+        flushDebouncedEmail();
+        const err = validateEmail(email);
+        setEmailError(err);
+        if (err) {
+            setTimeout(() => {
+                emailInputRef.current?.focus();
+            }, 100);
+            setShakeEmail(true);
             return;
         }
+        setIsLoading(true);
+        setMessage('');
 
         try {
             const response = await fetch('/api/auth/mfa/reset-request', {
@@ -42,6 +97,13 @@ const ResetMfaRequest = () => {
         }
     };
 
+    useEffect(() => {
+      if (shakeEmail) {
+        const id = setTimeout(() => setShakeEmail(false), 300); // match animation duration
+        return () => clearTimeout(id);
+      }
+    }, [shakeEmail]);
+
     return (
         <div className="reset-mfa-request-container" role="main">
             <div className="reset-mfa-request-card">
@@ -55,16 +117,30 @@ const ResetMfaRequest = () => {
                 <form onSubmit={handleSubmit} className="reset-mfa-request-form" noValidate>
                     <div className="form-group">
                         <label htmlFor="email" className="form-label">Email Address</label>
-                        <input
-                            id="email"
-                            type="email"
-                            className="form-control"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            placeholder="Enter your email"
-                            disabled={isLoading}
-                        />
+                        <div className="input-wrapper">
+                            <div className={`input-shaker${shakeEmail && (emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' shake' : ''}`}>
+                                <input
+                                    ref={emailInputRef}
+                                    id="email"
+                                    type="email"
+                                    className={`form-control${(emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' is-invalid' : ''}`}
+                                    value={email}
+                                    onChange={handleEmailChange}
+                                    onInput={handleEmailInput}
+                                    onFocus={() => setEmailFocused(true)}
+                                    onBlur={handleEmailBlur}
+                                    required
+                                    placeholder="Enter your email"
+                                    disabled={isLoading}
+                                    onAnimationEnd={() => setShakeEmail(false)}
+                                />
+                            </div>
+                        </div>
+                        {emailError && (emailBlurred || hasSubmitted) && !emailFocused && (
+                            <div className="feedback-container">
+                              <div className="invalid-feedback" role="alert">{emailError}</div>
+                            </div>
+                        )}
                     </div>
                     <button
                         type="submit"

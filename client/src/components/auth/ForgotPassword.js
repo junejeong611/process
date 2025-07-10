@@ -50,19 +50,19 @@ const categorizeError = (error) => {
   return { type: 'unknown', canRetry: true, severity: 'error' };
 };
 
-// Custom debounce hook for real-time validation
+// Custom debounce hook with flush
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
-
+  const flush = useCallback(() => {
+    setDebouncedValue(value);
+  }, [value]);
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
-
     return () => clearTimeout(handler);
   }, [value, delay]);
-
-  return debouncedValue;
+  return [debouncedValue, flush];
 };
 
 const ForgotPassword = () => {
@@ -72,22 +72,21 @@ const ForgotPassword = () => {
   const [errorCategory, setErrorCategory] = useState(null);
   const [success, setSuccess] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [emailBlurred, setEmailBlurred] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [shakeEmail, setShakeEmail] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [countdown, setCountdown] = useState(0);
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const [lastSubmitTime, setLastSubmitTime] = useState(null);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
-
-  const navigate = useNavigate();
-  const formRef = useRef(null);
+  let lastSubmitEventRef = null;
+  let controllerRef = null;
   const emailInputRef = useRef(null);
-  const lastSubmitEventRef = useRef(null);
-  const controllerRef = useRef(null);
 
   // Debounced email for real-time validation
-  const debouncedEmail = useDebounce(email, 500);
+  const [debouncedEmail, flushDebouncedEmail] = useDebounce(email, 500);
 
   // Enhanced online/offline monitoring
   useEffect(() => {
@@ -154,15 +153,14 @@ const ForgotPassword = () => {
 
   // Real-time email validation
   useEffect(() => {
-    if (debouncedEmail && debouncedEmail.trim()) {
-      const validationError = validateEmail(debouncedEmail);
-      if (validationError !== emailError) {
-        setEmailError(validationError);
-      }
-    } else if (emailError && !debouncedEmail.trim()) {
-      setEmailError('');
+    let validationError = '';
+    if ((emailBlurred || hasSubmitted) && debouncedEmail && debouncedEmail.trim()) {
+      validationError = validateEmail(debouncedEmail);
     }
-  }, [debouncedEmail, emailError]);
+    if (validationError !== emailError) {
+      setEmailError(validationError);
+    }
+  }, [debouncedEmail, emailBlurred, hasSubmitted, emailError]);
 
   // Enhanced keyboard shortcuts with better accessibility
   useEffect(() => {
@@ -191,11 +189,11 @@ const ForgotPassword = () => {
   // Cleanup function to abort requests on unmount
   useEffect(() => {
     return () => {
-      if (controllerRef.current) {
-        controllerRef.current.abort();
+      if (controllerRef) {
+        controllerRef.abort();
       }
     };
-  }, []);
+  }, [controllerRef]);
 
   // Memoized form validation
   const isFormValid = useMemo(() => {
@@ -205,17 +203,30 @@ const ForgotPassword = () => {
   const handleEmailChange = useCallback((e) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
-    
-    // Clear errors when user starts typing
     if (emailError) setEmailError('');
     if (error) {
       setError('');
       setErrorCategory(null);
     }
     if (success) setSuccess('');
-  }, [emailError, error, success]);
+}, [emailError, error, success]);
 
-  const handleEmailBlur = () => setEmailTouched(true);
+  const handleEmailInput = (e) => {
+    setEmail(e.target.value);
+    if (emailBlurred) {
+        const validationError = validateEmail(e.target.value);
+        setEmailError(validationError);
+    }
+};
+
+  const handleEmailBlur = () => {
+    setEmailBlurred(true);
+    flushDebouncedEmail();
+    const validationError = validateEmail(email);
+    setEmailError(validationError);
+    if (validationError) setShakeEmail(true);
+    setEmailFocused(false);
+};
 
   const handleRetry = useCallback((e) => {
     if (retryCount >= 3) {
@@ -228,13 +239,14 @@ const ForgotPassword = () => {
     setRetryCount(prev => prev + 1);
     setError('');
     setErrorCategory(null);
-    handleSubmit(lastSubmitEventRef.current || e);
-  }, [retryCount]);
+    handleSubmit(lastSubmitEventRef || e);
+  }, [retryCount, lastSubmitEventRef]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setHasSubmitted(true);
-    lastSubmitEventRef.current = e;
+    lastSubmitEventRef = e;
+    flushDebouncedEmail();
     
     // Check for rapid successive submissions
     const now = Date.now();
@@ -245,7 +257,6 @@ const ForgotPassword = () => {
     setLastSubmitTime(now);
 
     // Reset states
-    setError('');
     setSuccess('');
     setErrorCategory(null);
 
@@ -271,6 +282,8 @@ const ForgotPassword = () => {
       setTimeout(() => {
         emailInputRef.current?.focus();
       }, 100);
+      setShakeEmail(true);
+      // Do NOT setError for field validation errors
       return;
     }
 
@@ -280,12 +293,12 @@ const ForgotPassword = () => {
 
     try {
       // Abort previous request if still pending
-      if (controllerRef.current) {
-        controllerRef.current.abort();
+      if (controllerRef) {
+        controllerRef.abort();
       }
 
-      controllerRef.current = new AbortController();
-      const timeoutId = setTimeout(() => controllerRef.current.abort(), 30000);
+      controllerRef = new AbortController();
+      const timeoutId = setTimeout(() => controllerRef.abort(), 30000);
 
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
@@ -298,7 +311,7 @@ const ForgotPassword = () => {
           timestamp: Date.now(),
           attempts: submitAttempts
         }),
-        signal: controllerRef.current.signal
+        signal: controllerRef.signal
       });
 
       clearTimeout(timeoutId);
@@ -402,7 +415,7 @@ const ForgotPassword = () => {
       setErrorCategory(category);
     } finally {
       setIsLoading(false);
-      controllerRef.current = null;
+      controllerRef = null;
     }
   };
 
@@ -510,7 +523,7 @@ const ForgotPassword = () => {
           )}
 
           <form 
-            ref={formRef}
+            ref={null} // formRef is removed
             onSubmit={handleSubmit} 
             className="forgot-password-form"
             noValidate
@@ -521,32 +534,39 @@ const ForgotPassword = () => {
                 email address
               </label>
               <div className="input-wrapper">
-                <input
-                  ref={emailInputRef}
-                  id="email"
-                  type="email"
-                  className={`form-control ${(emailError && (hasSubmitted || emailTouched)) ? 'is-invalid' : ''} ${success ? 'is-valid' : ''}`}
-                  value={email}
-                  onChange={handleEmailChange}
-                  onBlur={handleEmailBlur}
-                  required
-                  aria-required="true"
-                  aria-invalid={!!emailError}
-                  aria-describedby={emailError ? 'email-error' : 'email-help'}
-                  placeholder="enter your email address"
-                  disabled={isLoading || success}
-                  autoComplete="email"
-                  spellCheck="false"
-                  maxLength="254"
-                />
-              </div>
-              {emailError && (
-                <div className="invalid-feedback" id="email-error" role="alert">
-                  {emailError}
+                <div className={`input-shaker${shakeEmail && (emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' shake' : ''}`}>
+                  <input
+                    ref={emailInputRef}
+                    id="email"
+                    type="email"
+                    className={`form-control${(emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' is-invalid' : ''}${success ? ' is-valid' : ''}`}
+                    value={email}
+                    onChange={handleEmailChange}
+                    onInput={handleEmailInput}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={handleEmailBlur}
+                    required
+                    aria-required="true"
+                    aria-invalid={!!emailError}
+                    aria-describedby={emailError ? 'email-error' : 'email-help'}
+                    placeholder="enter your email address"
+                    disabled={isLoading || success}
+                    autoComplete="email"
+                    spellCheck="false"
+                    maxLength="254"
+                    onAnimationEnd={() => setShakeEmail(false)}
+                  />
                 </div>
-              )}
+              </div>
               <div id="email-help" className="visually-hidden">
                 enter the email address associated with your account
+              </div>
+              <div className="feedback-container">
+                {(emailError && (emailBlurred || hasSubmitted) && !emailFocused) && (
+                  <div className="invalid-feedback" id="email-error" role="alert">
+                    {emailError}
+                  </div>
+                )}
               </div>
             </div>
 
