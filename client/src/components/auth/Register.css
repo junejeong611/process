@@ -121,15 +121,33 @@
   font-weight: 600;
   margin-bottom: 0;
   text-align: left;
-  text-transform: lowercase;
 }
 
 .input-wrapper {
+  background: transparent;
+  border: none;
+  padding: 0;
   position: relative;
+}
+.input-shaker {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  align-items: center;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.input-shaker > .form-control {
   width: 100%;
+  z-index: 1;
+}
+.input-shaker.shake {
+  transition: transform 0.3s cubic-bezier(.36,.07,.19,.97);
+  transform: translateX(-5px);
+  animation: shake 0.2s ease-in-out;
+}
+.input-shaker:not(.shake) {
+  transform: none;
 }
 
 .form-control {
@@ -137,7 +155,7 @@
   padding: 1rem 1.2rem;
   border: 1.5px solid #dbe6f3;
   border-radius: 12px;
-  background: #f7fafd;
+  background: var(--bg-light);
   color: #2a3a4d;
   font-size: 1rem;
   font-weight: 500;
@@ -152,16 +170,12 @@
 
 .form-control:focus {
   border-color: #7bb6fa;
-  box-shadow: 0 0 0 3px rgba(123, 182, 250, 0.15);
   outline: none;
-  background: rgba(255, 255, 255, 0.95);
-  transform: translateY(-2px);
 }
 
 .form-control::placeholder {
   color: #8ca0b8;
   transition: color 0.2s;
-  text-transform: lowercase;
 }
 
 .form-control:focus::placeholder {
@@ -206,23 +220,23 @@
 .is-invalid {
   border-color: #e57373;
   background: rgba(255, 246, 246, 0.9);
-  animation: shake 0.5s ease-in-out;
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-  20%, 40%, 60%, 80% { transform: translateX(3px); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-1px); }
+  20%, 40%, 60%, 80% { transform: translateX(1px); }
 }
 
 .invalid-feedback {
   color: #e57373;
   font-size: 0.85rem;
-  margin-top: 0.5rem;
-  animation: slideDown 0.3s ease;
   font-weight: 500;
   text-align: left;
-  margin-left: 0;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  animation: slideDown 0.3s ease;
 }
 
 @keyframes slideDown {
@@ -797,11 +811,16 @@
 }
 
 .error-container {
+  height: 80px;
+  min-height: 80px;
+  max-height: 80px;
+  overflow: auto;
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 1rem 0;
+  justify-content: center;
+  padding: 0;
   width: 100%;
+  transition: height 0.2s;
 }
 
 .error-card {
@@ -852,4 +871,12 @@
 
 .refresh-button-centered:hover {
   background-color: #5a8fd6;
+}
+
+.feedback-container {
+  display: flex;
+  align-items: center;
+  height: 1.2em;
+  position: relative;
+  transition: all .2s ease-in-out;
 }

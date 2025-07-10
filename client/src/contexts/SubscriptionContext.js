@@ -18,7 +18,7 @@ export const SubscriptionProvider = ({ children }) => {
   useEffect(() => {
     const checkToken = () => {
       const newToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-      setToken(newToken);
+      setToken(prev => (prev !== newToken ? newToken : prev));
     };
     window.addEventListener('storage', checkToken);
     // Also poll for token changes in this tab

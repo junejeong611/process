@@ -23,6 +23,21 @@ const passwordStrength = (password) => {
 const strengthLabels = ['too weak', 'weak', 'fair', 'good', 'strong'];
 const strengthColors = ['#e57373', '#ffb74d', '#fff176', '#81c784', '#4caf50'];
 
+// Custom debounce hook with flush
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  const flush = useCallback(() => {
+    setDebouncedValue(value);
+  }, [value]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return [debouncedValue, flush];
+};
+
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,6 +58,13 @@ const Register = () => {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [touched, setTouched] = useState({ name: false, email: false, password: false, confirmPassword: false });
   const [fieldErrors, setFieldErrors] = useState({});
+  const [shakeEmail, setShakeEmail] = useState(false);
+  const [emailBlurred, setEmailBlurred] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [shakePassword, setShakePassword] = useState(false);
+  const [shakeConfirmPassword, setShakeConfirmPassword] = useState(false);
+  const [shakeName, setShakeName] = useState(false);
+  const emailInputRef = useRef(null);
   
   const navigate = useNavigate();
 
@@ -63,7 +85,10 @@ const Register = () => {
   }, []);
 
   // Improved validation functions (no periods, lowercase)
-  const validateName = (val) => !val.trim() ? 'full name is required' : '';
+  const validateName = (val) => {
+    if (!val.trim() || val.trim().split(/\s+/).length < 2) return 'full name is required';
+    return '';
+  };
   
   const validateEmail = (val) => {
     if (!val.trim()) return 'email is required';
@@ -90,14 +115,41 @@ const Register = () => {
     }
     if (error) setError('');
   };
+  const [debouncedName, flushDebouncedName] = useDebounce(name, 300);
+  const handleNameBlur = () => {
+    setTouched(prev => ({ ...prev, name: true }));
+    const error = validateName(name);
+    setFieldErrors(prev => ({ ...prev, name: error }));
+    if (error) {
+      setShakeName(false);
+      setTimeout(() => setShakeName(true), 0);
+    }
+  };
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
-    if (fieldErrors.email) {
-      setFieldErrors(prev => ({ ...prev, email: '' }));
-    }
-    if (error) setError('');
+    if (emailError) setEmailError('');
   };
+  const [debouncedEmail, flushDebouncedEmail] = useDebounce(email, 500);
+  const handleEmailInput = (e) => {
+    setEmail(e.target.value);
+    if (emailBlurred) {
+        const validationError = validateEmail(e.target.value);
+        setEmailError(validationError);
+    }
+};
+const handleEmailBlur = (e) => {
+  setEmailBlurred(true);
+  flushDebouncedEmail();
+  const value = e.target.value;
+  const validationError = validateEmail(value);
+  setEmailError(validationError);
+  if (validationError) {
+    setShakeEmail(false);
+    setTimeout(() => setShakeEmail(true), 0);
+  }
+  setEmailFocused(false);
+};
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
@@ -105,6 +157,18 @@ const Register = () => {
       setFieldErrors(prev => ({ ...prev, password: '' }));
     }
     if (error) setError('');
+  };
+  const [debouncedPassword, flushDebouncedPassword] = useDebounce(password, 300);
+  const handlePasswordBlur = (e) => {
+    setTouched(prev => ({ ...prev, password: true }));
+    flushDebouncedPassword();
+    const value = e.target.value;
+    const validationError = validatePassword(value);
+    setFieldErrors(prev => ({ ...prev, password: validationError }));
+    if (validationError) {
+      setShakePassword(false);
+      setTimeout(() => setShakePassword(true), 0);
+    }
   };
 
   const handleConfirmPasswordChange = (e) => {
@@ -114,6 +178,18 @@ const Register = () => {
     }
     if (error) setError('');
   };
+  const [debouncedConfirmPassword, flushDebouncedConfirmPassword] = useDebounce(confirmPassword, 300);
+  const handleConfirmPasswordBlur = (e) => {
+    setTouched(prev => ({ ...prev, confirmPassword: true }));
+    flushDebouncedConfirmPassword();
+    const value = e.target.value;
+    const validationError = validateConfirmPassword(value);
+    setFieldErrors(prev => ({ ...prev, confirmPassword: validationError }));
+    if (validationError) {
+      setShakeConfirmPassword(false);
+      setTimeout(() => setShakeConfirmPassword(true), 0);
+    }
+  };
 
   const handleAgreementChange = (e) => {
     setAgreed(e.target.checked);
@@ -121,6 +197,10 @@ const Register = () => {
       setFieldErrors(prev => ({ ...prev, agreed: '' }));
     }
     if (error) setError('');
+  };
+  const handleAgreementBlur = () => {
+    setTouched(prev => ({ ...prev, agreed: true }));
+    setFieldErrors(prev => ({ ...prev, agreed: validateAgreement(agreed) }));
   };
 
   const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
@@ -140,13 +220,21 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setHasSubmitted(true);
+    flushDebouncedEmail();
+    const err = validateEmail(email);
+    setEmailError(err);
+    if (err) {
+        setTimeout(() => {
+            emailInputRef.current?.focus();
+        }, 100);
+        setShakeEmail(true);
+        return;
+    }
+    setIsLoading(true);
     setError('');
-    setErrorCategory(null);
     setSuccess('');
     
     if (!validateAll()) return;
-    
-    setIsLoading(true);
     
     try {
       const response = await fetch('/api/auth/register', {
@@ -194,6 +282,13 @@ const Register = () => {
     return Math.max((passwordStrength(password) / 4) * 100, 25);
   };
 
+  useEffect(() => {
+    if (shakeEmail) {
+      const id = setTimeout(() => setShakeEmail(false), 300); // match animation duration
+      return () => clearTimeout(id);
+    }
+  }, [shakeEmail]);
+
   return (
     <div className="register-container" role="main">
       <div className="register-content">
@@ -240,24 +335,31 @@ const Register = () => {
             <div className="form-group">
               <label htmlFor="name" className="form-label">full name</label>
               <div className="input-wrapper">
-                <input
-                  id="name"
-                  type="text"
-                  className={`form-control ${(fieldErrors.name && (hasSubmitted || touched.name)) ? 'is-invalid' : ''}`}
-                  value={name}
-                  onChange={handleNameChange}
-                  onBlur={() => handleBlur('name')}
-                  required
-                  aria-required="true"
-                  aria-invalid={!!fieldErrors.name}
-                  aria-describedby={fieldErrors.name ? 'name-error' : undefined}
-                  placeholder="full name"
-                  disabled={isLoading}
-                  autoComplete="name"
-                />
+                <div className={`input-shaker${shakeName ? ' shake' : ''}`} onAnimationEnd={() => setShakeName(false)}>
+                  <input
+                    id="name"
+                    type="text"
+                    className={`form-control ${(fieldErrors.name && (hasSubmitted || touched.name)) ? 'is-invalid' : ''}`}
+                    value={name}
+                    onChange={handleNameChange}
+                    onBlur={handleNameBlur}
+                    required
+                    aria-required="true"
+                    aria-invalid={!!fieldErrors.name}
+                    aria-describedby={fieldErrors.name ? 'name-error' : undefined}
+                    placeholder="full name"
+                    disabled={isLoading}
+                    autoComplete="name"
+                  />
+                </div>
               </div>
               {fieldErrors.name && (
-                <div className="invalid-feedback" id="name-error">{fieldErrors.name}</div>
+                <div className="feedback-container">
+                  <div className="invalid-feedback" id="name-error">{fieldErrors.name}</div>
+                </div>
+              )}
+              {!fieldErrors.name && (
+                <div className="feedback-container"></div>
               )}
             </div>
 
@@ -265,24 +367,34 @@ const Register = () => {
             <div className="form-group">
               <label htmlFor="email" className="form-label">email address</label>
               <div className="input-wrapper">
-                <input
-                  id="email"
-                  type="email"
-                  className={`form-control ${(fieldErrors.email && (hasSubmitted || touched.email)) ? 'is-invalid' : ''}`}
-                  value={email}
-                  onChange={handleEmailChange}
-                  onBlur={() => handleBlur('email')}
-                  required
-                  aria-required="true"
-                  aria-invalid={!!fieldErrors.email}
-                  aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-                  placeholder="email address"
-                  disabled={isLoading}
-                  autoComplete="email"
-                />
+                <div className={`input-shaker${shakeEmail ? ' shake' : ''}`} onAnimationEnd={() => setShakeEmail(false)}>
+                  <input
+                    ref={emailInputRef}
+                    id="email"
+                    type="email"
+                    className={`form-control${(emailError && (emailBlurred || hasSubmitted)) ? ' is-invalid' : ''}`}
+                    value={email}
+                    onChange={handleEmailChange}
+                    onInput={handleEmailInput}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={handleEmailBlur}
+                    required
+                    aria-required="true"
+                    aria-invalid={!!emailError}
+                    aria-describedby={emailError ? 'email-error' : undefined}
+                    placeholder="email address"
+                    disabled={isLoading}
+                    autoComplete="email"
+                  />
+                </div>
               </div>
-              {fieldErrors.email && (
-                <div className="invalid-feedback" id="email-error">{fieldErrors.email}</div>
+              {emailError && (emailBlurred || hasSubmitted) && (
+                <div className="feedback-container">
+                  <div className="invalid-feedback" id="email-error">{emailError}</div>
+                </div>
+              )}
+              {!(emailError && (emailBlurred || hasSubmitted)) && (
+                <div className="feedback-container"></div>
               )}
             </div>
 
@@ -290,34 +402,41 @@ const Register = () => {
             <div className="form-group">
               <label htmlFor="password" className="form-label">password</label>
               <div className="input-wrapper">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  className={`form-control ${(fieldErrors.password && (hasSubmitted || touched.password)) ? 'is-invalid' : ''}`}
-                  value={password}
-                  onChange={handlePasswordChange}
-                  onBlur={() => handleBlur('password')}
-                  required
-                  aria-required="true"
-                  aria-invalid={!!fieldErrors.password}
-                  aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-                  placeholder="password"
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="toggle-password"
-                  onClick={togglePasswordVisibility}
-                  aria-label={showPassword ? 'hide password' : 'show password'}
-                  tabIndex="0"
-                  disabled={isLoading}
-                >
-                  {showPassword ? 'hide' : 'show'}
-                </button>
+                <div className={`input-shaker${shakePassword ? ' shake' : ''}`} onAnimationEnd={() => setShakePassword(false)}>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    className={`form-control ${(fieldErrors.password && (hasSubmitted || touched.password)) ? 'is-invalid' : ''}`}
+                    value={password}
+                    onChange={handlePasswordChange}
+                    onBlur={handlePasswordBlur}
+                    required
+                    aria-required="true"
+                    aria-invalid={!!fieldErrors.password}
+                    aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+                    placeholder="password"
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={togglePasswordVisibility}
+                    aria-label={showPassword ? 'hide password' : 'show password'}
+                    tabIndex="0"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? 'hide' : 'show'}
+                  </button>
+                </div>
               </div>
-              {fieldErrors.password && (
-                <div className="invalid-feedback" id="password-error">{fieldErrors.password}</div>
+              {fieldErrors.password && (hasSubmitted || touched.password) && (
+                <div className="feedback-container">
+                  <div className="invalid-feedback" id="password-error">{fieldErrors.password}</div>
+                </div>
+              )}
+              {!(fieldErrors.password && (hasSubmitted || touched.password)) && (
+                <div className="feedback-container"></div>
               )}
               
               {/* Password Strength Indicator */}
@@ -344,24 +463,31 @@ const Register = () => {
             <div className="form-group">
               <label htmlFor="confirmPassword" className="form-label">confirm password</label>
               <div className="input-wrapper">
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  className={`form-control ${(fieldErrors.confirmPassword && (hasSubmitted || touched.confirmPassword)) ? 'is-invalid' : ''}`}
-                  value={confirmPassword}
-                  onChange={handleConfirmPasswordChange}
-                  onBlur={() => handleBlur('confirmPassword')}
-                  required
-                  aria-required="true"
-                  aria-invalid={!!fieldErrors.confirmPassword}
-                  aria-describedby={fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined}
-                  placeholder="confirm password"
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                />
+                <div className={`input-shaker${shakeConfirmPassword ? ' shake' : ''}`} onAnimationEnd={() => setShakeConfirmPassword(false)}>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    className={`form-control ${(fieldErrors.confirmPassword && (hasSubmitted || touched.confirmPassword)) ? 'is-invalid' : ''}`}
+                    value={confirmPassword}
+                    onChange={handleConfirmPasswordChange}
+                    onBlur={handleConfirmPasswordBlur}
+                    required
+                    aria-required="true"
+                    aria-invalid={!!fieldErrors.confirmPassword}
+                    aria-describedby={fieldErrors.confirmPassword ? 'confirm-password-error' : undefined}
+                    placeholder="confirm password"
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                  />
+                </div>
               </div>
-              {fieldErrors.confirmPassword && (
-                <div className="invalid-feedback" id="confirmPassword-error">{fieldErrors.confirmPassword}</div>
+              {fieldErrors.confirmPassword && (hasSubmitted || touched.confirmPassword) && (
+                <div className="feedback-container">
+                  <div className="invalid-feedback" id="confirm-password-error">{fieldErrors.confirmPassword}</div>
+                </div>
+              )}
+              {!(fieldErrors.confirmPassword && (hasSubmitted || touched.confirmPassword)) && (
+                <div className="feedback-container"></div>
               )}
             </div>
 
@@ -372,6 +498,7 @@ const Register = () => {
                   type="checkbox"
                   checked={agreed}
                   onChange={handleAgreementChange}
+                  onBlur={handleAgreementBlur}
                   required
                   aria-required="true"
                   disabled={isLoading}
@@ -382,7 +509,9 @@ const Register = () => {
                 </span>
               </label>
               {fieldErrors.agreed && (
-                <div className="invalid-feedback">{fieldErrors.agreed}</div>
+                <div className="feedback-container">
+                  <div className="invalid-feedback">{fieldErrors.agreed}</div>
+                </div>
               )}
             </div>
 
