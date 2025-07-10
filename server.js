@@ -202,6 +202,7 @@ function startServer() {
   app.use(`${API_PREFIX}/insights`, insightsRoutes);
   app.use(`${API_PREFIX}/voicerecord`, voiceRecordRoute);
   app.use(`${API_PREFIX}/subscription`, subscriptionRoutes);
+  app.use('/api/users', require('./routes/users'));
 
   // Maintain backward compatibility with original routes
   app.use('/api/auth', authRoutes);

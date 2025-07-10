@@ -53,10 +53,21 @@ function verifyWebhookSignature(rawBody, signature, stripeWebhookSecret) {
   return getStripeInstance().webhooks.constructEvent(rawBody, signature, stripeWebhookSecret);
 }
 
+const cancelSubscription = async (subscriptionId) => {
+  try {
+    const canceledSubscription = await getStripeInstance().subscriptions.del(subscriptionId);
+    return canceledSubscription;
+  } catch (error) {
+    console.error('Stripe cancel subscription error:', error);
+    throw new Error('Could not cancel subscription in Stripe.');
+  }
+};
+
 module.exports = {
   getStripeInstance,
   createCustomer,
   createCheckoutSession,
   createPortalSession,
-  verifyWebhookSignature
+  verifyWebhookSignature,
+  cancelSubscription
 }; 
