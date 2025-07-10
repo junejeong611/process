@@ -16,7 +16,6 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression'); // Add compression for better performance
 const getSecrets = require('./load');
 const cookieParser = require('cookie-parser');
-const lusca = require('lusca');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { loadKeys } = require('./services/keyService');
 
@@ -133,16 +132,6 @@ function startServer() {
     }
   }));
 
-  // Lusca for CSRF protection and other security enhancements
-  app.use(lusca({
-    csrf: true,
-    xframe: 'SAMEORIGIN',
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    xssProtection: true,
-    nosniff: true,
-    referrerPolicy: 'same-origin'
-  }));
-
   // Logger middleware - different formats for dev and production
   app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
@@ -162,11 +151,6 @@ function startServer() {
   // Request parsing middleware
   app.use(express.json({ limit: '2mb' })); // Parse JSON request bodies with size limit
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
-
-  // Endpoint to get CSRF token
-  app.get('/api/v1/csrf-token', (req, res) => {
-    res.json({ csrfToken: req.csrfToken() });
-  });
 
   // MongoDB connection with improved error handling and options
   const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/emotionalsupportapp';
