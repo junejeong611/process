@@ -91,10 +91,43 @@
     font-weight: 500;
 }
 
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .settings-form-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 1rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  padding-right: 3.5rem; /* space for the show button */
+  box-sizing: border-box;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7a90;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0 0.5rem;
+  z-index: 2;
+  height: 2rem;
+  line-height: 2rem;
+}
+
+.toggle-password:hover {
+  color: var(--primary-blue);
+}
+
+.toggle-password:focus {
+  outline: 2px solid var(--primary-blue);
 } 
