@@ -58,7 +58,7 @@
 .reset-mfa-request-form .form-control {
     width: 100%;
     padding: 1rem 1.2rem;
-    background-color: #f7fafd; /* --bg-light */
+    background: var(--bg-light);
     border: 1.5px solid #dbe6f3; /* --border-light */
     border-radius: 8px; /* --border-radius */
     color: #2a3a4d;
@@ -75,8 +75,6 @@
 .reset-mfa-request-form .form-control:focus {
     outline: none;
     border-color: #7bb6fa; /* --light-blue */
-    box-shadow: 0 0 0 2px #b3d4fc; /* --focus-blue */
-    background: #fff;
 }
 
 .submit-button {
@@ -132,4 +130,67 @@
 .reset-mfa-request-footer a:hover {
     color: #3a5a8c; /* --primary-blue */
     text-decoration: underline;
+}
+
+.is-invalid {
+  border-color: var(--error-red);
+  background: rgba(255, 246, 246, 0.9);
+}
+
+.input-wrapper {
+  background: transparent;
+  border: none;
+  padding: 0;
+  position: relative;
+}
+.input-shaker {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.input-shaker > .form-control {
+  width: 100%;
+  z-index: 1;
+}
+.input-shaker.shake {
+  transition: transform 0.3s cubic-bezier(.36,.07,.19,.97);
+  transform: translateX(-1px);
+  animation: shake 0.2s ease-in-out;
+}
+.input-shaker:not(.shake) {
+  transform: none;
+}
+
+.feedback-container {
+  display: flex;
+  align-items: center;
+  height: 1.2em;
+  position: relative;
+  transition: all .2s ease-in-out;
+}
+
+.invalid-feedback {
+  color: var(--error-red);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: left;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+}
+
+.error-container {
+  height: 80px;
+  min-height: 80px;
+  max-height: 80px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 100%;
+  transition: height 0.2s;
 } 

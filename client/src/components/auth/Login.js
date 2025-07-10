@@ -1,6 +1,7 @@
 /* global gtag */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import './Login.css';
 import { toast } from 'react-toastify';
 
@@ -75,22 +76,23 @@ const categorizeError = (error, statusCode = null) => {
   return { type: 'unknown', canRetry: true, severity: 'error' };
 };
 
-// Custom debounce hook
+// Custom debounce hook with flush
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
-
+  const flush = useCallback(() => {
+    setDebouncedValue(value);
+  }, [value]);
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
-
     return () => clearTimeout(handler);
   }, [value, delay]);
-
-  return debouncedValue;
+  return [debouncedValue, flush];
 };
 
 const Login = () => {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -132,8 +134,8 @@ const Login = () => {
   const controllerRef = useRef(null);
 
   // Debounced values for real-time validation
-  const debouncedEmail = useDebounce(email, 500);
-  const debouncedPassword = useDebounce(password, 300);
+  const [debouncedEmail, flushDebouncedEmail] = useDebounce(email, 500);
+  const [debouncedPassword, flushDebouncedPassword] = useDebounce(password, 300);
 
   // Enhanced online/offline monitoring
   useEffect(() => {
@@ -197,29 +199,66 @@ const Login = () => {
     };
   }, []);
 
+  // Check for mfaSetup redirect from registration
+  useEffect(() => {
+    if (location.state && location.state.mfaSetup) {
+      setMfaStep('setup');
+      if (location.state.email) {
+        setEmail(location.state.email);
+      }
+    }
+  }, [location.state]);
+
+  // Fetch QR code and MFA token when entering setup step
+  useEffect(() => {
+    if (mfaStep === 'setup' && !qrCode) {
+      // Call backend to get QR code and mfaToken
+      (async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch('/api/auth/mfa/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const data = await response.json();
+          if (response.ok && data.qrCode && data.mfaToken) {
+            setQrCode(data.qrCode);
+            setMfaAuthToken(data.mfaToken);
+          } else {
+            setMfaError(data.message || 'Failed to load MFA setup.');
+          }
+        } catch (err) {
+          setMfaError('Failed to load MFA setup.');
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+    }
+  }, [mfaStep, qrCode, email]);
+
   // Real-time validation
   useEffect(() => {
     let validationError = '';
-    if (debouncedEmail && debouncedEmail.trim()) {
+    if ((emailBlurred || hasSubmitted) && debouncedEmail && debouncedEmail.trim()) {
       validationError = validateEmail(debouncedEmail);
     }
     
     if (validationError !== emailError) {
       setEmailError(validationError);
     }
-  }, [debouncedEmail, emailError]);
+  }, [debouncedEmail, emailBlurred, hasSubmitted, emailError]);
 
   // Real-time validation for password only
   useEffect(() => {
-    if (debouncedPassword) {
-      const validationError = validatePassword(debouncedPassword);
-      if (validationError !== passwordError) {
-        setPasswordError(validationError);
-      }
-    } else if (passwordError && !debouncedPassword) {
-      setPasswordError('');
+    let validationError = '';
+    if ((passwordBlurred || hasSubmitted) && debouncedPassword) {
+      validationError = validatePassword(debouncedPassword);
     }
-  }, [debouncedPassword, passwordError]);
+    if (validationError !== passwordError) {
+      setPasswordError(validationError);
+    }
+  }, [debouncedPassword, passwordBlurred, hasSubmitted, passwordError]);
 
   // Enhanced keyboard shortcuts
   useEffect(() => {
@@ -291,10 +330,38 @@ const Login = () => {
     handleSubmit(e);
   }, [retryCount]);
 
-  const handleEmailBlur = () => {
+  const handleEmailBlur = (e) => {
     setEmailBlurred(true);
-    const validationError = validateEmail(email);
+    flushDebouncedEmail();
+    // Use the value from the event target, not from state
+    const value = e.target.value;
+    const validationError = validateEmail(value);
     setEmailError(validationError);
+    if (validationError) {
+      setShakeEmail(false);
+      setTimeout(() => setShakeEmail(true), 0);
+    }
+  };
+
+  const handlePasswordBlur = (e) => {
+    setPasswordBlurred(true);
+    flushDebouncedPassword();
+    // Use the value from the event target, not from state
+    const value = e.target.value;
+    const validationError = validatePassword(value);
+    setPasswordError(validationError);
+    if (validationError) {
+      setShakePassword(false);
+      setTimeout(() => setShakePassword(true), 0);
+    }
+  };
+
+  const handleEmailInput = (e) => {
+    setEmail(e.target.value);
+    if (emailBlurred) {
+      const validationError = validateEmail(e.target.value);
+      setEmailError(validationError);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -340,8 +407,14 @@ const Login = () => {
           passwordInputRef.current?.focus();
         }
       }, 100);
-      if (emailErr) setShakeEmail(true);
-      if (passwordErr) setShakePassword(true);
+      if (emailErr) {
+        setShakeEmail(false);
+        setTimeout(() => setShakeEmail(true), 0);
+      }
+      if (passwordErr) {
+        setShakePassword(false);
+        setTimeout(() => setShakePassword(true), 0);
+      }
       return;
     }
     
@@ -561,11 +634,11 @@ const Login = () => {
         if (data.setupComplete) {
             setBackupCodes(data.backupCodes);
             // Store the final token received after setup
-            if (data.token) {
+            if (data.accessToken) {
                 if (rememberMe) {
-                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('token', data.accessToken);
                 } else {
-                    sessionStorage.setItem('token', data.token);
+                    sessionStorage.setItem('token', data.accessToken);
                 }
             }
             setMfaStep('backup-codes');
@@ -574,12 +647,12 @@ const Login = () => {
         }
 
         // Handle successful login
-        if (data.success && data.token) {
+        if (data.success && data.accessToken) {
             setLoginSuccess(true);
             if (rememberMe) {
-                localStorage.setItem('token', data.token);
+                localStorage.setItem('token', data.accessToken);
             } else {
-                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('token', data.accessToken);
             }
             toast.success('Login successful!');
             setTimeout(() => navigate('/options'), 800);
@@ -771,7 +844,7 @@ const Login = () => {
               </div>
               <p className="backup-codes-info">each code can only be used once</p>
               <button type="button" className="login-button" onClick={finishSetup}>
-                <span className="button-text">I saved my codes</span>
+                <span className="button-text">I Saved My Codes</span>
               </button>
             </>
           ) : (
@@ -847,29 +920,32 @@ const Login = () => {
                 <div className={`form-group${emailError ? ' has-error' : ''}`}>
                   <label htmlFor="email" className="form-label">email address</label>
                   <div className="input-wrapper">
-                    <input
-                      ref={emailInputRef}
-                      id="email"
-                      type="email"
-                      className={`form-control${(emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' is-invalid' : ''}${shakeEmail && (emailError && (emailBlurred || hasSubmitted) && !emailFocused) ? ' shake' : ''}`}
-                      value={email}
-                      onChange={handleEmailChange}
-                      onFocus={() => setEmailFocused(true)}
-                      onBlur={() => { setEmailBlurred(true); setEmailFocused(false); }}
-                      required
-                      aria-required="true"
-                      aria-invalid={!!emailError}
-                      aria-describedby={emailError ? 'email-error' : 'email-help'}
-                      placeholder="email address"
-                      disabled={isLoading || loginSuccess}
-                      autoComplete="username"
-                      spellCheck="false"
-                      maxLength="254"
-                      onAnimationEnd={() => setShakeEmail(false)}
-                    />
+                    <div className={`input-shaker${shakeEmail ? ' shake' : ''}`}
+                      onAnimationEnd={() => setShakeEmail(false)}>
+                      <input
+                        ref={emailInputRef}
+                        id="email"
+                        type="email"
+                        className={`form-control${(emailError && (emailBlurred || hasSubmitted) ? ' is-invalid' : '')}`}
+                        value={email}
+                        onChange={handleEmailChange}
+                        onInput={handleEmailInput}
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={handleEmailBlur}
+                        required
+                        aria-required="true"
+                        aria-invalid={!!emailError}
+                        aria-describedby={emailError ? 'email-error' : 'email-help'}
+                        placeholder="email address"
+                        disabled={isLoading || loginSuccess}
+                        autoComplete="username"
+                        spellCheck="false"
+                        maxLength="254"
+                      />
+                    </div>
                   </div>
                   <div className="feedback-container">
-                    {emailError && (emailBlurred || hasSubmitted) && !emailFocused && (
+                    {emailError && (emailBlurred || hasSubmitted) && (
                       <div className="invalid-feedback" id="email-error" role="alert">
                         {emailError}
                       </div>
@@ -883,38 +959,40 @@ const Login = () => {
                 <div className="form-group">
                   <label htmlFor="password" className="form-label">password</label>
                   <div className="input-wrapper">
-                    <input
-                      ref={passwordInputRef}
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      className={`form-control${(passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused ? ' is-invalid' : '')}${shakePassword && (passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused) ? ' shake' : ''}`}
-                      value={password}
-                      onChange={handlePasswordChange}
-                      onFocus={() => setPasswordFocused(true)}
-                      onBlur={() => { setPasswordBlurred(true); setPasswordFocused(false); }}
-                      required
-                      aria-required="true"
-                      aria-invalid={!!passwordError}
-                      aria-describedby={passwordError ? 'password-error' : 'password-help'}
-                      placeholder="password"
-                      disabled={isLoading || loginSuccess}
-                      autoComplete="current-password"
-                      maxLength="128"
-                      onAnimationEnd={() => setShakePassword(false)}
-                    />
-                    <button 
-                      type="button"
-                      className="toggle-password"
-                      onClick={togglePasswordVisibility}
-                      aria-label={showPassword ? "hide password" : "show password"}
-                      tabIndex="0"
-                      disabled={isLoading || loginSuccess}
-                    >
-                      {showPassword ? "hide" : "show"}
-                    </button>
+                    <div className={`input-shaker${shakePassword ? ' shake' : ''}`}
+                      onAnimationEnd={() => setShakePassword(false)}>
+                      <input
+                        ref={passwordInputRef}
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        className={`form-control${(passwordError && (passwordBlurred || hasSubmitted) ? ' is-invalid' : '')}`}
+                        value={password}
+                        onChange={handlePasswordChange}
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={handlePasswordBlur}
+                        required
+                        aria-required="true"
+                        aria-invalid={!!passwordError}
+                        aria-describedby={passwordError ? 'password-error' : 'password-help'}
+                        placeholder="password"
+                        disabled={isLoading || loginSuccess}
+                        autoComplete="current-password"
+                        maxLength="128"
+                      />
+                      <button 
+                        type="button"
+                        className="toggle-password"
+                        onClick={togglePasswordVisibility}
+                        aria-label={showPassword ? "hide password" : "show password"}
+                        tabIndex="0"
+                        disabled={isLoading || loginSuccess}
+                      >
+                        {showPassword ? "hide" : "show"}
+                      </button>
+                    </div>
                   </div>
                   <div className="feedback-container">
-                    {passwordError && (passwordBlurred || hasSubmitted) && !passwordFocused && (
+                    {passwordError && (passwordBlurred || hasSubmitted) && (
                       <div className="invalid-feedback" id="password-error" role="alert">
                         {passwordError}
                       </div>
