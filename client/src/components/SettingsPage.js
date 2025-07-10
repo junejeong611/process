@@ -120,7 +120,7 @@ const SettingsPage = () => {
           <form className="settings-form" onSubmit={handleChangePassword} autoComplete="off">
             <div className="settings-form-group">
               <label htmlFor="currentPassword">Current Password</label>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className="input-wrapper">
                 <input
                   id="currentPassword"
                   type={showCurrentPassword ? 'text' : 'password'}
@@ -129,12 +129,11 @@ const SettingsPage = () => {
                   onChange={e => setCurrentPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  style={{ flex: 1 }}
                 />
                 <button
                   type="button"
+                  className="toggle-password"
                   onClick={() => setShowCurrentPassword(v => !v)}
-                  style={{ marginLeft: 8 }}
                   tabIndex="-1"
                 >
                   {showCurrentPassword ? 'Hide' : 'Show'}
@@ -143,7 +142,7 @@ const SettingsPage = () => {
             </div>
             <div className="settings-form-group">
               <label htmlFor="newPassword">New Password</label>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className="input-wrapper">
                 <input
                   id="newPassword"
                   type={showNewPassword ? 'text' : 'password'}
@@ -152,12 +151,11 @@ const SettingsPage = () => {
                   onChange={e => setNewPassword(e.target.value)}
                   required
                   autoComplete="new-password"
-                  style={{ flex: 1 }}
                 />
                 <button
                   type="button"
+                  className="toggle-password"
                   onClick={() => setShowNewPassword(v => !v)}
-                  style={{ marginLeft: 8 }}
                   tabIndex="-1"
                 >
                   {showNewPassword ? 'Hide' : 'Show'}
@@ -166,7 +164,7 @@ const SettingsPage = () => {
             </div>
             <div className="settings-form-group">
               <label htmlFor="confirmPassword">Confirm New Password</label>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div className="input-wrapper">
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -175,12 +173,11 @@ const SettingsPage = () => {
                   onChange={e => setConfirmPassword(e.target.value)}
                   required
                   autoComplete="new-password"
-                  style={{ flex: 1 }}
                 />
                 <button
                   type="button"
+                  className="toggle-password"
                   onClick={() => setShowConfirmPassword(v => !v)}
-                  style={{ marginLeft: 8 }}
                   tabIndex="-1"
                 >
                   {showConfirmPassword ? 'Hide' : 'Show'}
