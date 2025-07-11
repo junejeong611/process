@@ -28,7 +28,7 @@
   display: flex;
   min-height: 100vh;
   font-family: var(--font-family);
-  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background: #eaf2fa;
 }
 
 .subscription-main {
@@ -92,11 +92,14 @@
 
 /* Status Banner */
 .subscription-status-banner {
-  background: var(--bg-light);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--border-light);
+  background: #fff;
+  border-radius: var(--border-radius-large);
+  border: 3.5px solid var(--border-light);
+  box-shadow: 0 8px 40px var(--shadow-medium), 0 3px 12px rgba(60, 90, 130, 0.08);
+  padding: 2.5rem 2rem;
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto 1.5rem auto;
   text-align: center;
   transition: all var(--transition-fast);
 }
@@ -121,34 +124,14 @@
 }
 
 /* Status-specific styling */
-.subscription-status-banner.inactive {
-  background: linear-gradient(135deg, #fffbe6 0%, #fff8dc 100%);
-  border-color: #ffe58f;
-  color: #ad6800;
-}
-
-.subscription-status-banner.trial {
-  background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
-  border-color: #91d5ff;
-  color: #0050b3;
-}
-
-.subscription-status-banner.active {
-  background: linear-gradient(135deg, #f6ffed 0%, #f0fff4 100%);
-  border-color: #b7eb8f;
-  color: #389e0d;
-}
-
-.subscription-status-banner.canceled {
-  background: linear-gradient(135deg, #fffbe6 0%, #fff8dc 100%);
-  border-color: #ffe58f;
-  color: #ad6800;
-}
-
+.subscription-status-banner.inactive,
+.subscription-status-banner.trial,
+.subscription-status-banner.active,
+.subscription-status-banner.canceled,
 .subscription-status-banner.past-due {
-  background: linear-gradient(135deg, #fff1f0 0%, #fff2f0 100%);
-  border-color: #ffa39e;
-  color: #cf1322;
+  background: #fff;
+  border-color: var(--border-light);
+  color: inherit;
 }
 
 /* Action Buttons */
@@ -438,4 +421,11 @@
   .subscription-button {
     display: none;
   }
+} 
+
+.highlight-banner {
+  background: linear-gradient(90deg, #e3edf7 0%, #f7fafd 100%);
+  border: 1.5px solid #b3d4fc;
+  box-shadow: none !important;
+  margin-top: 2rem;
 } 

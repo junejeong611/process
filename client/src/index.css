@@ -1,20 +1,342 @@
-html, body, #root {
-  height: 100%;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/*
+  Color Palette:
+  --primary-blue: Main brand color for buttons, links, highlights
+  --light-blue: Lighter accent for backgrounds, hovers
+  --medium-blue: Accent for gradients, secondary actions
+  --text-primary: Main text color
+  --text-secondary: Secondary text color
+  --text-gray: Muted/tertiary text
+  --light-gray: Subtle backgrounds, borders
+  --bg-light: Light background for sections/cards
+  --bg-white: Pure white backgrounds
+  --border-light: Card and input borders
+  --error-red: Error states, alerts
+  --success-green: Success states, confirmations
+  --warning-orange: Warning states, alerts
+  --shadow-light: Card/button shadow
+  --shadow-medium: Modal/deeper shadow
+  --focus-blue: Focus ring for accessibility
+  --bg-gradient-start: Main background gradient start
+  --bg-gradient-end: Main background gradient end
+  --highlight-gradient-start: Highlight card gradient start
+  --highlight-gradient-end: Highlight card gradient end
+  --main-bg-gradient: Main background gradient
+  --highlight-gradient: Highlight card gradient
+  --bg-page: #e3edf7; // Main page background (matches header)
+*/
+/*
+  Spacing Scale (4px base):
+  --space-1: 0.25rem;  // 4px
+  --space-2: 0.5rem;   // 8px
+  --space-3: 1rem;     // 16px
+  --space-4: 1.5rem;   // 24px
+  --space-5: 2rem;     // 32px
+  --space-6: 2.5rem;   // 40px
+  --space-7: 3rem;     // 48px
+  --space-8: 4rem;     // 64px
+
+  Container Widths:
+  --container-max: 1200px;      // Main content max width
+  --container-wide: 900px;      // Wide card/section
+  --container-medium: 700px;    // Medium card/section
+  --container-narrow: 520px;    // Standard card/form
+  --container-xs: 400px;        // Small/narrow card
+*/
+:root {
+  --primary-blue: #3a5a8c;
+  --light-blue: #7bb6fa;
+  --medium-blue: #5a8fd6;
+  --text-primary: #1a365d;
+  --text-secondary: #4a5568;
+  --text-gray: #6b7a90;
+  --light-gray: #8ca0b8;
+  --bg-light: #f7fafd;
+  --bg-white: #fff;
+  --border-light: #dbe6f3;
+  --error-red: #e57373;
+  --success-green: #4caf50;
+  --warning-orange: #ef6c00;
+  --shadow-light: rgba(60, 90, 130, 0.08);
+  --shadow-medium: rgba(60, 90, 130, 0.12);
+  --focus-blue: #b3d4fc;
+  /* Gradient stops */
+  --bg-gradient-start: #e3edf7;
+  --bg-gradient-end: #f7fafd;
+  --highlight-gradient-start: #f8fbff;
+  --highlight-gradient-end: #e3edf7;
+  /* Full gradients */
+  --main-bg-gradient: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  --highlight-gradient: linear-gradient(135deg, var(--highlight-gradient-start) 0%, var(--highlight-gradient-end) 100%);
+  --border-radius: 8px;
+  --border-radius-large: 18px;
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.3s cubic-bezier(.4,0,.2,1);
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.1rem;
+  --font-size-body: 1rem;
+  --font-size-label: 0.9rem;
+  --font-size-caption: 0.85rem;
+  --font-size-subtitle: 1.1rem;
+  --font-weight-label: 500;
+  --font-weight-caption: 400;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 2.5rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --container-max: 1200px;
+  --container-wide: 900px;
+  --container-medium: 700px;
+  --container-narrow: 520px;
+  --container-xs: 400px;
+  --bg-page: #eaf2fa;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+h1, .h1 {
+  font-size: var(--font-size-h1);
+  font-weight: 700;
+  color: var(--primary-blue);
+  line-height: 1.2;
+  margin-bottom: 0.5em;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+h2, .h2 {
+  font-size: var(--font-size-h2);
+  font-weight: 700;
+  color: var(--primary-blue);
+  line-height: 1.25;
+  margin-bottom: 0.5em;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+h3, .h3 {
+  font-size: var(--font-size-h3);
+  font-weight: 600;
+  color: var(--primary-blue);
+  line-height: 1.3;
+  margin-bottom: 0.5em;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+h4, .h4 {
+  font-size: var(--font-size-h4);
+  font-weight: 600;
+  color: var(--primary-blue);
+  line-height: 1.35;
+  margin-bottom: 0.5em;
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+body, .body {
+  font-size: var(--font-size-body);
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* === Standard Card === */
+.app-card {
+  background: var(--bg-white);
+  border-radius: var(--border-radius-large);
+  border: 3.5px solid var(--border-light);
+  box-shadow: 0 8px 40px var(--shadow-medium), 0 3px 12px rgba(60, 90, 130, 0.08);
+  padding: var(--space-6) var(--space-5);
+  max-width: var(--container-narrow);
+  width: 100%;
+  margin: 0 auto var(--space-4) auto;
+  text-align: center;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+.app-card--danger {
+  border-left: 6px solid var(--error-red);
+  border-color: var(--error-red);
+}
+
+/* === Error/Success Card === */
+.error-card {
+  background: var(--bg-white);
+  border-radius: var(--border-radius-large);
+  border: 2.5px solid var(--error-red);
+  box-shadow: 0 8px 32px rgba(229, 115, 115, 0.10);
+  padding: var(--space-4) var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: 0.95rem;
+  color: var(--error-red);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+.error-card--success {
+  border-color: var(--success-green);
+  color: var(--success-green);
+  box-shadow: 0 8px 32px rgba(76, 175, 80, 0.10);
+}
+.error-card--warning {
+  border-color: var(--warning-orange);
+  color: var(--warning-orange);
+  box-shadow: 0 8px 32px rgba(239, 108, 0, 0.10);
+}
+.error-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.2rem;
+  width: 2.2rem;
+  font-size: 1.3rem;
+  background: #ffeaea;
+  color: inherit;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(229, 115, 115, 0.08);
+  margin-bottom: 0.5rem;
+}
+.error-card__title {
+  font-weight: 700;
+  font-size: 1.08rem;
+  margin-bottom: 0.2rem;
+  color: inherit;
+  text-transform: lowercase;
+  letter-spacing: 0.2px;
+  text-align: center;
+}
+.error-card__message {
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+/* === Standard Button === */
+.app-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  text-transform: lowercase;
+  box-shadow: 0 2px 8px var(--shadow-light);
+}
+.app-button--primary {
+  background: linear-gradient(135deg, var(--light-blue) 0%, var(--medium-blue) 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px var(--shadow-medium);
+}
+.app-button--primary:hover {
+  background: linear-gradient(135deg, var(--medium-blue) 0%, var(--primary-blue) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--shadow-medium);
+}
+.app-button--danger {
+  background-color: var(--error-red);
+  color: white;
+}
+.app-button--danger:hover {
+  background-color: #d32f2f;
+}
+.app-button--secondary {
+  background-color: var(--bg-light);
+  color: var(--primary-blue);
+  border: 1.5px solid var(--primary-blue);
+}
+.app-button--secondary:hover {
+  background-color: var(--light-blue);
+  color: white;
+}
+.app-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* === Back Button (Reusable) === */
+.app-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-gray);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  text-transform: lowercase;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.app-back-button:hover,
+.app-back-button:focus {
+  color: var(--primary-blue);
+  background: rgba(123, 182, 250, 0.08);
+  transform: translateX(-3px);
+  outline: none;
+}
+.app-back-icon {
+  font-size: 1.2rem;
+  transition: transform 0.2s;
+}
+.app-back-button:hover .app-back-icon {
+  transform: translateX(-3px);
+}
+
+/* === Highlight/Secondary Card === */
+.app-card--highlight {
+  background: linear-gradient(135deg, #f8fbff 0%, #e3edf7 100%);
+  border: 2.5px solid var(--light-blue);
+  box-shadow: 0 4px 24px var(--shadow-light);
+  color: var(--primary-blue);
+  position: relative;
+  z-index: 1;
+}
+
+/* === Typography Utilities === */
+.app-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  margin-bottom: 0.5rem;
+  text-transform: lowercase;
+}
+.app-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-gray);
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+label, .form-label, .label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.caption, .form-caption {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-caption);
+  color: var(--text-gray);
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.subtitle, .app-subtitle {
+  font-size: var(--font-size-subtitle);
+  font-weight: 400;
+  color: var(--text-gray);
+  letter-spacing: 0.01em;
+  line-height: 1.4;
 }

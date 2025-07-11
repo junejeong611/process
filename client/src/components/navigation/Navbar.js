@@ -105,12 +105,7 @@ const Navbar = () => {
 
   const handleNavigation = (item) => {
     try {
-      // Check if premium access is required and user doesn't have it
-      if (item.requiresPremium && !hasPremiumAccess) {
-        navigate('/subscribe');
-        return;
-      }
-      
+      // Always navigate to the requested page - PremiumRoute will handle the paywall
       navigate(item.path);
     } catch (error) {
       console.error('Navigation error:', error);
