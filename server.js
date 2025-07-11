@@ -50,6 +50,7 @@ const stripeWebhook = require('./routes/stripeWebhook');
     process.env.STRIPE_SECRET_KEY = secrets.STRIPE_SECRET_KEY;
     process.env.STRIPE_PUBLISHABLE_KEY = secrets.STRIPE_PUBLISHABLE_KEY;
     process.env.STRIPE_PRICE_ID = secrets.STRIPE_PRICE_ID;
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON;
     console.log('✅ Stripe secrets set successfully');
 
     // Debug logs for Stripe secrets

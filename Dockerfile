@@ -13,8 +13,6 @@ RUN npm install
 # Copy entire project
 COPY . .
 
-# Set the env var for Google Cloud auth
-ENV GOOGLE_APPLICATION_CREDENTIALS=/process/amazing-smile-461122-a4-02117ea0206d.json
 
 # Expose port (change if needed)
 EXPOSE 5001
