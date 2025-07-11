@@ -4,8 +4,8 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f5f5f5;
-  margin-left: 280px; /* Match navbar width when expanded */
+  background-color: var(--bg-page);
+  margin-left: 280px; /* Keep for navbar offset */
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden;
 }
@@ -17,10 +17,10 @@
 
 .chat-container {
   flex: 1;
-  padding: 1rem 2rem;
+  padding: var(--space-3) var(--space-5);
   display: flex;
   flex-direction: column;
-  max-width: 900px; /* Reduced from 1200px for better readability */
+  max-width: var(--container-wide);
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
@@ -29,73 +29,73 @@
 /* Enhanced layout for different content types */
 .content-container {
   flex: 1;
-  padding: 1.5rem 2rem;
+  padding: var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
-  max-width: 1200px;
+  max-width: var(--container-max);
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
 }
 
 .content-container.narrow {
-  max-width: 900px;
+  max-width: var(--container-narrow);
 }
 
 .content-container.wide {
-  max-width: 1400px;
+  max-width: var(--container-wide);
 }
 
 /* Page-specific containers */
 .insights-container {
-  max-width: 1200px;
+  max-width: var(--container-wide);
   width: 100%;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: var(--space-4) var(--space-5);
 }
 
 .history-container {
-  max-width: 1000px;
+  max-width: var(--container-wide);
   width: 100%;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: var(--space-4) var(--space-5);
 }
 
 .options-container {
-  max-width: 800px;
+  max-width: var(--container-medium);
   width: 100%;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: var(--space-4) var(--space-5);
 }
 
 .profile-container {
-  max-width: 700px;
+  max-width: var(--container-narrow);
   width: 100%;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: var(--space-4) var(--space-5);
 }
 
 /* Support page - accessible layout */
 .support-container {
   margin-left: 0 !important;
-  background: #ffffff;
+  background: var(--bg-white);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 2rem 1rem;
+  padding: var(--space-5) var(--space-3);
 }
 
 /* Exit thank you page */
 .exit-container {
   margin-left: 0 !important;
-  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
+  background: var(--main-bg-gradient);
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: var(--space-5) var(--space-3);
 }
 
 /* Responsive adjustments */
@@ -108,7 +108,7 @@
   .chat-container,
   .insights-container,
   .history-container {
-    padding: 1rem 1.5rem;
+    padding: var(--space-2) var(--space-3);
   }
 }
 
@@ -123,7 +123,7 @@
   .history-container,
   .options-container,
   .profile-container {
-    padding: 0.75rem 1rem;
+    padding: var(--space-3) var(--space-4);
     max-width: 100%;
   }
 }
@@ -139,12 +139,12 @@
   .history-container,
   .options-container,
   .profile-container {
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-3) var(--space-2);
   }
   
   .support-container,
   .exit-container {
-    padding: 1rem 0.5rem;
+    padding: var(--space-5);
   }
 }
 
@@ -154,18 +154,18 @@
   align-items: center;
   justify-content: center;
   min-height: 400px;
-  color: #6b7a90;
+  color: var(--text-gray);
   font-size: 1.1rem;
 }
 
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e3edf7;
-  border-top: 3px solid #7bb6fa;
+  border: 3px solid var(--bg-gradient-start);
+  border-top: 3px solid var(--light-blue);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-right: 1rem;
+  margin-right: var(--space-3);
 }
 
 @keyframes spin {
@@ -180,24 +180,24 @@
   align-items: center;
   justify-content: center;
   min-height: 400px;
-  color: #e57373;
+  color: var(--error-red);
   text-align: center;
-  padding: 2rem;
+  padding: var(--space-5);
 }
 
 .error-icon {
   font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-3);
 }
 
 .error-message {
   font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 .error-details {
   font-size: 0.9rem;
-  color: #8ca0b8;
+  color: var(--light-gray);
 }
 
 /* Premium route styling */
@@ -222,11 +222,11 @@
 
 .premium-message {
   background: white;
-  padding: 2rem;
+  padding: var(--space-5);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   text-align: center;
-  max-width: 400px;
+  max-width: var(--container-xs);
 }
 
 /* Dark mode support */
@@ -241,11 +241,11 @@
   }
   
   .error-container {
-    color: #ffab91;
+    color: var(--warning-orange);
   }
   
   .error-details {
-    color: #8ca0b8;
+    color: var(--light-gray);
   }
   
   .premium-overlay::before {
@@ -270,4 +270,12 @@
   .premium-overlay {
     display: none !important;
   }
+}
+
+.dashboard-container,
+.main-content,
+.content-header,
+.page-content,
+.options-main {
+  background: var(--bg-page) !important;
 }

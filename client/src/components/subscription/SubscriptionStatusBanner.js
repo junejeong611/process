@@ -121,7 +121,7 @@ const SubscriptionStatusBanner = () => {
 
   // --- Inactive or Default State ---
   return (
-    <div className="subscription-status-banner inactive">
+    <div className="subscription-status-banner inactive highlight-banner">
       <h3>Get Full Access</h3>
       <p>Unlock all premium features by starting your free 7-day trial today.</p>
       <button className="subscription-button" onClick={handleSubscribe}>

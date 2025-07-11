@@ -4,7 +4,6 @@ import Login from '../components/auth/Login';
 import Register from '../components/auth/Register';
 import Dashboard from '../components/dashboard/Dashboard';
 import ChatInterface from '../components/chat/ChatInterface';
-import UserProfile from '../components/profile/UserProfile';
 import ForgotPassword from '../components/auth/ForgotPassword';
 import ResetPassword from '../components/auth/ResetPassword';
 import ResetMfaRequest from '../components/auth/ResetMfaRequest';
@@ -135,15 +134,6 @@ const AppRoutes = () => (
           <PremiumRoute>
             <VoicePage />
           </PremiumRoute>
-        </DashboardLayout>
-      </ProtectedRoute>
-    } />
-    
-    {/* Profile and other authenticated routes */}
-    <Route path="/profile" element={
-      <ProtectedRoute>
-        <DashboardLayout>
-          <UserProfile />
         </DashboardLayout>
       </ProtectedRoute>
     } />

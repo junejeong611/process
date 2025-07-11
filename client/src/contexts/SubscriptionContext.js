@@ -90,8 +90,14 @@ export const SubscriptionProvider = ({ children }) => {
       saveToCache(data); // Cache the full object
     } catch (err) {
       console.error('[SubscriptionContext] Error fetching status:', err);
-      setError('Failed to load subscription status.');
-      setStatus({ subscriptionStatus: 'inactive' }); // Default to inactive object on error
+      // If error is 401 Unauthorized, treat as inactive (not an error)
+      if (err && (err.status === 401 || err.response?.status === 401)) {
+        setStatus({ subscriptionStatus: 'inactive' });
+        setError(null);
+      } else {
+        setError('Failed to load subscription status.');
+        setStatus({ subscriptionStatus: 'inactive' }); // Default to inactive object on error
+      }
     } finally {
       setLoading(false);
     }

@@ -2,20 +2,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .conversation-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(219, 230, 243, 0.8);
-  border-radius: 16px;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(.4,0,.2,1);
-  position: relative;
+  composes: app-card;
+  /* Remove/override old styles for background, border, border-radius, box-shadow, padding, max-width, margin, text-align, etc. */
   display: flex;
   gap: 1rem;
   align-items: flex-start;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  box-shadow: 0 2px 8px rgba(60, 90, 130, 0.05);
 }
 
 .conversation-card:hover {

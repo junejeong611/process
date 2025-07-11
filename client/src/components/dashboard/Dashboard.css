@@ -1,5 +1,4 @@
 /* Dashboard.css - Enhanced Version */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* Root variables for consistent theming */
 :root {
@@ -24,7 +23,7 @@
   display: flex;
   /* height: 100vh; */
   font-family: var(--font-family);
-  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background: #eaf2fa;
   /* overflow: hidden; */
 }
 

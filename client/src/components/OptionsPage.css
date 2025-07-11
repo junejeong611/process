@@ -1,5 +1,4 @@
 /* OptionsPage.css - Enhanced Version */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* Root variables for consistent theming */
 :root {
@@ -22,11 +21,19 @@
   --transition-medium: 0.3s cubic-bezier(.4,0,.2,1);
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --sidebar-width: 280px;
+  --bg-page: #eaf2fa;
 }
 
 body {
-  background: #e3edf7;
+  background: var(--bg-page);
   overflow-x: hidden;
+}
+
+.options-main,
+.main-content,
+.content-header,
+.page-content {
+  background: var(--bg-page);
 }
 
 /* Main container */
@@ -37,8 +44,8 @@ body {
   min-height: 100vh;
   width: calc(100vw - 280px);
   margin-left: 0;
-  background: #e3edf7;
-  padding: 0;
+  background: var(--bg-page);
+  padding: var(--space-5);
   box-sizing: border-box;
   font-family: var(--font-family);
   position: relative;
@@ -184,7 +191,7 @@ body {
 
 /* Center content */
 .options-center {
-  max-width: 400px;
+  max-width: var(--container-xs);
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
@@ -273,20 +280,20 @@ body {
 
 /* Enhanced card styling */
 .options-card {
-  background: #fff;
-  border-radius: var(--border-radius-large);
-  box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
+  composes: app-card;
+  /* Remove/override old styles for background, border, border-radius, box-shadow, padding, max-width, margin, text-align, etc. */
   display: flex;
   align-items: center;
-  padding: 1.5rem;
   cursor: pointer;
   transition: all var(--transition-medium);
   outline: none;
-  border: 1.5px solid transparent;
   min-height: 80px;
   position: relative;
   overflow: hidden;
   animation: cardSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+  max-width: var(--container-narrow);
 }
 
 @keyframes cardSlideIn {
@@ -373,7 +380,7 @@ body {
   font-weight: 600;
   text-transform: lowercase;
   letter-spacing: 0.01em;
-  margin-bottom: 0.1rem;
+  margin-bottom: var(--space-3);
 }
 
 .options-card-subtitle {
@@ -388,7 +395,7 @@ body {
   font-size: 0.85rem;
   font-weight: 400;
   line-height: 1.3;
-  margin-top: 0.25rem;
+  margin-bottom: var(--space-3);
   opacity: 0;
   transform: translateY(8px);
   transition: all var(--transition-medium);

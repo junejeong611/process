@@ -1,9 +1,15 @@
+.dashboard-layout {
+  background: #eaf2fa;
+  min-height: 100vh;
+}
+
 .main-content {
   flex-grow: 1;
   transition: margin-left 0.3s ease;
   padding: 0;
   display: flex;
   flex-direction: column;
+  background: #eaf2fa;
 }
 
 .main-content.sidebar-open {
@@ -15,23 +21,29 @@
 }
 
 .content-header {
+  position: relative;
   display: flex;
   justify-content: flex-end;
   align-items: center;
   padding: 1rem 2rem;
-  background: var(--background-color-main);
+  background: #eaf2fa;
   border-bottom: 1px solid var(--border-color);
+  min-height: 64px;
 }
 
 .page-content {
   flex-grow: 1;
   padding: 1rem 2rem;
   overflow-y: auto;
+  background: #eaf2fa;
 }
 
 /* User Menu Styles (moved from OptionsPage) */
 .user-menu-container {
-  position: relative;
+  position: fixed;
+  top: 1.5rem;
+  right: 2rem;
+  z-index: 2000;
   display: inline-block;
 }
 

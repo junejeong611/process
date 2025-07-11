@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SettingsPage.css';
 
@@ -20,6 +20,12 @@ const deleteAccount = async (token) => {
   return response.json();
 };
 
+const UserIcon = () => (
+  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#6b7a90"/>
+  </svg>
+);
+
 const SettingsPage = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
@@ -32,6 +38,57 @@ const SettingsPage = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const userMenuRef = useRef(null);
+  const [userName, setUserName] = useState('User');
+
+  useEffect(() => {
+    // Fetch user info on mount
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/users/me', {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.name) {
+          setUserName(data.name);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    console.log('[DEBUG] useEffect for user-menu-container ran');
+    if (userMenuRef.current) {
+      console.log('[DEBUG] user-menu-container rendered:', userMenuRef.current);
+      const rect = userMenuRef.current.getBoundingClientRect();
+      console.log('[DEBUG] user-menu-container bounding rect:', rect);
+      const main = document.querySelector('.settings-page');
+      if (main) {
+        const mainStyle = window.getComputedStyle(main);
+        console.log('[DEBUG] .settings-page computed position:', mainStyle.position);
+      }
+      const menuStyle = window.getComputedStyle(userMenuRef.current);
+      console.log('[DEBUG] .user-menu-container computed position:', menuStyle.position);
+    } else {
+      console.log('[DEBUG] userMenuRef.current is null');
+    }
+  }, []);
 
   // Get token directly from localStorage/sessionStorage
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -41,15 +98,16 @@ const SettingsPage = () => {
   };
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+    setShowUserMenu(false);
     try {
-      // Clear tokens
       localStorage.removeItem('token');
       sessionStorage.removeItem('token');
-      
-      // Navigate to login
+      // Optionally show a toast here
+      await new Promise(resolve => setTimeout(resolve, 500));
       navigate('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      setIsLoggingOut(false);
     }
   };
 
@@ -108,10 +166,23 @@ const SettingsPage = () => {
     <div className="settings-page">
       <div className="settings-container">
         <h1 className="settings-title">Settings</h1>
+        <hr className="settings-divider" />
         <p className="settings-subtitle">Manage your account and preferences</p>
 
-        {error && <p className="error-message">{error}</p>}
-        {success && <p className="success-message">{success}</p>}
+        {error && (
+          <div className="error-card" role="alert">
+            <div className="error-card__icon">!</div>
+            <div className="error-card__title">Error</div>
+            <div className="error-card__message">{error}</div>
+          </div>
+        )}
+        {success && (
+          <div className="error-card error-card--success" role="status">
+            <div className="error-card__icon">✓</div>
+            <div className="error-card__title">Success</div>
+            <div className="error-card__message">{success}</div>
+          </div>
+        )}
 
         {/* Change Password Section */}
         <div className="settings-card">
@@ -184,8 +255,8 @@ const SettingsPage = () => {
                 </button>
               </div>
             </div>
-            <button className="settings-button primary-button" type="submit" disabled={loading}>
-              {loading ? 'Updating...' : 'Change Password'}
+            <button className="login-button" type="submit" disabled={loading}>
+              <span className="button-text">{loading ? 'Updating...' : 'Change Password'}</span>
             </button>
           </form>
         </div>
@@ -194,8 +265,8 @@ const SettingsPage = () => {
         <div className="settings-card">
           <h2 className="settings-card-title">Manage Subscription</h2>
           <p className="settings-card-description">View your current plan, update billing details, or cancel your subscription.</p>
-          <button className="settings-button primary-button" onClick={handleManageSubscription}>
-            Go to Subscription Page
+          <button className="login-button" onClick={handleManageSubscription}>
+            <span className="button-text">Go to Subscription Page</span>
           </button>
         </div>
 
@@ -203,8 +274,8 @@ const SettingsPage = () => {
         <div className="settings-card danger-zone">
           <h2 className="settings-card-title">Delete Account</h2>
           <p className="settings-card-description">Permanently delete your account and all associated data. This action cannot be undone.</p>
-          <button className="settings-button danger-button" onClick={handleDeleteAccount}>
-            Delete My Account
+          <button className="login-button" onClick={handleDeleteAccount}>
+            <span className="button-text">Delete My Account</span>
           </button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 .support-main {
   width: 100vw;
   min-height: 100vh;
-  background: linear-gradient(135deg, #e3edf7 0%, #f7fafd 100%);
+  background: #eaf2fa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,17 +13,13 @@
 }
 
 .support-card {
-  background: #fff;
-  border-radius: 18px;
-  border: 3.5px solid #dbe6f3;
-  box-shadow: 0 8px 40px rgba(60, 90, 130, 0.12), 0 3px 12px rgba(60, 90, 130, 0.08);
-  padding: 2.5rem 2rem 2rem 2rem;
-  max-width: 520px;
-  width: 100%;
-  text-align: center;
+  composes: app-card;
+}
+
+.support-container {
+  padding: var(--space-5);
+  max-width: var(--container-narrow);
   margin: 0 auto;
-  overflow: hidden;
-  animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideInUp {
@@ -46,15 +42,15 @@
 }
 
 .support-title {
-  color: #3a5a8c;
+  color: var(--primary-blue);
   font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-4);
   text-transform: lowercase;
 }
 
 .support-intro {
-  color: #6b7a90;
+  color: var(--text-gray);
   font-size: 1.1rem;
   margin-bottom: 1.5rem;
 }
@@ -66,34 +62,34 @@
 }
 
 .support-resource {
-  background: #f8fbff;
+  background: var(--bg-light);
   border-radius: 12px;
-  padding: 1.25rem 1rem;
-  margin-bottom: 1rem;
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
   box-shadow: 0 2px 8px rgba(123, 182, 250, 0.08);
   text-align: left;
 }
 
 .support-resource-name {
-  color: #3a5a8c;
+  color: var(--primary-blue);
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
 
 .support-resource-desc {
-  color: #6b7a90;
+  color: var(--text-gray);
   font-size: 0.95rem;
   margin-bottom: 0.5rem;
 }
 
 .support-resource-contact {
-  color: #5a8fd6;
+  color: var(--medium-blue);
   font-size: 0.95rem;
 }
 
 .support-link {
-  color: #3a5a8c;
+  color: var(--primary-blue);
   text-decoration: underline;
   font-weight: 500;
   margin-left: 0.25rem;
@@ -115,7 +111,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: #6b7a90;
+  color: var(--text-gray);
   text-decoration: none;
   font-size: 0.92rem;
   font-weight: 500;
@@ -127,7 +123,7 @@
 
 .back-link:hover,
 .back-link:focus {
-  color: #3a5a8c;
+  color: var(--primary-blue);
   background: rgba(123, 182, 250, 0.08);
   transform: translateX(-3px);
   outline: none;
@@ -144,5 +140,5 @@
 
 body {
   border: none;
-  background: #e3edf7;
+  background: #eaf2fa;
 } 

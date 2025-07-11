@@ -44,11 +44,11 @@ const SubscriptionPage = () => {
       <div className="subscription-main">
         <div className="subscription-container">
           <button
-            className="subscription-back-button"
+            className="app-back-button"
             onClick={() => navigate('/settings')}
-            style={{ marginBottom: '1.5rem', background: 'none', border: 'none', color: '#4b7bec', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', textDecoration: 'underline' }}
+            style={{ marginBottom: '1.5rem' }}
           >
-            ← Back to Settings
+            <span className="app-back-icon">←</span> Back to Settings
           </button>
           <div className="subscription-header">
             <h1 className="subscription-title">Subscription Details</h1>
