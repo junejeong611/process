@@ -1,6 +1,8 @@
 // root/utils/voice.js
 const speech = require('@google-cloud/speech');
-const client = new speech.SpeechClient();
+
+const creds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+const client = new speech.SpeechClient({ credentials: creds });
 
 async function recordAndTranscribe(audioBuffer) {
   const audioBytes = audioBuffer.toString('base64');
