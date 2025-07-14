@@ -46,6 +46,7 @@ const { loadKeys } = require('./services/keyService');
     process.env.EMAIL_FROM = secrets.EMAIL_FROM;
     process.env.EMAIL_HOST = secrets.EMAIL_HOST;
     process.env.EMAIL_PORT = secrets.EMAIL_PORT;
+    process.env.EMAIL_SERVICE = secrets.EMAIL_SERVICE;
     process.env.CLIENT_URL = secrets.CLIENT_URL;
     process.env.STRIPE_WEBHOOK_SECRET = secrets.STRIPE_WEBHOOK_SECRET;
     process.env.STRIPE_PRODUCT_ID = secrets.STRIPE_PRODUCT_ID;
@@ -53,6 +54,7 @@ const { loadKeys } = require('./services/keyService');
     process.env.STRIPE_PUBLISHABLE_KEY = secrets.STRIPE_PUBLISHABLE_KEY;
     process.env.STRIPE_PRICE_ID = secrets.STRIPE_PRICE_ID;
     process.env.JWT_SECRET = secrets.JWT_SECRET;
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON;
     console.log('✅ Stripe secrets set successfully');
 
     // Debug logs for Stripe secrets
