@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import SubscriptionStatusBanner from './subscription/SubscriptionStatusBanner';
 import Navbar from './navigation/Navbar';
+import SubscriptionActions from './subscription/SubscriptionActions';
 import './subscription/SubscriptionPage.css';
 
 const SubscriptionPage = () => {
@@ -42,19 +43,22 @@ const SubscriptionPage = () => {
     <div className="subscription-layout">
       <Navbar />
       <div className="subscription-main">
-        <div className="subscription-container">
-          <button
-            className="app-back-button"
-            onClick={() => navigate('/settings')}
-            style={{ marginBottom: '1.5rem' }}
-          >
-            <span className="app-back-icon">←</span> Back to Settings
-          </button>
-          <div className="subscription-header">
-            <h1 className="subscription-title">Subscription Details</h1>
-            <p className="subscription-subtitle">Manage your subscription and billing</p>
+        <div style={{ width: '100%', maxWidth: 600, margin: '0 auto' }}>
+          <div className="back-navigation" style={{ marginBottom: '2rem' }}>
+            <Link to="/settings" className="back-link" aria-label="Back to settings">
+              <span className="back-icon">&#8592;</span> Back to Settings
+            </Link>
           </div>
-          <SubscriptionStatusBanner />
+          <div className="app-card app-card--padded settings-card" style={{ padding: '3rem 2.5rem' }}>
+            <div className="subscription-header">
+              <h1 className="subscription-title">subscription details</h1>
+              <p className="subscription-subtitle">Manage your subscription and billing</p>
+            </div>
+            <SubscriptionStatusBanner />
+            <div style={{ marginTop: '2rem' }}>
+              <SubscriptionActions />
+            </div>
+          </div>
         </div>
       </div>
     </div>

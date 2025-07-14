@@ -972,17 +972,41 @@ body, #root, .main-content-wrapper {
 
 /* Conversation card spacing and hover */
 .conversation-card {
+  border-radius: var(--radius-lg) !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-light) !important;
+  box-shadow: var(--shadow-light) !important;
   transition: all var(--transition-normal) !important;
   transform-origin: center !important;
   will-change: transform, box-shadow !important;
   margin-bottom: 1rem !important;
+  padding: 1.5rem 2rem !important; /* Increased padding */
+  position: relative !important; /* For absolute positioning of delete icon */
 }
 
-.conversation-card:hover {
-  transform: scale(1.01) !important;
-  box-shadow: var(--shadow-medium) !important;
-  border-color: var(--border-medium) !important;
-  background: rgba(255, 255, 255, 0.95) !important;
+/* Delete icon button in top right */
+.conversation-card .delete-icon-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  z-index: 2;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+.conversation-card .delete-icon-button:hover {
+  background: var(--primary-blue-pale);
+  color: var(--error-red);
+}
+
+.conversation-card:hover,
+.conversation-card.selected {
+  border-radius: var(--radius-lg) !important;
+  background: var(--bg-card) !important;
 }
 
 /* Adjust spacing for mobile */

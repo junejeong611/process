@@ -3409,3 +3409,9 @@ body, html, #root, .main-content, .settings-page, .dashboard-layout, .dashboard-
     color: #1a365d !important;
   }
 }
+
+html, body {
+  height: 100vh !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+}

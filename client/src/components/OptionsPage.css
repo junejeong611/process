@@ -260,6 +260,10 @@ body {
   letter-spacing: 0.01em;
 }
 
+.options-greeting, .options-title {
+  background: none !important;
+}
+
 /* Cards container */
 .options-cards {
   display: flex;
@@ -1037,7 +1041,7 @@ body {
 }
 
 /* Force light mode for options page */
-.options-main, .options-card, .user-menu, .user-menu-trigger, .options-greeting, .options-title, .options-card-title, .options-card-subtitle, .user-name, .options-card-description, .support-text {
+.options-main, .options-card, .user-menu, .user-menu-trigger, .options-card-title, .options-card-subtitle, .user-name, .options-card-description {
   background: #f7fafd !important;
   color: #1a365d !important;
 }
