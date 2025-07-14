@@ -3378,3 +3378,34 @@ a:visited {
   margin-bottom: 0.2rem;
   font-weight: 400;
 }
+
+/* Force light mode for all users */
+:root {
+  --primary-blue: #3a5a8c !important;
+  --light-blue: #7bb6fa !important;
+  --medium-blue: #5a8fd6 !important;
+  --text-primary: #1a365d !important;
+  --text-secondary: #4a5568 !important;
+  --text-gray: #6b7a90 !important;
+  --light-gray: #8ca0b8 !important;
+  --bg-light: #f7fafd !important;
+  --bg-white: #fff !important;
+  --border-light: #dbe6f3 !important;
+  --error-red: #e57373 !important;
+  --success-green: #4caf50 !important;
+  --warning-orange: #ef6c00 !important;
+  --bg-page: #eaf2fa !important;
+}
+
+body, html, #root, .main-content, .settings-page, .dashboard-layout, .dashboard-container, .options-main, .register-container, .voice-bg, .insights-page {
+  background: #f7fafd !important;
+  color: #1a365d !important;
+}
+
+/* Remove dark mode media queries by overriding them */
+@media (prefers-color-scheme: dark) {
+  :root, body, html, #root, .main-content, .settings-page, .dashboard-layout, .dashboard-container, .options-main, .register-container, .voice-bg, .insights-page {
+    background: #f7fafd !important;
+    color: #1a365d !important;
+  }
+}

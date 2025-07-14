@@ -571,3 +571,10 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Force light mode for navbar */
+.navbar, .navbar-header, .navbar-footer, .navbar-title, .navbar-subtitle, .navbar-item, .navbar-item.active, .navbar-toggle {
+  background: #f7fafd !important;
+  color: #1a365d !important;
+  border-color: #dbe6f3 !important;
+}

@@ -924,3 +924,9 @@ select,
 .gentle-modal-message {
   text-transform: lowercase;
 }
+
+/* Force light mode for voice page */
+.voice-bg, body, html {
+  background: #f7fafd !important;
+  color: #1a365d !important;
+}

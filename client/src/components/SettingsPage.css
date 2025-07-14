@@ -311,3 +311,9 @@
 body, .main-content-wrapper {
   background: #eaf2fa !important;
 } 
+
+/* Force light mode for settings page */
+.settings-page, .settings-container, .register-card, .form-control, .register-footer {
+  background: #f7fafd !important;
+  color: #1a365d !important;
+} 

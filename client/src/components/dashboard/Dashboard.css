@@ -184,3 +184,9 @@
     display: none;
   }
 }
+
+/* Force light mode for dashboard */
+.dashboard-layout, .dashboard-container, .main-content {
+  background: #f7fafd !important;
+  color: #1a365d !important;
+}

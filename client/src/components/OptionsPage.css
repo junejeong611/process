@@ -1035,3 +1035,9 @@ body {
   color: var(--pale-green) !important;
   fill: var(--pale-green) !important;
 }
+
+/* Force light mode for options page */
+.options-main, .options-card, .user-menu, .user-menu-trigger, .options-greeting, .options-title, .options-card-title, .options-card-subtitle, .user-name, .options-card-description, .support-text {
+  background: #f7fafd !important;
+  color: #1a365d !important;
+}
