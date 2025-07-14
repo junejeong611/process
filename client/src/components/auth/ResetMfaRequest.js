@@ -144,7 +144,7 @@ const ResetMfaRequest = () => {
                     </div>
                     <button
                         type="submit"
-                        className={`submit-button ${isLoading ? 'loading' : ''}`}
+                        className={`app-button app-button--primary app-button--full-width submit-button ${isLoading ? 'loading' : ''}`}
                         disabled={isLoading}
                     >
                         {isLoading ? 'Sending...' : 'Send Reset Link'}

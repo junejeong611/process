@@ -40,7 +40,14 @@ const EmotionalTimelineChart = () => {
   }
 
   if (error) {
-    return <div className="chart-error">{error.message}</div>;
+    return <div className="error-card error-card--warning">
+      <div className="error-card__content">
+        <div className="error-card__icon">📈</div>
+        <div className="error-card__text">
+          <p className="error-card__message">{error.message}</p>
+        </div>
+      </div>
+    </div>;
   }
 
   const isEmpty = !timelineData?.length || timelineData.every(day =>

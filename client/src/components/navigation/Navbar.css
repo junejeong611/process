@@ -1,33 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-:root {
-  --primary-blue: #3a5a8c;
-  --light-blue: #7bb6fa;
-  --medium-blue: #5a8fd6;
-  --text-gray: #6b7a90;
-  --light-gray: #8ca0b8;
-  --bg-light: #f8fbff;
-  --border-light: #dbe6f3;
-  --shadow-light: rgba(60, 90, 130, 0.04);
-  --transition-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --warning-orange: #ef6c00;
-  --premium-gold: #ffd700;
-}
+/* Using global CSS variables from index.css */
 
 .navbar {
   width: 280px;
   height: 100vh;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  border-right: 1px solid rgba(219, 230, 243, 0.6);
+  background: var(--bg-primary) !important;
+  border: none !important;
+  box-shadow: none !important;
   display: flex;
   flex-direction: column;
   position: fixed;
   top: 0;
   left: 0;
-  box-shadow: 0 0 32px var(--shadow-light);
   font-family: var(--font-family);
-  z-index: 100;
+  z-index: 200;
   overflow-x: hidden;
   transition: width var(--transition-medium);
 }
@@ -59,13 +46,13 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(123, 182, 250, 0.2);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
 }
 
 .navbar-logo:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(123, 182, 250, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .navbar-logo:focus {
@@ -165,7 +152,7 @@
   background: linear-gradient(135deg, rgba(123, 182, 250, 0.08) 0%, rgba(90, 143, 214, 0.08) 100%);
   color: var(--primary-blue);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(123, 182, 250, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .navbar-item.active:hover {
@@ -219,7 +206,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-fast);
   position: relative;
 }
 
@@ -260,7 +247,7 @@
   margin-right: 0;
   padding: 0;
   box-sizing: border-box;
-  transition: box-shadow 0.2s;
+  transition: box-shadow var(--transition-fast);
   cursor: pointer;
   color: var(--text-gray);
   padding-left: 2px;
@@ -301,7 +288,7 @@
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-fast);
   z-index: 1000;
   text-transform: lowercase;
 }
@@ -316,17 +303,21 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   background: var(--premium-gold);
   color: var(--primary-blue);
   border-radius: 50%;
-  font-size: 8px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  line-height: 1;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  padding: 0;
+  transform: translateX(-1px);
 }
 
 /* Responsive */
@@ -565,4 +556,18 @@
 @keyframes slideInLeft {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
+}
+
+.navbar.collapsed .navbar-item {
+  justify-content: center;
+  align-items: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.navbar.collapsed .navbar-item-icon {
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

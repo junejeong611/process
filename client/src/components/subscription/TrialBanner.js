@@ -15,9 +15,14 @@ const TrialBanner = () => {
     );
     if (daysLeft <= 3) {
       return (
-        <div className="trial-banner">
-          Your free trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}!{' '}
-          <a href="/subscribe">Upgrade now</a>
+        <div className="app-banner app-banner--trial app-banner--compact">
+          <div className="app-banner__icon">⏰</div>
+          <div className="app-banner__content">
+            <div className="app-banner__text">
+              Your free trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}!{' '}
+              <a href="/subscribe" className="app-link">Upgrade now</a>
+            </div>
+          </div>
         </div>
       );
     }

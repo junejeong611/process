@@ -63,7 +63,7 @@ const AppRoutes = () => (
     {/* Options page - accessible to all authenticated users */}
     <Route path="/options" element={
       <ProtectedRoute>
-        <DashboardLayout>
+        <DashboardLayout sidebarOffset={false}>
           <PremiumRoute>
             <OptionsPage />
           </PremiumRoute>
@@ -84,7 +84,7 @@ const AppRoutes = () => (
     
     <Route path="/chat-history" element={
       <ProtectedRoute>
-        <DashboardLayout>
+        <DashboardLayout sidebarOffset={false}>
           <PremiumRoute>
             <ChatHistoryPage />
           </PremiumRoute>
@@ -102,7 +102,7 @@ const AppRoutes = () => (
     
     <Route path="/insights" element={
       <ProtectedRoute>
-        <DashboardLayout>
+        <DashboardLayout sidebarOffset={false}>
           <PremiumRoute>
             <InsightsPage />
           </PremiumRoute>
@@ -122,7 +122,7 @@ const AppRoutes = () => (
     
     <Route path="/settings" element={
       <ProtectedRoute>
-        <DashboardLayout>
+        <DashboardLayout sidebarOffset={false}>
           <SettingsPage />
         </DashboardLayout>
       </ProtectedRoute>

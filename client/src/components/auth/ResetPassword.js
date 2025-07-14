@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import './ResetPassword.css';
+import ErrorCard from '../ErrorCard';
+import { categorizeError } from '../../utils/errorUtils';
+import AuthErrorCard from '../AuthErrorCard';
 
 // Enhanced password strength calculation
 const passwordStrength = (password) => {
@@ -43,42 +46,6 @@ const validateConfirmPassword = (confirmPassword, password) => {
   if (!confirmPassword) return 'please confirm your password';
   if (confirmPassword !== password) return 'passwords do not match';
   return '';
-};
-
-// Enhanced error categorization
-const categorizeError = (error) => {
-  const errorLower = error.toLowerCase();
-  
-  // Token errors
-  if (errorLower.includes('token') || errorLower.includes('expired') ||
-      errorLower.includes('invalid') || errorLower.includes('link')) {
-    return { type: 'token', canRetry: false, severity: 'error' };
-  }
-  
-  // Password validation errors
-  if (errorLower.includes('password') && errorLower.includes('requirements')) {
-    return { type: 'validation', canRetry: true, severity: 'warning' };
-  }
-  
-  // Network errors
-  if (errorLower.includes('network') || errorLower.includes('connection') || 
-      errorLower.includes('fetch') || errorLower.includes('timeout')) {
-    return { type: 'network', canRetry: true, severity: 'warning' };
-  }
-  
-  // Rate limiting
-  if (errorLower.includes('rate limit') || errorLower.includes('too many') ||
-      errorLower.includes('throttle')) {
-    return { type: 'rateLimit', canRetry: false, severity: 'warning' };
-  }
-  
-  // Server errors
-  if (errorLower.includes('server') || errorLower.includes('500') ||
-      errorLower.includes('503')) {
-    return { type: 'server', canRetry: true, severity: 'error' };
-  }
-  
-  return { type: 'unknown', canRetry: true, severity: 'error' };
 };
 
 // Custom debounce hook
@@ -518,55 +485,46 @@ const ResetPassword = () => {
             </p>
           </header>
 
-          {/* Enhanced error display */}
-          {error && (
-            <div className="error-container">
-              <div className="error-card">
-                <div className="error-icon-lock">
-                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" stroke="#e57373" strokeWidth="1.5" />
-                      <path d="M12 7v6" stroke="#e57373" strokeWidth="1.5" strokeLinecap="round" />
-                      <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-                  </svg>
-                </div>
-                <h3 className="error-title-text">password reset failed</h3>
-                <p className="error-message-text">{error}</p>
-                {errorCategory?.canRetry && retryCount < 3 && countdown === 0 && (
-                  <div className="error-actions">
-                    <button 
-                      className="refresh-button-centered"
-                      onClick={handleRetry}
-                      aria-label={`retry password reset (attempt ${retryCount + 2})`}
-                      type="button"
-                    >
-                      try again
-                    </button>
+          {/* Unified status display - prevents stacking */}
+          {(error || success || !isOnline) && (() => {
+            // Priority: Success > Error > Offline
+            if (success) {
+              return (
+                <ErrorCard
+                  error={success}
+                  errorCategory={{ type: 'success', canRetry: false }}
+                />
+              );
+            } else if (error) {
+              const errorMessage = error.message || error;
+              const errorCategory = categorizeError(errorMessage);
+              const isUnauthorized = errorCategory.type === 'auth';
+              if (isUnauthorized) {
+                return (
+                  <div className="error-container">
+                    <AuthErrorCard />
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Enhanced success message */}
-          {success && (
-            <div className="success-message" role="status" aria-live="polite">
-              <div className="success-content">
-                <div className="success-icon" aria-hidden="true">✓</div>
-                <div className="success-text">
-                  <div className="success-title">password reset!</div>
-                  {success}
+                );
+              }
+              return (
+                <div className="error-container">
+                  <ErrorCard
+                    error={errorMessage}
+                    errorCategory={errorCategory}
+                    onRetry={handleRetry}
+                    retryLabel="refresh page"
+                  />
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Offline indicator */}
-          {!isOnline && (
-            <div className="offline-indicator" role="alert" aria-live="assertive">
-              <span className="offline-icon" aria-hidden="true">📶</span>
-              you're currently offline
-            </div>
-          )}
+              );
+            } else if (!isOnline) {
+              return (
+                <ErrorCard
+                  error="You're currently offline. Please check your internet connection."
+                  errorCategory={{ type: 'network', canRetry: false }}
+                />
+              );
+            }
+          })()}
 
           <form 
             ref={formRef}
@@ -704,7 +662,7 @@ const ResetPassword = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className={`reset-button ${isLoading ? 'loading' : ''} ${resetSuccess ? 'success' : ''}`}
+              className={`app-button app-button--primary app-button--full-width reset-button ${isLoading ? 'loading' : ''} ${resetSuccess ? 'success' : ''}`}
               disabled={!isFormValid}
               aria-busy={isLoading}
               aria-describedby="reset-status"

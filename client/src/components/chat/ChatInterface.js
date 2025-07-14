@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import Icon from '../Icon';
 import './ChatInterface.css';
 
 // Constants
@@ -383,18 +384,10 @@ const ChatInterface = () => {
     <div className="improved-chat-interface">
       {/* Enhanced Connection Status */}
       {(!backendReady || backendError) && (
-        <div className={`connection-banner ${backendError ? 'error' : 'loading'}`}>
-          <div className="connection-content">
-            <div className="connection-icon">
-              {backendError ? (
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-              ) : (
-                <div className="loading-spinner" />
-              )}
-            </div>
-            <span>{backendError || 'connecting to support...'}</span>
+        <div className={`app-banner ${backendError ? 'app-banner--error' : 'app-banner--loading'} app-banner--sticky`}>
+          <div className="app-banner__icon">{backendError ? '⚡' : '⏳'}</div>
+          <div className="app-banner__content">
+            <div className="app-banner__text">{backendError || 'connecting to support...'}</div>
           </div>
         </div>
       )}
@@ -429,15 +422,7 @@ const ChatInterface = () => {
         ) : messages.length === 0 ? (
           <div className="welcome-state">
             <div className="welcome-icon">
-              <svg width="56" height="56" fill="none" viewBox="0 0 24 24">
-                <path 
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" 
-                  stroke="currentColor" 
-                  strokeWidth="1.5" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <img src="/logo.svg" alt="Process Logo" width="56" height="56" />
             </div>
             <h3>welcome to your safe space</h3>
             <p>this is a judgment-free zone where you can share whatever is on your mind</p>
@@ -453,9 +438,7 @@ const ChatInterface = () => {
                 <div className="message-wrapper">
                   {message.sender === 'bot' && (
                     <div className="message-avatar">
-                      <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                      </svg>
+                      <img src="/logo.svg" alt="Process Logo" width="20" height="20" style={{ filter: 'brightness(0) invert(1)' }} />
                     </div>
                   )}
                   <div className="message-bubble-enhanced">
@@ -472,9 +455,7 @@ const ChatInterface = () => {
               <div className="message-enhanced bot typing-message">
                 <div className="message-wrapper">
                   <div className="message-avatar">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
+                    <img src="/logo.svg" alt="Process Logo" width="20" height="20" style={{ filter: 'brightness(0) invert(1)' }} />
                   </div>
                   <div className="message-bubble-enhanced typing-bubble">
                     <div className="typing-indicator-enhanced">
@@ -523,15 +504,7 @@ const ChatInterface = () => {
                 {isLoading ? (
                   <span className="spinner" aria-hidden="true"></span>
                 ) : (
-                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                    <path 
-                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <Icon name="send" size={18} />
                 )}
                 <span className="send-label">
                   {isLoading ? 'sending...' : 'send'}
@@ -543,9 +516,7 @@ const ChatInterface = () => {
         
         <div className="input-footer">
           <div className="input-hint-enhanced">
-            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M13 17h8l-8-8V1H9v8l-8 8h8v6h4v-6z"/>
-            </svg>
+            <Icon name="keyboard" size={14} />
             <span>press enter to send • shift + enter for new line</span>
           </div>
         </div>

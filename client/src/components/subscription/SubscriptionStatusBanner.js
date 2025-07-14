@@ -61,14 +61,18 @@ const SubscriptionStatusBanner = () => {
     const daysLeft = Math.max(0, Math.ceil((new Date(endDate) - now) / (1000 * 60 * 60 * 24)));
 
     return (
-      <div className="subscription-status-banner canceled">
-        <h3>Subscription Canceled</h3>
-        <p>
-          Your plan will not renew. Your premium access ends in <b>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</b> on {formatDate(endDate)}.
-        </p>
-        <button className="subscription-button warning" onClick={handleSubscribe}>
-          Reactivate Subscription
-        </button>
+      <div className="app-banner app-banner--warning subscription-status-banner canceled">
+        <div className="app-banner__content">
+          <h3 className="app-banner__title">Subscription Canceled</h3>
+          <p className="app-banner__text">
+            Your plan will not renew. Your premium access ends in <b>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</b> on {formatDate(endDate)}.
+          </p>
+        </div>
+        <div className="app-banner__actions">
+          <button className="app-banner__button" onClick={handleSubscribe}>
+            Reactivate Subscription
+          </button>
+        </div>
       </div>
     );
   }
@@ -79,16 +83,20 @@ const SubscriptionStatusBanner = () => {
   if (isTrial && trialEnd) {
     const trialDaysLeft = Math.max(0, Math.ceil((new Date(trialEnd) - now) / (1000 * 60 * 60 * 24)));
     return (
-      <div className="subscription-status-banner trial">
-        <h3>Free Trial Active</h3>
-        <p>
-          You have <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}</b> of your free trial remaining.
-          <br />
-          Your trial ends on {formatDate(trialEnd)}. After that, your paid subscription will begin.
-        </p>
-        <button className="subscription-button" onClick={handleManage}>
-          Manage Subscription
-        </button>
+      <div className="app-banner app-banner--trial subscription-status-banner trial">
+        <div className="app-banner__content">
+          <h3 className="app-banner__title">Free Trial Active</h3>
+          <p className="app-banner__text">
+            You have <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}</b> of your free trial remaining.
+            <br />
+            Your trial ends on {formatDate(trialEnd)}. After that, your paid subscription will begin.
+          </p>
+        </div>
+        <div className="app-banner__actions">
+          <button className="app-banner__button" onClick={handleManage}>
+            Manage Subscription
+          </button>
+        </div>
       </div>
     );
   }
@@ -96,12 +104,16 @@ const SubscriptionStatusBanner = () => {
   // --- Active State ---
   if (subscriptionStatus === 'active' && currentPeriodEnd) {
     return (
-      <div className="subscription-status-banner active">
-        <h3>Subscription Active</h3>
-        <p>Your plan is active and will automatically renew on <b>{formatDate(currentPeriodEnd)}</b>.</p>
-        <button className="subscription-button success" onClick={handleManage}>
-          Manage Subscription
-        </button>
+      <div className="app-banner app-banner--success subscription-status-banner active">
+        <div className="app-banner__content">
+          <h3 className="app-banner__title">Subscription Active</h3>
+          <p className="app-banner__text">Your plan is active and will automatically renew on <b>{formatDate(currentPeriodEnd)}</b>.</p>
+        </div>
+        <div className="app-banner__actions">
+          <button className="app-banner__button" onClick={handleManage}>
+            Manage Subscription
+          </button>
+        </div>
       </div>
     );
   }
@@ -109,24 +121,32 @@ const SubscriptionStatusBanner = () => {
   // --- Past Due State ---
   if (subscriptionStatus === 'past_due') {
     return (
-      <div className="subscription-status-banner past-due">
-        <h3>Payment Needed</h3>
-        <p>Your last payment failed. Please update your payment method to restore access.</p>
-        <button className="subscription-button warning" onClick={handleManage}>
-          Update Payment Method
-        </button>
+      <div className="app-banner app-banner--error subscription-status-banner past-due">
+        <div className="app-banner__content">
+          <h3 className="app-banner__title">Payment Needed</h3>
+          <p className="app-banner__text">Your last payment failed. Please update your payment method to restore access.</p>
+        </div>
+        <div className="app-banner__actions">
+          <button className="app-banner__button" onClick={handleManage}>
+            Update Payment Method
+          </button>
+        </div>
       </div>
     );
   }
 
   // --- Inactive or Default State ---
   return (
-    <div className="subscription-status-banner inactive highlight-banner">
-      <h3>Get Full Access</h3>
-      <p>Unlock all premium features by starting your free 7-day trial today.</p>
-      <button className="subscription-button" onClick={handleSubscribe}>
-        Start Free Trial
-      </button>
+    <div className="app-banner app-banner--info subscription-status-banner inactive highlight-banner">
+      <div className="app-banner__content">
+        <h3 className="app-banner__title">Get Full Access</h3>
+        <p className="app-banner__text">Unlock all premium features by starting your free 7-day trial today.</p>
+      </div>
+      <div className="app-banner__actions">
+        <button className="app-banner__button" onClick={handleSubscribe}>
+          Start Free Trial
+        </button>
+      </div>
     </div>
   );
 };

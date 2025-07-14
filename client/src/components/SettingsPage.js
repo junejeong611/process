@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Icon from './Icon';
 import './SettingsPage.css';
 
 // This would be in a proper service/API file
@@ -20,11 +21,7 @@ const deleteAccount = async (token) => {
   return response.json();
 };
 
-const UserIcon = () => (
-  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#6b7a90"/>
-  </svg>
-);
+// Using standardized Icon component instead of inline SVG
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -163,120 +160,133 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="settings-page">
-      <div className="settings-container">
-        <h1 className="settings-title">Settings</h1>
-        <hr className="settings-divider" />
-        <p className="settings-subtitle">Manage your account and preferences</p>
-
-        {error && (
-          <div className="error-card" role="alert">
-            <div className="error-card__icon">!</div>
-            <div className="error-card__title">Error</div>
-            <div className="error-card__message">{error}</div>
+    <div className="main-content-wrapper">
+      <div className="settings-page">
+        <header className="chat-history-header">
+          <div className="header-center">
+            <h1 className="page-title">settings</h1>
+            <p className="page-subtitle">manage your account and preferences</p>
           </div>
-        )}
-        {success && (
-          <div className="error-card error-card--success" role="status">
-            <div className="error-card__icon">✓</div>
-            <div className="error-card__title">Success</div>
-            <div className="error-card__message">{success}</div>
+        </header>
+        <div className="chat-history-container">
+          <div className="chat-history-inner">
+            <div className="settings-main">
+              {error && (
+                <div className="error-card error-card--auth">
+                  <div className="error-card__content">
+                    <div className="error-card__icon">🔐</div>
+                    <div className="error-card__text">
+                      <h3 className="error-card__title">settings error</h3>
+                      <p className="error-card__message">{error && error.replace(/\./g, '')}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {success && (
+                <div className="error-card error-card--success">
+                  <div className="error-card__content">
+                    <div className="error-card__icon">✓</div>
+                    <div className="error-card__text">
+                      <h3 className="error-card__title">success</h3>
+                      <p className="error-card__message">{success && success.replace(/\./g, '')}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Change Password Section */}
+              <div className="app-card app-card--padded settings-card">
+                <h2 className="settings-card-title">change password</h2>
+                <p className="settings-card-description">update your password for better security</p>
+                <form className="settings-form" onSubmit={handleChangePassword} autoComplete="off">
+                  <div className="settings-form-group">
+                    <label htmlFor="currentPassword">current password</label>
+                    <div className="input-wrapper">
+                      <input
+                        id="currentPassword"
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        className="settings-form-input"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
+                        required
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        className="toggle-password"
+                        onClick={() => setShowCurrentPassword(v => !v)}
+                        tabIndex="-1"
+                      >
+                        {showCurrentPassword ? 'hide' : 'show'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="settings-form-group">
+                    <label htmlFor="newPassword">new password</label>
+                    <div className="input-wrapper">
+                      <input
+                        id="newPassword"
+                        type={showNewPassword ? 'text' : 'password'}
+                        className="settings-form-input"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        required
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="toggle-password"
+                        onClick={() => setShowNewPassword(v => !v)}
+                        tabIndex="-1"
+                      >
+                        {showNewPassword ? 'hide' : 'show'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="settings-form-group">
+                    <label htmlFor="confirmPassword">confirm new password</label>
+                    <div className="input-wrapper">
+                      <input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        className="settings-form-input"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        required
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        className="toggle-password"
+                        onClick={() => setShowConfirmPassword(v => !v)}
+                        tabIndex="-1"
+                      >
+                        {showConfirmPassword ? 'hide' : 'show'}
+                      </button>
+                    </div>
+                  </div>
+                  <button className="app-button app-button--primary app-button--full-width login-button" type="submit" disabled={loading}>
+                    <span className="button-text">{loading ? 'updating...' : 'change password'}</span>
+                  </button>
+                </form>
+              </div>
+              {/* Manage Subscription Section */}
+              <div className="app-card app-card--padded settings-card">
+                <h2 className="settings-card-title">manage subscription</h2>
+                <p className="settings-card-description">view your current plan, update billing details, or cancel your subscription</p>
+                <button className="app-button app-button--primary app-button--full-width login-button" onClick={handleManageSubscription}>
+                  <span className="button-text">go to subscription page</span>
+                </button>
+              </div>
+              {/* Delete Account Section */}
+              <div className="app-card app-card--padded app-card--danger settings-card danger-zone">
+                <h2 className="settings-card-title">delete account</h2>
+                <p className="settings-card-description">permanently delete your account and all associated data, this action cannot be undone</p>
+                <button className="app-button app-button--danger app-button--full-width login-button" onClick={handleDeleteAccount}>
+                  <span className="button-text">delete my account</span>
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-
-        {/* Change Password Section */}
-        <div className="settings-card">
-          <h2 className="settings-card-title">Change Password</h2>
-          <p className="settings-card-description">Update your password for better security.</p>
-          <form className="settings-form" onSubmit={handleChangePassword} autoComplete="off">
-            <div className="settings-form-group">
-              <label htmlFor="currentPassword">Current Password</label>
-              <div className="input-wrapper">
-                <input
-                  id="currentPassword"
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  className="settings-form-input"
-                  value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  className="toggle-password"
-                  onClick={() => setShowCurrentPassword(v => !v)}
-                  tabIndex="-1"
-                >
-                  {showCurrentPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-            <div className="settings-form-group">
-              <label htmlFor="newPassword">New Password</label>
-              <div className="input-wrapper">
-                <input
-                  id="newPassword"
-                  type={showNewPassword ? 'text' : 'password'}
-                  className="settings-form-input"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  required
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="toggle-password"
-                  onClick={() => setShowNewPassword(v => !v)}
-                  tabIndex="-1"
-                >
-                  {showNewPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-            <div className="settings-form-group">
-              <label htmlFor="confirmPassword">Confirm New Password</label>
-              <div className="input-wrapper">
-                <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  className="settings-form-input"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  required
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="toggle-password"
-                  onClick={() => setShowConfirmPassword(v => !v)}
-                  tabIndex="-1"
-                >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-            <button className="login-button" type="submit" disabled={loading}>
-              <span className="button-text">{loading ? 'Updating...' : 'Change Password'}</span>
-            </button>
-          </form>
-        </div>
-
-        {/* Manage Subscription Section */}
-        <div className="settings-card">
-          <h2 className="settings-card-title">Manage Subscription</h2>
-          <p className="settings-card-description">View your current plan, update billing details, or cancel your subscription.</p>
-          <button className="login-button" onClick={handleManageSubscription}>
-            <span className="button-text">Go to Subscription Page</span>
-          </button>
-        </div>
-
-        {/* Delete Account Section */}
-        <div className="settings-card danger-zone">
-          <h2 className="settings-card-title">Delete Account</h2>
-          <p className="settings-card-description">Permanently delete your account and all associated data. This action cannot be undone.</p>
-          <button className="login-button" onClick={handleDeleteAccount}>
-            <span className="button-text">Delete My Account</span>
-          </button>
         </div>
       </div>
     </div>

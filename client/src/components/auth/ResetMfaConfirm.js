@@ -66,15 +66,21 @@ const ResetMfaConfirm = () => {
                             Click the button below to confirm that you want to disable two-factor authentication for your account.
                         </p>
                         
-                        {error && (
-                            <div className="error-message" role="alert">
-                                {error}
-                            </div>
-                        )}
+                                  {error && (
+            <div className="error-card error-card--auth" role="alert">
+              <div className="error-card__content">
+                <div className="error-card__icon">🔐</div>
+                <div className="error-card__text">
+                  <h3 className="error-card__title">Reset Failed</h3>
+                  <p className="error-card__message">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
                         <button
                             onClick={handleConfirm}
-                            className={`confirm-button ${isLoading ? 'loading' : ''}`}
+                            className={`app-button app-button--primary app-button--full-width confirm-button ${isLoading ? 'loading' : ''}`}
                             disabled={isLoading}
                         >
                             {isLoading ? 'Resetting...' : 'Reset My Authenticator'}

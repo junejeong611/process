@@ -1,0 +1,14 @@
+<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Puffier asymmetrical heart shape -->
+  <path d="M60,88 
+           C42,72 18,52 18,35 
+           C18,22 28,12 42,12 
+           C50,12 57,16 60,22
+           C63,17 71,13 80,13
+           C92,13 100,22 100,35
+           C100,54 78,74 60,88 Z" 
+        fill="#7bb6fa" 
+        stroke="none">
+  </path>
+</svg>
+</svg>

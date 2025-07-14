@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import './Login.css';
 import { toast } from 'react-toastify';
+import Button from '../Button';
+import ErrorCard from '../ErrorCard';
 
 // Enhanced form validation helper functions
 const validateEmail = (email) => {
@@ -29,6 +31,50 @@ const validatePassword = (password) => {
   return '';
 };
 
+// Enhanced network connectivity check
+const checkInternetConnectivity = async () => {
+  // First check navigator.onLine (basic browser connectivity)
+  if (!navigator.onLine) {
+    console.log('Navigator reports offline');
+    return false;
+  }
+  
+  try {
+    // Test actual internet connectivity with a lightweight request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout
+    
+    const response = await fetch('/api/health', {
+      method: 'HEAD',
+      cache: 'no-cache',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    // Enhanced logging
+    console.log('Health check response:', {
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText
+    });
+    
+    const isConnected = response.ok;
+    console.log('Internet connectivity check:', isConnected ? 'CONNECTED' : 'DISCONNECTED');
+    return isConnected;
+  } catch (error) {
+    // More detailed error logging
+    console.log('Internet connectivity check failed:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+    
+    // Treat all fetch failures as connection problems
+    return false;
+  }
+};
+
 // Enhanced error categorization - consistent with ResetPassword
 const categorizeError = (error, statusCode = null) => {
   const errorLower = error.toLowerCase();
@@ -48,10 +94,12 @@ const categorizeError = (error, statusCode = null) => {
     return { type: 'account', canRetry: false, severity: 'error' };
   }
   
-  // Network errors
+  // Network errors - enhanced detection
   if (errorLower.includes('network') || errorLower.includes('connection') || 
       errorLower.includes('fetch') || errorLower.includes('timeout') ||
-      errorLower.includes('failed to fetch')) {
+      errorLower.includes('failed to fetch') || errorLower.includes('no internet') ||
+      errorLower.includes('wifi') || errorLower.includes('offline') ||
+      statusCode === 0 || errorLower.includes('disconnected')) {
     return { type: 'network', canRetry: true, severity: 'warning' };
   }
   
@@ -137,9 +185,10 @@ const Login = () => {
   const [debouncedEmail, flushDebouncedEmail] = useDebounce(email, 500);
   const [debouncedPassword, flushDebouncedPassword] = useDebounce(password, 300);
 
-  // Enhanced online/offline monitoring
+  // Enhanced online/offline monitoring with immediate detection
   useEffect(() => {
     const handleOnline = () => {
+      console.log('Online event detected');
       setIsOnline(true);
       if (error && errorCategory?.type === 'network') {
         setError('');
@@ -148,10 +197,19 @@ const Login = () => {
     };
     
     const handleOffline = () => {
+      console.log('Offline event detected');
       setIsOnline(false);
-      setError('you appear to be offline. please check your connection.');
+      setError('wifi connection lost. please reconnect to wifi and try again.');
       setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
     };
+
+    // Check initial state
+    if (!navigator.onLine) {
+      console.log('Initial offline state detected');
+      setIsOnline(false);
+      setError('you appear to be offline. please check your wifi connection and try again.');
+      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
+    }
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -160,7 +218,42 @@ const Login = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [error, errorCategory]);
+  }, []); // Remove dependencies to avoid clearing errors prematurely
+
+  // Aggressive connectivity monitoring to catch WiFi disconnections
+  useEffect(() => {
+    const checkConnectivity = async () => {
+      console.log('Running periodic connectivity check...');
+      console.log('Current state - isOnline:', isOnline, 'navigator.onLine:', navigator.onLine);
+      
+      const hasInternet = await checkInternetConnectivity();
+      console.log('Connectivity check result:', hasInternet);
+      
+      if (!hasInternet && isOnline) {
+        console.log('🔴 DISCONNECTION DETECTED! Setting offline state...');
+        setIsOnline(false);
+        setError('wifi connection lost. please check your wifi and try again.');
+        setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
+      } else if (hasInternet && !isOnline && navigator.onLine) {
+        console.log('🟢 CONNECTION RESTORED! Setting online state...');
+        setIsOnline(true);
+        if (error && errorCategory?.type === 'network') {
+          setError('');
+          setErrorCategory(null);
+        }
+      }
+    };
+
+    // Run check every 3 seconds (more aggressive)
+    const interval = setInterval(checkConnectivity, 3000);
+    
+    // Run initial check immediately
+    checkConnectivity();
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isOnline, error, errorCategory]);
 
   // Countdown timer for rate limiting
   useEffect(() => {
@@ -316,19 +409,7 @@ const Login = () => {
     setShowPassword(!showPassword);
   }, [showPassword]);
 
-  const handleRetry = useCallback((e) => {
-    if (retryCount >= 3) {
-      setError('maximum retry attempts reached. please try again later.');
-      setErrorCategory({ type: 'rateLimit', canRetry: false, severity: 'error' });
-      setCountdown(300);
-      return;
-    }
-    
-    setRetryCount(prev => prev + 1);
-    setError('');
-    setErrorCategory(null);
-    handleSubmit(e);
-  }, [retryCount]);
+
 
   const handleEmailBlur = (e) => {
     setEmailBlurred(true);
@@ -380,9 +461,13 @@ const Login = () => {
     setError('');
     setErrorCategory(null);
 
-    // Check if offline
-    if (!isOnline) {
-      setError('you appear to be offline. please check your connection and try again.');
+    // Enhanced connectivity check
+    const hasInternet = await checkInternetConnectivity();
+    if (!hasInternet) {
+      const errorMsg = !navigator.onLine 
+        ? 'you appear to be offline. please check your wifi connection and try again.'
+        : 'no internet connection detected. please check your wifi or cellular data and try again.';
+      setError(errorMsg);
       setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
       return;
     }
@@ -485,7 +570,9 @@ const Login = () => {
       if (data.success) {
         // Set login success state for animation
         setLoginSuccess(true);
-        
+        // Clear any lingering errors
+        setPasswordError('');
+        setEmailError('');
         // Store token based on remember me preference
         if (rememberMe) {
           localStorage.setItem('token', data.token);
@@ -554,10 +641,18 @@ const Login = () => {
       }
 
       if (err.name === 'AbortError') {
-        errorMessage = 'request timed out. please check your connection and try again.';
+        errorMessage = 'request timed out. please check your wifi connection and try again.';
         category = categorizeError('network timeout');
       } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        errorMessage = 'connection error. please check your internet and try again.';
+        // Check if this is due to WiFi disconnection
+        const hasInternet = await checkInternetConnectivity();
+        if (!hasInternet) {
+          errorMessage = !navigator.onLine 
+            ? 'wifi connection lost. please reconnect to wifi and try again.'
+            : 'no internet connection. please check your wifi or cellular data and try again.';
+        } else {
+          errorMessage = 'connection error. please check your internet and try again.';
+        }
         category = categorizeError('network connection');
       } else if (err.message.includes('HTTP 401') || statusCode === 401) {
         errorMessage = 'invalid email or password. please try again.';
@@ -570,9 +665,16 @@ const Login = () => {
         category = categorizeError('rate limit', 429);
         setCountdown(300);
       } else if (err.message.includes('HTTP 5') || (statusCode >= 500 && statusCode < 600)) {
-        errorMessage = 'server error. please try again in a moment.';
-        category = categorizeError('server error', statusCode);
-        setCountdown(30);
+        // Check if this is actually a connectivity issue disguised as a server error
+        const hasInternet = await checkInternetConnectivity();
+        if (!hasInternet) {
+          errorMessage = 'wifi connection lost. please check your wifi and try again.';
+          category = categorizeError('network connection');
+        } else {
+          errorMessage = 'server error. please try again in a moment.';
+          category = categorizeError('server error', statusCode);
+          setCountdown(30);
+        }
       } else if (statusCode === 400) {
         errorMessage = 'invalid request. please check your input and try again.';
         category = categorizeError('validation error', 400);
@@ -585,8 +687,15 @@ const Login = () => {
           errorMessage = err.message;
           category = categorizeError(err.message, statusCode);
         } else {
-          errorMessage = 'connection error. please check your internet and try again.';
-          category = categorizeError('unknown error');
+          // Check connectivity for unknown errors
+          const hasInternet = await checkInternetConnectivity();
+          if (!hasInternet) {
+            errorMessage = 'connection lost. please check your wifi and try again.';
+            category = categorizeError('network connection');
+          } else {
+            errorMessage = 'connection error. please check your internet and try again.';
+            category = categorizeError('unknown error');
+          }
         }
       }
 
@@ -673,6 +782,36 @@ const Login = () => {
     setTimeout(() => navigate('/options'), 800);
   };
 
+  const handleRetry = useCallback(async () => {
+    // Check maximum retry attempts
+    if (retryCount >= 3) {
+      setError('maximum retry attempts reached. please try again later.');
+      setErrorCategory({ type: 'rateLimit', canRetry: false, severity: 'error' });
+      setCountdown(300);
+      return;
+    }
+    
+    setRetryCount(prev => prev + 1);
+    setError('');
+    setErrorCategory(null);
+    
+    // Re-check connectivity before retrying
+    const hasInternet = await checkInternetConnectivity();
+    if (!hasInternet) {
+      const errorMsg = !navigator.onLine 
+        ? 'still offline. please check your wifi connection and try again.'
+        : 'still no internet connection. please check your wifi or cellular data and try again.';
+      setError(errorMsg);
+      setErrorCategory({ type: 'network', canRetry: true, severity: 'warning' });
+      return;
+    }
+    
+    // Auto-retry the login if we have valid credentials
+    if (email && password && !emailError && !passwordError) {
+      handleSubmit({ preventDefault: () => {} });
+    }
+  }, [email, password, emailError, passwordError, handleSubmit, retryCount]);
+
   const formatCountdown = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -710,12 +849,11 @@ const Login = () => {
               </header>
               {/* MFA Error Display */}
               {mfaError && (
-                <div className="error-message auth" role="alert" aria-live="polite">
-                  <div className="error-content">
-                    <div className="error-icon" aria-hidden="true">🔐</div>
-                    <div className="error-text">{mfaError}</div>
-                  </div>
-                </div>
+                <ErrorCard
+                  error={mfaError}
+                  errorCategory={{ type: 'auth', canRetry: false }}
+                  style={{ marginBottom: '1rem' }}
+                />
               )}
               <form onSubmit={handleMfaSubmit} className="login-form" noValidate>
                 <div className="form-group">
@@ -760,7 +898,7 @@ const Login = () => {
 
                 <button
                   type="submit"
-                  className={`login-button ${isLoading ? 'loading' : ''}`}
+                  className={`app-button app-button--primary app-button--full-width login-button ${isLoading ? 'loading' : ''}`}
                   disabled={isLoading || mfaCode.length !== (useBackupCode ? 8 : 6)}
                 >
                   <span className="button-text">
@@ -770,12 +908,20 @@ const Login = () => {
               </form>
                <footer className="login-footer">
                 <p>
-                    <button className="link-button" onClick={() => setUseBackupCode(!useBackupCode)}>
-                        {useBackupCode ? 'use authenticator app' : "can't access your app? use a backup code"}
-                    </button>
+                    <a
+                      href="#"
+                      className="app-link"
+                      role="button"
+                      tabIndex={0}
+                      onClick={e => { e.preventDefault(); setUseBackupCode(!useBackupCode); }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setUseBackupCode(!useBackupCode); } }}
+                      aria-pressed={useBackupCode}
+                    >
+                      {useBackupCode ? 'use authenticator app' : "can't access your app? use a backup code"}
+                    </a>
                 </p>
                 <p className="support-text">
-                    <Link to="/reset-mfa-request">Having trouble? Reset your authenticator</Link>
+                    <Link to="/reset-mfa-request" className="app-link">Having trouble? Reset your authenticator</Link>
                 </p>
               </footer>
             </>
@@ -793,12 +939,11 @@ const Login = () => {
 
                 {/* MFA Error Display */}
                 {mfaError && (
-                  <div className="error-message auth" role="alert" aria-live="polite">
-                    <div className="error-content">
-                      <div className="error-icon" aria-hidden="true">🔐</div>
-                      <div className="error-text">{mfaError}</div>
-                    </div>
-                  </div>
+                  <ErrorCard
+                    error={mfaError}
+                    errorCategory={{ type: 'auth', canRetry: false }}
+                    style={{ marginBottom: '1rem' }}
+                  />
                 )}
                 
                 <div className="qr-code-container">
@@ -822,7 +967,7 @@ const Login = () => {
                             />
                         </div>
                     </div>
-                    <button type="submit" className="login-button" disabled={isLoading || mfaCode.length !== 6}>
+                    <button type="submit" className="app-button app-button--primary app-button--full-width login-button" disabled={isLoading || mfaCode.length !== 6}>
                         <span className="button-text">{isLoading ? 'verifying...' : 'verify & enable'}</span>
                     </button>
                 </form>
@@ -843,7 +988,7 @@ const Login = () => {
                 </div>
               </div>
               <p className="backup-codes-info">each code can only be used once</p>
-              <button type="button" className="login-button" onClick={finishSetup}>
+              <button type="button" className="app-button app-button--primary app-button--full-width login-button" onClick={finishSetup}>
                 <span className="button-text">I Saved My Codes</span>
               </button>
             </>
@@ -856,59 +1001,30 @@ const Login = () => {
                 </p>
               </header>
           
-              {/* Enhanced error display - consistent with ResetPassword */}
-              {error && (
-                <div 
-                  className={`error-message ${errorCategory?.type || ''}`} 
-                  role="alert"
-                  aria-live="polite"
-                >
-                  <div className="error-content">
-                    <div className="error-icon" aria-hidden="true">
-                      {getErrorIcon(errorCategory)}
-                    </div>
-                    <div className="error-text">
-                      {errorCategory?.type === 'auth' && (
-                        <div className="error-title">login failed</div>
-                      )}
-                      {errorCategory?.type === 'account' && (
-                        <div className="error-title">account issue</div>
-                      )}
-                      {errorCategory?.type === 'network' && (
-                        <div className="error-title">connection problem</div>
-                      )}
-                      {errorCategory?.type === 'rateLimit' && (
-                        <div className="error-title">too many attempts</div>
-                      )}
-                      {errorCategory?.type === 'server' && (
-                        <div className="error-title">server error</div>
-                      )}
-                      {errorCategory?.type === 'validation' && (
-                        <div className="error-title">validation error</div>
-                      )}
-                      {error}
-                    </div>
-                  </div>
-                  {errorCategory?.canRetry && errorCategory?.type !== 'auth' && retryCount < 3 && countdown === 0 && (
-                    <button 
-                      className="retry-button"
-                      onClick={handleRetry}
-                      aria-label={`retry login (attempt ${retryCount + 2})`}
-                      type="button"
-                    >
-                      try again
-                    </button>
-                  )}
-                </div>
-              )}
-          
-              {/* Offline indicator */}
-              {!isOnline && (
-                <div className="offline-indicator" role="alert" aria-live="assertive">
-                  <span className="offline-icon" aria-hidden="true">📶</span>
-                  you're currently offline
-                </div>
-              )}
+
+
+              {/* Single unified error display - prioritizes specific errors over general offline */}
+              {(error || !isOnline) && (() => {
+                if (error) {
+                  return (
+                    <ErrorCard
+                      error={error}
+                      errorCategory={errorCategory}
+                      onRetry={handleRetry}
+                      retryLabel="Try Again"
+                      style={{ marginBottom: '1rem' }}
+                    />
+                  );
+                } else if (!isOnline) {
+                  return (
+                    <ErrorCard
+                      error="Connection lost. Please check your WiFi and try again."
+                      errorCategory={{ type: 'network', canRetry: false }}
+                      style={{ marginBottom: '1rem' }}
+                    />
+                  );
+                }
+              })()}
               
               <form 
                 ref={formRef}
@@ -1021,10 +1137,13 @@ const Login = () => {
                   </div>
                 </div>
                 
-                <button
+                <Button
                   type="submit"
-                  className={`login-button ${isLoading ? 'loading' : ''} ${loginSuccess ? 'success' : ''}`}
+                  variant="primary"
+                  fullWidth
+                  loading={isLoading}
                   disabled={!isFormValid}
+                  className={`login-button ${loginSuccess ? 'success' : ''}`}
                   aria-busy={isLoading}
                   aria-describedby="login-status"
                 >
@@ -1034,16 +1153,7 @@ const Login = () => {
                      countdown > 0 ? `wait ${formatCountdown(countdown)}` :
                      'sign in'}
                   </span>
-                  {retryCount > 0 && !isLoading && !loginSuccess && (
-                    <span 
-                      className="retry-count" 
-                      aria-label={`attempt ${retryCount + 1}`}
-                      aria-hidden="true"
-                    >
-                      #{retryCount + 1}
-                    </span>
-                  )}
-                </button>
+                </Button>
 
                 <div id="login-status" className="visually-hidden" aria-live="polite">
                   {isLoading ? 'signing in, please wait' : ''}
