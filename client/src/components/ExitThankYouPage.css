@@ -31,20 +31,18 @@
   to { opacity: 0; transform: translateY(24px); }
 }
 .exit-thankyou-card {
+  /* Use direct app-card classes in JSX instead of composition */
   background: rgba(255,255,255,0.85);
   box-shadow: 0 8px 32px rgba(74,144,226,0.13);
   border-radius: 24px;
   padding: 56px 44px 40px 44px;
   min-width: 340px;
   max-width: 95vw;
-  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   outline: none;
   transition: box-shadow 0.2s;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
 }
 .exit-thankyou-card:focus-visible {
   box-shadow: 0 0 0 3px #4A90E2, 0 8px 32px rgba(74,144,226,0.13);

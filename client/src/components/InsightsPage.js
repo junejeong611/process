@@ -2,6 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import './InsightsPage.css';
+import ErrorCard from './ErrorCard';
+import { categorizeError } from '../utils/errorUtils';
+import AuthErrorCard from './AuthErrorCard';
+import Button from './Button';
 
 // Lazy load heavy components
 const EmotionalTimelineChart = React.lazy(() => import('./analytics/EmotionalTimelineChart'));
@@ -54,30 +58,37 @@ const WeeklySummary = React.memo(() => {
   }
 
   if (error) {
+    const errorMessage = error.message || error;
+    const errorCategory = categorizeError(errorMessage);
+    const isUnauthorized = errorCategory.type === 'auth';
+    if (isUnauthorized) {
+      return (
+        <div className="error-container">
+          <AuthErrorCard />
+        </div>
+      );
+    }
     return (
       <div className="error-container">
-        <div className="error-card">
-          <div className="error-icon-lock">
-            <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="1.5" />
-                <path d="M12 7v6" stroke="#e53e3e" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-            </svg>
-          </div>
-          <h3 className="error-title-text">could not load summary</h3>
-          <p className="error-message-text">{error.message}</p>
-          <div className="error-actions">
-            <button className="refresh-button-centered" onClick={() => refetch()}>
-              try again
-            </button>
-          </div>
-        </div>
+        <ErrorCard
+          error={errorMessage}
+          errorCategory={errorCategory}
+          onRetry={refetch}
+          retryLabel="refresh page"
+        />
       </div>
     );
   }
 
   if (!summary) {
-    return <div className="chart-error">no summary data available.</div>;
+    return (
+      <div className="error-container">
+        <ErrorCard
+          error="no summary data available."
+          errorCategory={{ type: 'info', canRetry: false, severity: 'info' }}
+        />
+      </div>
+    );
   }
 
   return (
@@ -87,21 +98,21 @@ const WeeklySummary = React.memo(() => {
       </div>
       <div className="weekly-summary-grid">
         <div className="summary-stats">
-          <div className="stat-card">
+          <div className="app-card stat-card">
             <div className="stat-value conversations">{summary.totalConversations}</div>
             <div className="stat-label">conversations</div>
           </div>
-          <div className="stat-card">
+          <div className="app-card stat-card">
             <div className="stat-value mood">{summary.averageMoodScore}</div>
             <div className="stat-label">avg mood</div>
           </div>
-          <div className="stat-card">
+          <div className="app-card stat-card">
             <div className="stat-value improvement">
               {summary.improvementFromLastWeek > 0 ? '+' : ''}{summary.improvementFromLastWeek}%
             </div>
             <div className="stat-label">improvement</div>
           </div>
-          <div className="stat-card">
+          <div className="app-card stat-card">
             <div className="stat-value triggers">
               {summary.triggerReduction > 0 ? '-' : ''}{summary.triggerReduction}%
             </div>
@@ -203,24 +214,24 @@ const InsightsContent = () => {
   }
 
   if (error) {
+    const errorMessage = error.message || error;
+    const errorCategory = categorizeError(errorMessage);
+    const isUnauthorized = errorCategory.type === 'auth';
+    if (isUnauthorized) {
+      return (
+        <div className="error-container">
+          <AuthErrorCard />
+        </div>
+      );
+    }
     return (
       <div className="error-container">
-        <div className="error-card">
-          <div className="error-icon-lock">
-            <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="#e53e3e" strokeWidth="1.5" />
-                <path d="M12 7v6" stroke="#e53e3e" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-            </svg>
-          </div>
-          <h3 className="error-title-text">application error</h3>
-          <p className="error-message-text">{error.message || 'something went wrong. please refresh the page.'}</p>
-          <div className="error-actions">
-            <button className="refresh-button-centered" onClick={() => refetch()}>
-              refresh page
-            </button>
-          </div>
-        </div>
+        <ErrorCard
+          error={errorMessage}
+          errorCategory={errorCategory}
+          onRetry={refetch}
+          retryLabel="refresh page"
+        />
       </div>
     );
   }
@@ -241,7 +252,7 @@ const InsightsContent = () => {
             <p>Take a moment to breathe and repeat this affirmation</p>
           </div>
           
-          <div className="affirmation-card">
+          <div className="app-card affirmation-card">
             <div className="affirmation-text">"{currentAffirmation}"</div>
             <div className="affirmation-meta">
               <span className="affirmation-counter">
@@ -251,12 +262,16 @@ const InsightsContent = () => {
           </div>
           
           <div className="practice-actions">
-            <button className="next-affirmation-button" onClick={nextAffirmation}>
+            <Button
+              variant="success"
+              className="next-affirmation-button"
+              onClick={nextAffirmation}
+            >
               Next Affirmation
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
               </svg>
-            </button>
+            </Button>
           </div>
           
           <div className="practice-tip">
@@ -270,54 +285,163 @@ const InsightsContent = () => {
     );
   }
 
+  // Place after error/loading checks, before 'not enough data' card
+  // Show if user has zero conversations/messages
+  if (!isLoading && !error && insights?.messages?.length === 0) {
+    return (
+      <div className="insights-page">
+        <div className="header-card">
+          <div className="header-center">
+            <h1 className="page-title">your emotional insights</h1>
+            <p className="page-subtitle">understanding your emotional patterns</p>
+          </div>
+          <div className="header-actions">
+            <Button
+              variant="secondary"
+              className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
+              onClick={() => refetch()}
+              disabled={isFetching}
+              size="small"
+              aria-label="Refresh Insights"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+              </svg>
+            </Button>
+          </div>
+        </div>
+        <div className="insights-content">
+          <div className="tab-navigation">
+            <Button
+              variant="primary"
+              className={`tab-button ${activeTab === 'insights' ? 'active' : ''}`}
+              onClick={() => setActiveTab('insights')}
+            >
+              Insights & Affirmations
+            </Button>
+            <Button
+              variant="primary"
+              className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              Analytics & Trends
+            </Button>
+          </div>
+          <div className="main-content">
+            <div className="empty-state">
+              <div className="empty-icon" aria-hidden="true">💬</div>
+              <h3 className="empty-title">no conversations yet</h3>
+              <p className="empty-message">
+                ready to start your journey? your first conversation is just a click away
+              </p>
+              <div className="empty-actions app-button-group--pill">
+                <Button
+                  variant="primary"
+                  onClick={() => window.location.href = '/voice'}
+                  aria-label="Start voice conversation"
+                >
+                  start voice chat
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => window.location.href = '/chat'}
+                  aria-label="Start text conversation"
+                >
+                  start text chat
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Insufficient data view
   if (!hasEnoughData) {
     return (
       <div className="insights-page">
-        <div className="insights-header">
-          <h1>Your Emotional Insights</h1>
-          <p>understanding your emotional patterns</p>
-        </div>
-        
-        <div className="insufficient-data-state">
-          <div className="insufficient-data-card">
-            <div className="insufficient-data-icon">
-              <svg width="64" height="64" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        <div className="header-card">
+          <div className="header-center">
+            <h1 className="page-title">your emotional insights</h1>
+            <p className="page-subtitle">understanding your emotional patterns</p>
+          </div>
+          <div className="header-actions">
+            <Button
+              variant="secondary"
+              className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
+              onClick={() => refetch()}
+              disabled={isFetching}
+              size="small"
+              aria-label="Refresh Insights"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
               </svg>
-            </div>
-            <h3>Keep Sharing to Unlock Insights</h3>
-            <p>
-              We need a few more conversations to generate meaningful insights about your emotional patterns. 
-              Keep chatting with me to help build a picture of your emotional journey.
-            </p>
-            <div className="progress-indicator">
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${Math.min((insights?.messages?.length || 0) / 5 * 100, 100)}%` }}
-                />
+            </Button>
+          </div>
+        </div>
+        <div className="insights-content">
+          <div className="tab-navigation">
+            <Button
+              variant="primary"
+              className={`tab-button ${activeTab === 'insights' ? 'active' : ''}`}
+              onClick={() => setActiveTab('insights')}
+            >
+              Insights & Affirmations
+            </Button>
+            <Button
+              variant="primary"
+              className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              Analytics & Trends
+            </Button>
+          </div>
+          <div className="main-content">
+            <div className="insufficient-data-state">
+              <div className="app-card app-card--glass insufficient-data-card">
+                <div className="insufficient-data-icon">
+                  <svg width="64" height="64" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </div>
+                <h3>Keep Sharing to Unlock Insights</h3>
+                <p>
+                  We need a few more conversations to generate meaningful insights about your emotional patterns. 
+                  Keep chatting with me to help build a picture of your emotional journey.
+                </p>
+                <div className="progress-indicator">
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill" 
+                      style={{ width: `${Math.min((insights?.messages?.length || 0) / 5 * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="progress-text">
+                    {insights?.messages?.length || 0} of 5 conversations needed
+                  </span>
+                </div>
+                <Button
+                  variant="primary"
+                  className="start-conversation-button"
+                  onClick={() => window.location.href = '/chat'}
+                >
+                  Continue Chatting
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
+                  </svg>
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="practice-affirmations-button"
+                  onClick={startPractice}
+                >
+                  Practice Daily Affirmations
+                </Button>
               </div>
-              <span className="progress-text">
-                {insights?.messages?.length || 0} of 5 conversations needed
-              </span>
-            </div>
-            <div className="insufficient-data-actions">
-              <button 
-                className="start-conversation-button"
-                onClick={() => window.location.href = '/chat'}
-              >
-                Continue Chatting
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
-                </svg>
-              </button>
-              <button 
-                className="practice-affirmations-button secondary"
-                onClick={startPractice}
-              >
-                Practice Daily Affirmations
-              </button>
             </div>
           </div>
         </div>
@@ -336,59 +460,47 @@ const InsightsContent = () => {
 
   return (
     <div className="insights-page">
-      {/* Header */}
-      <div className="insights-header">
-        <div className="header-top-row">
-          <div className="header-content">
-            <h1>Your Emotional Insights</h1>
-            <p>understanding your emotional patterns</p>
-            <span className="last-updated">{lastUpdatedText}</span>
-          </div>
-          
-          <div className="header-actions">
-            <button 
-              className="practice-button primary"
-              onClick={startPractice}
-            >
-              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              Practice Affirmations
-            </button>
-            <button 
-              className={`refresh-button ${isFetching ? 'refreshing' : ''}`}
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-              </svg>
-              {isFetching ? 'Refreshing...' : 'Refresh Insights'}
-            </button>
-          </div>
+      <div className="header-card">
+        <div className="header-center">
+          <h1 className="page-title">your emotional insights</h1>
+          <p className="page-subtitle">understanding your emotional patterns</p>
         </div>
-        
-        {/* Tab Navigation */}
-        <div className="tab-navigation">
-          <button
-            onClick={() => setActiveTab('insights')}
-            className={`tab-button ${activeTab === 'insights' ? 'active' : ''}`}
+        <div className="header-actions">
+          <Button
+            variant="secondary"
+            className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
+            onClick={() => refetch()}
+            disabled={isFetching}
+            size="small"
+            aria-label="Refresh Insights"
           >
-            Insights & Affirmations
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
-          >
-            Analytics & Trends
-          </button>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
+              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+            </svg>
+          </Button>
         </div>
       </div>
-
-      {/* Content */}
       <div className="insights-content">
-        {activeTab === 'insights' ? (
+        <div className="tab-navigation">
+          <Button
+            variant="primary"
+            className={`tab-button ${activeTab === 'insights' ? 'active' : ''}`}
+            onClick={() => setActiveTab('insights')}
+          >
+            Insights & Affirmations
+          </Button>
+          <Button
+            variant="primary"
+            className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            Analytics & Trends
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="main-content">
           <>
             {/* Trigger Themes Section */}
             <div className="insights-section">
@@ -419,7 +531,7 @@ const InsightsContent = () => {
                   {insights?.insights?.triggerThemes?.length > 0 ? (
                     <div className="insights-grid">
                       {insights.insights.triggerThemes.map((trigger, index) => (
-                        <div key={index} className="insight-card trigger-card">
+                        <div key={index} className="app-card insight-card trigger-card">
                           <h4>{trigger.theme || trigger.title || 'Emotional Trigger'}</h4>
                           <p>{trigger.explanation || trigger.description || trigger.text || trigger}</p>
                         </div>
@@ -463,7 +575,7 @@ const InsightsContent = () => {
                   {insights?.insights?.affirmations?.length > 0 ? (
                     <div className="insights-grid">
                       {insights.insights.affirmations.map((affirmation, index) => (
-                        <div key={index} className="insight-card affirmation-card">
+                        <div key={index} className="app-card insight-card affirmation-card">
                           <div className="affirmation-text">
                             "{typeof affirmation === 'string' ? affirmation : affirmation.text || affirmation.affirmation || affirmation.content}"
                           </div>
@@ -480,7 +592,8 @@ const InsightsContent = () => {
                   )}
                   
                   <div className="section-action">
-                    <button 
+                    <Button 
+                      variant="primary"
                       className="practice-section-button"
                       onClick={startPractice}
                     >
@@ -488,7 +601,7 @@ const InsightsContent = () => {
                       <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -506,8 +619,7 @@ const InsightsContent = () => {
               </div>
             )}
           </>
-        ) : (
-          // Analytics Content
+          {/* Analytics Content */}
           <React.Suspense fallback={<div className="loading-state">Loading analytics...</div>}>
             {/* Weekly Summary */}
             <div className="insights-section">
@@ -524,27 +636,14 @@ const InsightsContent = () => {
               <EmotionDistributionChart />
             </div>
           </React.Suspense>
-        )}
+        </div>
       </div>
     </div>
   );
 };
 
 const InsightsPage = () => {
-  return (
-    <div className="insights-page">
-      <div className="insights-content">
-        <React.Suspense fallback={
-          <div className="loading-state">
-            <div className="loading-spinner" />
-            <p>Loading insights...</p>
-          </div>
-        }>
-          <InsightsContent />
-        </React.Suspense>
-      </div>
-    </div>
-  );
+  return <InsightsContent />;
 };
 
 export default InsightsPage; 

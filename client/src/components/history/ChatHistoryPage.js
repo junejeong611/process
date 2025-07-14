@@ -3,6 +3,9 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import ConversationCard from './ConversationCard';
 import './ChatHistoryPage.css';
 import { toast } from 'react-toastify';
+import ErrorCard from '../ErrorCard';
+import { categorizeError, smartLowercase } from '../../utils/errorUtils';
+import AuthErrorCard from '../AuthErrorCard';
 
 // Constants
 const ITEMS_PER_PAGE = 10;
@@ -464,35 +467,33 @@ const ChatHistoryPage = () => {
   // Enhanced loading state with better UX and proper centering
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-content">
-          <div className="loading-spinner" role="status" aria-label="Loading your conversations">
-            <div className="spinner-circle"></div>
-          </div>
-          <p className="loading-text" aria-live="polite">
-            {loadingMessages[loadingStage]}
-          </p>
-        </div>
+      <div className="app-loading">
+        <span className="app-spinner app-spinner--large" aria-label="Loading" />
+        <span>{loadingMessages[loadingStage]}</span>
       </div>
     );
   }
 
   // Enhanced error state with better support messaging
   if (error) {
+    const errorMessage = error;
+    const errorCategory = categorizeError(errorMessage);
+    const isUnauthorized = errorCategory.type === 'auth';
+    if (isUnauthorized) {
+      return (
+        <div className="error-message-container">
+          <AuthErrorCard />
+        </div>
+      );
+    }
     return (
       <div className="error-message-container">
-        <div className="error-message">
-          <div className="error-content">
-            <span className="error-icon">⚠</span>
-            <h3 className="error-title">application error</h3>
-            <p className="error-text">
-              we encountered an error while loading your conversations. please try refreshing the page.
-            </p>
-            <button onClick={() => window.location.reload()} className="retry-button">
-              refresh page
-            </button>
-          </div>
-        </div>
+        <ErrorCard
+          error={errorMessage}
+          errorCategory={errorCategory}
+          onRetry={() => window.location.reload()}
+          retryLabel="refresh page"
+        />
       </div>
     );
   }
@@ -641,33 +642,33 @@ const ChatHistoryPage = () => {
                 {searchQuery.trim() ? (
                   <>
                     <div className="empty-icon" aria-hidden="true">🔍</div>
-                    <h3 className="empty-title">no conversations found</h3>
+                    <h3 className="empty-title">{smartLowercase('no conversations found')}</h3>
                     <p className="empty-message">
-                      Try adjusting your search or filter criteria. Your conversations are here when you need them.
+                      {smartLowercase('Try adjusting your search or filter criteria. Your conversations are here when you need them.')}
                     </p>
                     <button
                       onClick={() => {
                         setSearchQuery('');
                         setFilterType('all');
                       }}
-                      className="pill-button"
+                      className="app-button app-button--primary app-button--compact"
                       aria-label="Clear all filters and search"
                     >
-                      clear filters
+                      {smartLowercase('clear filters')}
                     </button>
                   </>
                 ) : (
                   <>
                     <div className="empty-icon" aria-hidden="true">💬</div>
-                    <h3 className="empty-title">no conversations yet</h3>
+                    <h3 className="empty-title">{smartLowercase('no conversations yet')}</h3>
                     <p className="empty-message">
-                      ready to start your journey? your first conversation is just a click away
+                      {smartLowercase('ready to start your journey? your first conversation is just a click away')}
                     </p>
-                    <div className="empty-actions">
-                      <Link to="/voice" className="pill-button" aria-label="Start voice conversation">
+                    <div className="empty-actions app-button-group--pill">
+                      <Link to="/voice" className="app-button app-button--primary" aria-label="Start voice conversation">
                         start voice chat
                       </Link>
-                      <Link to="/chat" className="pill-button" aria-label="Start text conversation">
+                      <Link to="/chat" className="app-button app-button--primary" aria-label="Start text conversation">
                         start text chat
                       </Link>
                     </div>

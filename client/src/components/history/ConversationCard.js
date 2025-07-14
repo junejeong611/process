@@ -128,6 +128,14 @@ const ConversationCard = ({
     }
   };
 
+  // Handle delete click
+  const handleDeleteClick = (e) => {
+    e.stopPropagation(); // Prevent card click
+    setIsDeleting(true);
+    onDelete && onDelete(conversation.id);
+    announceToScreenReader('Conversation deleted.');
+  };
+
   // Screen reader announcements
   const announceToScreenReader = (message) => {
     const announcement = document.createElement('div');
@@ -189,6 +197,20 @@ const ConversationCard = ({
             onClick={(e) => e.stopPropagation()}
             aria-label={`${isSelected ? 'Deselect' : 'Select'} conversation from ${formatDate(conversation.lastMessageTime || conversation.updatedAt)}`}
           />
+        </div>
+      )}
+
+      {/* Action buttons (only show when not in select mode) */}
+      {!isSelectMode && (
+        <div className="conversation-actions">
+          <button
+            className="app-card-action delete-button"
+            onClick={handleDeleteClick}
+            aria-label="Delete conversation"
+            title="Delete conversation"
+          >
+            <span className="delete-icon">🗑️</span>
+          </button>
         </div>
       )}
 

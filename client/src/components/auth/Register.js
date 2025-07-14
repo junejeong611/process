@@ -307,28 +307,24 @@ const handleEmailBlur = (e) => {
           </header>
           
           {error && (
-            <div className="error-container">
-              <div className="error-card">
-                <div className="error-icon-lock">
-                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" stroke="#e57373" strokeWidth="1.5" />
-                      <path d="M12 7v6" stroke="#e57373" strokeWidth="1.5" strokeLinecap="round" />
-                      <circle cx="12" cy="16" r="1" fill="#e53e3e" />
-                  </svg>
+            <div className="error-card error-card--auth">
+              <div className="error-card__content">
+                <div className="error-card__icon">🔐</div>
+                <div className="error-card__text">
+                  <h3 className="error-card__title">registration failed</h3>
+                  <p className="error-card__message">{error}</p>
                 </div>
-                <h3 className="error-title-text">registration failed</h3>
-                <p className="error-message-text">{error}</p>
               </div>
             </div>
           )}
           
           {success && (
-            <div className="success-message" role="status">
-              <div className="success-content">
-                <div className="success-icon">✓</div>
-                <div className="success-text">
-                  <div className="success-title">account created!</div>
-                  {success}
+            <div className="error-card error-card--success">
+              <div className="error-card__content">
+                <div className="error-card__icon">✓</div>
+                <div className="error-card__text">
+                  <h3 className="error-card__title">registration successful</h3>
+                  <p className="error-card__message">{success}</p>
                 </div>
               </div>
             </div>
@@ -532,7 +528,7 @@ const handleEmailBlur = (e) => {
             {/* Submit Button */}
             <button
               type="submit"
-              className={`register-button ${isLoading ? 'loading' : ''} ${registrationSuccess ? 'success' : ''}`}
+              className={`app-button app-button--primary app-button--full-width register-button ${isLoading ? 'loading' : ''} ${registrationSuccess ? 'success' : ''}`}
               disabled={isLoading || registrationSuccess}
               aria-busy={isLoading}
             >

@@ -57,7 +57,8 @@ body {
   padding: 2.5rem 2rem;
   max-width: 520px;
   width: 100%;
-  transition: all var(--transition-medium);
+  /* Exclude height from transitions to prevent shrinking when error cards appear */
+  transition: box-shadow var(--transition-medium), transform var(--transition-medium), border-color var(--transition-medium);
   outline: none;
   position: relative;
   overflow: hidden;
@@ -132,6 +133,24 @@ body {
   flex-direction: column;
   gap: 1rem;
   animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1);
+}
+
+/* Fixed container for error messages to prevent layout shifts */
+.error-container {
+  min-height: 0;
+  margin-bottom: 0;
+  transition: min-height var(--transition-fast), margin-bottom var(--transition-fast);
+}
+
+.error-container:has(.error-card) {
+  min-height: 120px;
+  margin-bottom: 1rem;
+}
+
+/* Fallback for browsers that don't support :has() */
+.error-container.has-error {
+  min-height: 120px;
+  margin-bottom: 1rem;
 }
 
 @keyframes fadeIn {
@@ -364,8 +383,8 @@ body {
 }
 
 .error-message.network .error-icon {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #fecaca;
+  color: #b91c1c;
 }
 
 .error-message.rateLimit {
@@ -521,46 +540,8 @@ body {
 
 /* Enhanced login button with states */
 .login-button {
-  position: relative;
-  width: 100%;
-  padding: 1rem 0;
-  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  font-family: inherit;
-  text-transform: lowercase;
-  letter-spacing: 0.3px;
-}
-
-.login-button:not(:disabled):hover {
-  background: linear-gradient(135deg, #5a8fd6 0%, #7bb6fa 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(123, 182, 250, 0.4);
-}
-
-.login-button:not(:disabled):active {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
-}
-
-.login-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(123, 182, 250, 0.4);
-}
-
-.login-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
-  color: #fff;
+  /* Additional styling for login-specific button behavior */
+  /* Base styling comes from app-button system */
 }
 
 .login-button .button-text {
@@ -568,7 +549,6 @@ body {
   font-weight: 600;
 }
 
-.login-button.loading .button-text,
 .login-button.success .button-text {
   color: #3a5a8c;
 }
@@ -978,4 +958,23 @@ input.form-control.is-invalid {
   transition: all var(--transition-fast, 0.2s ease);
   position: relative;
   overflow: hidden;
+}
+
+.mfa-toggle-link {
+  background: none;
+  border: none;
+  color: var(--medium-blue);
+  font-weight: 500;
+  transition: color var(--transition-fast);
+  padding: 2px 4px;
+  border-radius: 4px;
+  text-transform: lowercase;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+.mfa-toggle-link:hover, .mfa-toggle-link:focus {
+  color: var(--primary-blue);
+  text-decoration: underline;
+  outline: none;
 }

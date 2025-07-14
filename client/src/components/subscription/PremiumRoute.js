@@ -1,14 +1,18 @@
 import React from 'react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { createCheckoutSession } from '../../services/subscription';
+import { useNavigate } from 'react-router-dom';
+import Icon from '../Icon';
+import './SubscriptionPage.css';
 
 const PremiumRoute = ({ children }) => {
   const { status, loading } = useSubscription();
+  const navigate = useNavigate();
 
   if (loading) return (
-    <div className="subscription-loading">
-      <div className="subscription-spinner"></div>
-      <div className="subscription-loading-text">checking subscription status...</div>
+    <div className="app-loading">
+      <span className="app-spinner app-spinner--large" aria-label="Loading" />
+      <span>checking subscription status...</span>
     </div>
   );
 
@@ -28,13 +32,19 @@ const PremiumRoute = ({ children }) => {
   };
 
   return (
-    <div className="subscription-status-banner inactive">
-      <h3>This is a premium feature.</h3>
-      <p>Start your free trial or subscribe to access this feature.</p>
-      <div className="subscription-actions">
-        <button className="subscription-button" onClick={handleCheckout}>
-          Start Free Trial / Subscribe
-        </button>
+    <div className="main-content-wrapper">
+      <div className="premium-page">
+        <div className="app-banner app-banner--subscription app-banner--page-level" style={{ maxWidth: 520, width: '100%', textAlign: 'center', margin: '3rem auto 0 auto' }}>
+          <div className="app-banner__content">
+            <h3 className="app-banner__title">This is a premium feature</h3>
+            <p className="app-banner__text">start your free trial or subscribe to access this feature</p>
+          </div>
+          <div className="app-banner__actions">
+            <button className="app-button app-button--primary app-button--full-width subscription-button" onClick={handleCheckout}>
+              start free trial / subscribe
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

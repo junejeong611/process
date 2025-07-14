@@ -28,9 +28,9 @@ const SubscriptionPage = () => {
         <Navbar />
         <div className="subscription-main">
           <div className="subscription-container">
-            <div className="subscription-loading">
-              <div className="subscription-spinner"></div>
-              <div className="subscription-loading-text">Loading subscription status...</div>
+            <div className="app-loading">
+              <span className="app-spinner app-spinner--large" aria-label="Loading" />
+              <span>loading subscription status...</span>
             </div>
           </div>
         </div>

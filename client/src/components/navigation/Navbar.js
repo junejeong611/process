@@ -1,7 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import Icon from '../Icon';
 import './Navbar.css';
+
+// Responsive hook
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return width;
+}
 
 const Navbar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -9,6 +21,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { status, loading } = useSubscription();
+  const width = useWindowWidth();
+  const isMobile = width <= 900;
 
   // Debug logs
   console.log('Navbar - Subscription Status:', status);
@@ -37,52 +51,26 @@ const Navbar = () => {
   const navItems = [
     {
       key: 'dashboard',
-      icon: (
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
+      icon: <Icon name="dashboard" size={20} />,
       label: 'dashboard',
       path: '/options',
       requiresPremium: true
     },
     {
       key: 'history',
-      icon: (
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-          <path d="M3 3v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 7v5l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
+      icon: <Icon name="history" size={20} />,
       label: 'history',
       path: '/chat-history',
       requiresPremium: true
     },
     {
       key: 'insights',
-      icon: (
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-          <rect x="3" y="13" width="3" height="6" rx="1" fill="currentColor"/>
-          <rect x="9" y="9" width="3" height="10" rx="1" fill="currentColor"/>
-          <rect x="15" y="5" width="3" height="14" rx="1" fill="currentColor"/>
-        </svg>
-      ),
+      icon: <Icon name="insights" size={20} />,
       label: 'insights',
       path: '/insights',
       requiresPremium: true
-    },
-    {
-      key: 'settings',
-      icon: (
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-          <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-      label: 'settings',
-      path: '/settings'
     }
+    // Removed settings tab
   ];
 
   // Determine active item based on current path
@@ -122,18 +110,18 @@ const Navbar = () => {
   return (
     <>
       {/* Hamburger icon for mobile */}
-      <button
-        className="navbar-hamburger"
-        onClick={() => setMobileMenuOpen(true)}
-        aria-label="Open navigation menu"
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24">
-          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-      </button>
+      {isMobile && (
+        <button
+          className="navbar-hamburger"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open navigation menu"
+        >
+          <Icon name="hamburger" size={28} />
+        </button>
+      )}
 
       {/* Overlay menu for mobile */}
-      {mobileMenuOpen && (
+      {isMobile && mobileMenuOpen && (
         <div className="navbar-overlay">
           <nav className="navbar mobile open">
             <button
@@ -141,9 +129,7 @@ const Navbar = () => {
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close navigation menu"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+              <Icon name="close" size={24} />
             </button>
             {/* Header */}
             <div className="navbar-header">
@@ -153,15 +139,11 @@ const Navbar = () => {
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <svg 
-                  width="16" 
-                  height="16" 
-                  fill="none" 
-                  viewBox="0 0 24 24"
+                <Icon 
+                  name={isCollapsed ? "toggleCollapsed" : "toggleExpanded"} 
+                  size={16} 
                   className={`toggle-icon ${isCollapsed ? 'rotated' : ''}`}
-                >
-                  <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                />
               </button>
               <div 
                 className="navbar-logo"
@@ -177,9 +159,7 @@ const Navbar = () => {
                 }}
                 aria-label="Go to options page"
               >
-                <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
-                  <path d="M24 41s-13-8.35-13-17.5C11 15.57 15.57 11 21 11c2.54 0 4.99 1.19 6.5 3.09C29.99 12.19 32.44 11 35 11c5.43 0 10 4.57 10 12.5C47 32.65 34 41 24 41z" fill="white"/>
-                </svg>
+                <img src="/logo.svg" alt="Process Logo" width="20" height="20" style={{ filter: 'brightness(0) invert(1)' }} />
               </div>
               {!isCollapsed && (
                 <div className="navbar-brand">
@@ -188,7 +168,6 @@ const Navbar = () => {
                 </div>
               )}
             </div>
-
             {/* Navigation Items */}
             <div className="navbar-items">
               {navItems.map((item) => {
@@ -198,7 +177,7 @@ const Navbar = () => {
                   <button
                     key={item.key}
                     className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}`}
-                    onClick={() => handleNavigation(item)}
+                    onClick={() => { handleNavigation(item); setMobileMenuOpen(false); }}
                     onKeyDown={(e) => handleKeyDown(e, item)}
                     aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
                     title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
@@ -208,16 +187,11 @@ const Navbar = () => {
                       {item.icon}
                       {/* Only show orange icon if loading is false and premium is required */}
                       {isPremiumRequired && (
-                        <svg 
-                          width="10" 
-                          height="10" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
+                        <Icon 
+                          name="premium" 
+                          size={10} 
                           style={{ position: 'absolute', top: '-2px', right: '-2px' }}
-                        >
-                          <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
-                          <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        />
                       )}
                     </div>
                     {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
@@ -232,88 +206,78 @@ const Navbar = () => {
       )}
 
       {/* Desktop sidebar (unchanged) */}
-      <nav className={`navbar${isCollapsed ? ' collapsed' : ''}`}> 
-        {/* Header */}
-        <div className="navbar-header">
-          <button
-            className="navbar-toggle"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <svg 
-              width="16" 
-              height="16" 
-              fill="none" 
-              viewBox="0 0 24 24"
-              className={`toggle-icon ${isCollapsed ? 'rotated' : ''}`}
+      {!isMobile && (
+        <nav className={`navbar${isCollapsed ? ' collapsed' : ''}`}> 
+          {/* Header */}
+          <div className="navbar-header">
+            <button
+              className="navbar-toggle"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <div 
-            className="navbar-logo"
-            onClick={() => navigate('/options')}
-            style={{ cursor: 'pointer' }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                navigate('/options');
-              }
-            }}
-            aria-label="Go to options page"
-          >
-            <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
-              <path d="M24 41s-13-8.35-13-17.5C11 15.57 15.57 11 21 11c2.54 0 4.99 1.19 6.5 3.09C29.99 12.19 32.44 11 35 11c5.43 0 10 4.57 10 12.5C47 32.65 34 41 24 41z" fill="white"/>
-            </svg>
-          </div>
-          {!isCollapsed && (
-            <div className="navbar-brand">
-              <h1 className="navbar-title">process</h1>
-              <p className="navbar-subtitle">emotional support</p>
+              <Icon 
+                name={isCollapsed ? "toggleCollapsed" : "toggleExpanded"} 
+                size={16} 
+                className={`toggle-icon ${isCollapsed ? 'rotated' : ''}`}
+              />
+            </button>
+            <div 
+              className="navbar-logo"
+              onClick={() => navigate('/options')}
+              style={{ cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate('/options');
+                }
+              }}
+              aria-label="Go to options page"
+            >
+              <img src="/logo.svg" alt="Process Logo" width="20" height="20" style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
-          )}
-        </div>
-
-        {/* Navigation Items */}
-        <div className="navbar-items">
-          {navItems.map((item) => {
-            // Only show premium-required state if loading is false
-            const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
-            return (
-              <button
-                key={item.key}
-                className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}`}
-                onClick={() => handleNavigation(item)}
-                onKeyDown={(e) => handleKeyDown(e, item)}
-                aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
-                title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
-              >
-                {activeKey === item.key && <div className="navbar-item-indicator" />}
-                <div className="navbar-item-icon" style={{ position: 'relative' }}>
-                  {item.icon}
-                  {/* Only show orange icon if loading is false and premium is required */}
-                  {isPremiumRequired && (
-                    <svg 
-                      width="10" 
-                      height="10" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      style={{ position: 'absolute', top: '-2px', right: '-2px' }}
-                    >
-                      <circle cx="12" cy="12" r="10" fill="var(--warning-orange, #ef6c00)"/>
-                      <path d="M8 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-                {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+            {!isCollapsed && (
+              <div className="navbar-brand">
+                <h1 className="navbar-title">process</h1>
+                <p className="navbar-subtitle">emotional support</p>
+              </div>
+            )}
+          </div>
+          {/* Navigation Items */}
+          <div className="navbar-items">
+            {navItems.map((item) => {
+              // Only show premium-required state if loading is false
+              const isPremiumRequired = !loading && item.requiresPremium && !hasPremiumAccess;
+              return (
+                <button
+                  key={item.key}
+                  className={`navbar-item ${activeKey === item.key ? 'active' : ''} ${isPremiumRequired ? 'premium-required' : ''}`}
+                  onClick={() => handleNavigation(item)}
+                  onKeyDown={(e) => handleKeyDown(e, item)}
+                  aria-label={`Navigate to ${item.label}${isPremiumRequired ? ' (Premium required)' : ''}`}
+                  title={isCollapsed ? `${item.label}${isPremiumRequired ? ' (Premium required)' : ''}` : undefined}
+                >
+                  {activeKey === item.key && <div className="navbar-item-indicator" />}
+                  <div className="navbar-item-icon" style={{ position: 'relative' }}>
+                    {item.icon}
+                    {/* Only show orange icon if loading is false and premium is required */}
+                    {isPremiumRequired && (
+                      <Icon 
+                        name="premium" 
+                        size={10} 
+                        style={{ position: 'absolute', top: '-2px', right: '-2px' }}
+                      />
+                    )}
+                  </div>
+                  {!isCollapsed && <span className="navbar-item-label">{item.label}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </>
   );
 };

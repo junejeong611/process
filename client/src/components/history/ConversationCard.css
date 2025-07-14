@@ -2,8 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .conversation-card {
-  composes: app-card;
-  /* Remove/override old styles for background, border, border-radius, box-shadow, padding, max-width, margin, text-align, etc. */
+  /* Use direct app-card classes in JSX instead of composition */
   display: flex;
   gap: 1rem;
   align-items: flex-start;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { VOICE_STATUSES, ERROR_TYPES } from '../contexts/VoiceContext';
+import ErrorCard from './ErrorCard';
 
 // Error categorization for better user experience
 const ERROR_CATEGORIES = {
@@ -206,189 +207,13 @@ class VoiceErrorBoundary extends React.Component {
     if (this.state.hasError) {
       const category = ERROR_CATEGORIES[this.state.errorCategory] || ERROR_CATEGORIES.FATAL;
       const isRecoverable = category.recoverable && this.state.retryCount < 3;
-
       return (
-        <div 
-          className="voice-error-boundary"
-          style={{
-            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-            background: 'rgba(255, 107, 107, 0.08)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 107, 107, 0.2)',
-            borderLeft: '4px solid #FF6B6B',
-            borderRadius: '16px',
-            padding: '32px',
-            margin: '32px auto',
-            maxWidth: '520px',
-            textAlign: 'center',
-            boxShadow: '0 8px 32px rgba(255, 107, 107, 0.1)',
-            animation: 'fadeIn 0.3s ease-out'
-          }}
-          role="alert"
-          aria-live="assertive"
-        >
-          {/* Error Icon */}
-          <div style={{ 
-            fontSize: '48px', 
-            marginBottom: '16px',
-            filter: 'grayscale(20%)'
-          }}>
-            {this.state.errorCategory === 'PERMISSION' ? '🎤' : 
-             this.state.errorCategory === 'NETWORK' ? '🌐' : 
-             this.state.errorCategory === 'API' ? '⚡' : 
-             this.state.errorCategory === 'AUDIO' ? '🔊' : '⚠️'}
-          </div>
-
-          {/* Error Title */}
-          <h2 style={{ 
-            color: '#FF6B6B', 
-            fontSize: '24px', 
-            fontWeight: '600',
-            marginBottom: '12px',
-            lineHeight: '1.3'
-          }}>
-            {category.title}
-          </h2>
-
-          {/* Error Message */}
-          <p style={{ 
-            color: '#4a5568', 
-            fontSize: '16px', 
-            marginBottom: '24px',
-            lineHeight: '1.5',
-            opacity: '0.8'
-          }}>
-            {category.message}
-          </p>
-
-          {/* Technical Details (Development) */}
-          {process.env.NODE_ENV === 'development' && (
-            <details style={{ 
-              marginBottom: '24px', 
-              textAlign: 'left',
-              background: 'rgba(0,0,0,0.05)',
-              padding: '12px',
-              borderRadius: '8px',
-              fontSize: '14px'
-            }}>
-              <summary style={{ cursor: 'pointer', fontWeight: '600' }}>
-                Technical Details
-              </summary>
-              <pre style={{ 
-                margin: '8px 0 0 0', 
-                fontSize: '12px',
-                overflow: 'auto',
-                maxHeight: '200px'
-              }}>
-                {this.state.error?.stack}
-              </pre>
-            </details>
-          )}
-
-          {/* Retry Count Indicator */}
-          {this.state.retryCount > 0 && (
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#718096',
-              marginBottom: '16px' 
-            }}>
-              Attempt {this.state.retryCount + 1} of 3
-            </p>
-          )}
-
-          {/* Action Buttons */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '12px', 
-            justifyContent: 'center',
-            flexWrap: 'wrap'
-          }}>
-            {isRecoverable ? (
-              <button
-                onClick={this.handleRetry}
-                style={{
-                  background: '#4A90E2',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '14px 28px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 200ms ease',
-                  boxShadow: '0 4px 12px rgba(74, 144, 226, 0.3)'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.background = '#357ABD';
-                  e.target.style.transform = 'translateY(-2px)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.background = '#4A90E2';
-                  e.target.style.transform = 'translateY(0)';
-                }}
-              >
-                {category.action}
-              </button>
-            ) : (
-              <button
-                onClick={this.handleRefresh}
-                style={{
-                  background: '#FF6B6B',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '14px 28px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 200ms ease',
-                  boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)'
-                }}
-              >
-                {category.action}
-              </button>
-            )}
-
-            {/* Report Bug Button */}
-            <button
-              onClick={this.handleReportError}
-              style={{
-                background: 'transparent',
-                color: '#718096',
-                border: '2px solid #E2E8F0',
-                borderRadius: '12px',
-                padding: '12px 24px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                transition: 'all 200ms ease'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.borderColor = '#CBD5E0';
-                e.target.style.color = '#4A5568';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.borderColor = '#E2E8F0';
-                e.target.style.color = '#718096';
-              }}
-            >
-              Report Issue
-            </button>
-          </div>
-
-          {/* Helpful Tips */}
-          {this.state.errorCategory === 'PERMISSION' && (
-            <div style={{ 
-              marginTop: '24px', 
-              padding: '16px',
-              background: 'rgba(74, 144, 226, 0.08)',
-              borderRadius: '12px',
-              fontSize: '14px',
-              lineHeight: '1.4'
-            }}>
-              <strong>💡 Tip:</strong> Look for a microphone icon in your browser's address bar and click "Allow"
-            </div>
-          )}
-        </div>
+        <ErrorCard
+          error={category.message}
+          errorCategory={{ type: this.state.errorCategory.toLowerCase(), canRetry: isRecoverable }}
+          onRetry={isRecoverable ? this.handleRetry : undefined}
+          retryLabel={category.action}
+        />
       );
     }
 

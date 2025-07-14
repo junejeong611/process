@@ -6,7 +6,7 @@
   min-height: 100vh;
   background-color: var(--bg-page);
   margin-left: 280px; /* Keep for navbar offset */
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-left var(--transition-medium);
   overflow-x: hidden;
 }
 
@@ -223,8 +223,8 @@
 .premium-message {
   background: white;
   padding: var(--space-5);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
   text-align: center;
   max-width: var(--container-xs);
 }

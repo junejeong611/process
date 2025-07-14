@@ -3,37 +3,21 @@ import Navbar from './navigation/Navbar';
 import PulsingHeart from './PulsingHeart';
 import { useVoice, VOICE_STATUSES } from '../contexts/VoiceContext';
 import VoiceErrorBoundary from './VoiceErrorBoundary';
+import Icon from './Icon';
 import './VoicePage.css';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import ErrorCard from './ErrorCard';
+import { categorizeError } from '../utils/errorUtils';
+import AuthErrorCard from './AuthErrorCard';
 
-// Enhanced icons with modern aesthetics
+// Enhanced microphone icon using the standardized Icon component
 const MicIcon = ({ active, size = 32 }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    aria-hidden="true" 
-    focusable="false"
-    role="img"
+  <Icon 
+    name={active ? "micActive" : "mic"} 
+    size={size}
     style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
-  >
-    <rect
-      x="9" y="3" width="6" height="10" rx="3"
-      fill={active ? '#ffffff' : '#64748b'}
-      stroke={active ? '#ffffff' : '#94a3b8'}
-      strokeWidth="0.5"
-    />
-    <path
-      d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3M9 21h6"
-      stroke={active ? '#ffffff' : '#64748b'}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-  </svg>
+  />
 );
 
 // Helper: Enhanced retry with gentle feedback
@@ -462,6 +446,15 @@ const VoicePage = () => {
     setShowExitModal(false);
   };
 
+  const handleRetry = () => {
+    // This function is not yet implemented in the original code,
+    // but it's part of the new ErrorCard component's expected behavior.
+    // For now, it will just log a message.
+    console.log("Retry button clicked. No specific retry logic implemented yet.");
+    // In a real scenario, you might re-initialize the conversation or
+    // re-attempt the last failed API call.
+  };
+
   return (
     <VoiceErrorBoundary>
       <div className="voice-bg">
@@ -469,8 +462,8 @@ const VoicePage = () => {
           <section className="voice-center" aria-label="Voice interaction area">
             {/* Error Header (gentle, only if error) */}
             {error && (
-              <div className="voice-status error" role="alert" style={{ marginBottom: 'var(--space-8)', color: 'var(--color-error)', fontWeight: 500 }}>
-                something went off track, try again
+              <div className="error-container">
+                <AuthErrorCard />
               </div>
             )}
             {/* Status Message (hide if error) */}

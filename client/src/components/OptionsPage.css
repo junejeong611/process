@@ -1,28 +1,6 @@
 /* OptionsPage.css - Enhanced Version */
 
-/* Root variables for consistent theming */
-:root {
-  --primary-blue: #3a5a8c;
-  --light-blue: #7bb6fa;
-  --medium-blue: #5a8fd6;
-  --text-gray: #6b7a90;
-  --light-gray: #8ca0b8;
-  --bg-light: #f7fafd;
-  --bg-gradient-start: #e3edf7;
-  --bg-gradient-end: #f7fafd;
-  --border-light: #dbe6f3;
-  --success-green: #4caf50;
-  --shadow-light: rgba(60, 90, 130, 0.08);
-  --shadow-medium: rgba(60, 90, 130, 0.12);
-  --focus-blue: #b3d4fc;
-  --border-radius: 8px;
-  --border-radius-large: 18px;
-  --transition-fast: 0.2s ease;
-  --transition-medium: 0.3s cubic-bezier(.4,0,.2,1);
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --sidebar-width: 280px;
-  --bg-page: #eaf2fa;
-}
+/* Using global CSS variables from index.css */
 
 body {
   background: var(--bg-page);
@@ -39,23 +17,33 @@ body {
 /* Main container */
 .options-main {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  width: calc(100vw - 280px);
-  margin-left: 0;
+  flex: 1;
+  width: 100%;
+  margin-left: 280px; /* Leave space for fixed navbar */
   background: var(--bg-page);
   padding: var(--space-5);
   box-sizing: border-box;
   font-family: var(--font-family);
   position: relative;
-  flex: 1;
 }
 
 @media (max-width: 900px) {
   .options-main {
     width: 100vw;
-    margin-left: 0;
+    margin-left: 280px; /* Still desktop navbar width */
+  }
+}
+@media (max-width: 768px) {
+  .options-main {
+    margin-left: 64px; /* Collapsed navbar width */
+  }
+}
+@media (max-width: 480px) {
+  .options-main {
+    margin-left: 56px; /* Mobile navbar width */
   }
 }
 
@@ -65,11 +53,14 @@ body {
   top: 2rem;
   right: 2rem;
   z-index: 100;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1.5px 6px rgba(0,0,0,0.08);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.85);
 }
 
 .user-menu-trigger {
   background: #fff;
-  border: none;
+  border: 1.5px solid #e0e6ef;
   border-radius: 50%;
   width: 44px;
   height: 44px;
@@ -77,14 +68,14 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(60, 90, 130, 0.1);
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-medium);
   color: var(--text-gray);
 }
 
 .user-menu-trigger:hover {
   background: var(--bg-light);
-  box-shadow: 0 4px 16px rgba(60, 90, 130, 0.15);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -105,7 +96,7 @@ body {
   right: 0;
   background: #fff;
   border-radius: var(--border-radius-large);
-  box-shadow: 0 8px 32px rgba(60, 90, 130, 0.15);
+  box-shadow: var(--shadow-lg);
   min-width: 180px;
   padding: 0.5rem;
   animation: menuSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -220,7 +211,7 @@ body {
   align-items: center;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.15);
+  box-shadow: var(--shadow-md);
   width: 64px;
   height: 64px;
   animation: float 3s ease-in-out infinite;
@@ -280,20 +271,22 @@ body {
 
 /* Enhanced card styling */
 .options-card {
-  composes: app-card;
-  /* Remove/override old styles for background, border, border-radius, box-shadow, padding, max-width, margin, text-align, etc. */
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px var(--shadow-light), 0 1.5px 6px rgba(60, 90, 130, 0.04);
   display: flex;
   align-items: center;
+  padding: 2rem !important;
   cursor: pointer;
   transition: all var(--transition-medium);
   outline: none;
-  min-height: 80px;
+  border: 1.5px solid transparent;
+  min-height: 160px;
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
   position: relative;
   overflow: hidden;
   animation: cardSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-  padding: var(--space-5);
-  margin-bottom: var(--space-4);
-  max-width: var(--container-narrow);
 }
 
 @keyframes cardSlideIn {
@@ -332,7 +325,6 @@ body {
 
 .options-card:hover {
   background: #fafbfd;
-  box-shadow: 0 6px 28px var(--shadow-medium);
   transform: translateY(-2px) scale(1.005);
 }
 
@@ -343,7 +335,7 @@ body {
 .options-card.loading {
   pointer-events: none;
   transform: scale(0.98);
-  box-shadow: 0 2px 8px var(--shadow-light);
+  box-shadow: var(--shadow-sm);
   background: var(--bg-light);
 }
 
@@ -357,8 +349,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 1rem;
+  margin-right: 1.5rem;
   transition: all var(--transition-medium);
+  border-radius: 12px !important;
 }
 
 .options-card:hover .options-card-icon {
@@ -366,12 +359,28 @@ body {
   transform: scale(1.05);
 }
 
+/* Chevron/action button - always a circle */
+.options-card-action {
+  border-radius: 12px !important;
+  width: 48px;
+  height: 48px;
+  background: rgba(123, 182, 250, 0.1);
+  color: var(--light-blue);
+  transition: all var(--transition-medium);
+}
+
 /* Card content */
 .options-card-content {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.4rem;
+  margin-right: 2.5rem;
 }
 
 .options-card-title {
@@ -419,6 +428,7 @@ body {
   background: rgba(123, 182, 250, 0.1);
   color: var(--light-blue);
   transition: all var(--transition-medium);
+  margin-left: auto;
 }
 
 .options-card:hover .options-card-action {
@@ -456,7 +466,7 @@ body {
   font-weight: 600;
   transition: all var(--transition-fast);
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: var(--border-radius-xs);
 }
 
 .crisis-link:hover,
@@ -491,12 +501,18 @@ body {
   .options-card {
     padding: 1.25rem 1rem;
     min-height: 70px;
+    border-radius: 20px;
   }
 
   .options-card-icon {
     width: 40px;
     height: 40px;
     margin-right: 0.75rem;
+  }
+
+  .options-card-action {
+    width: 32px;
+    height: 32px;
   }
 
   .options-greeting {
@@ -685,12 +701,13 @@ body {
 }
 
 .options-card:nth-child(2) .options-card-action {
-  background: #eafbe7 !important;
-  color: #4caf50 !important;
+  background: rgba(110, 220, 125, 0.1); /* pale green */
+  color: #6edc7d; /* standardized green */
 }
 .options-card:nth-child(2):hover .options-card-action {
-  background: #4caf50 !important;
-  color: #eafbe7 !important;
+  background: #6edc7d;
+  color: #fff;
+  transform: translateX(3px);
 }
 .options-card:nth-child(2):hover .options-card-action svg {
   stroke: #eafbe7 !important;
@@ -715,13 +732,10 @@ body {
 }
 
 .options-inner {
-  width: 100%;
-  max-width: 100vw;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 0;
+  width: 100%;
 }
 
 @media (max-width: 1200px) {
@@ -729,4 +743,295 @@ body {
     max-width: 100%;
     padding: 0 1rem;
   }
+}
+
+.options-card:hover .icon-voice {
+  color: #b3d4fc; /* standardized pale blue for hover */
+}
+
+.options-card:hover .icon-chat {
+  color: #b6f5c6; /* standardized pale green for hover */
+}
+
+/* Remove old nth-child rules for card icon and chevron */
+.options-card:first-child::before,
+.options-card:first-child .options-card-action,
+.options-card:first-child:hover .options-card-action,
+.options-card:first-child:hover .options-card-action svg,
+.options-card:nth-child(2) .options-card-icon,
+.options-card:nth-child(2):hover .options-card-icon,
+.options-card:nth-child(2):hover .options-card-icon svg,
+.options-card:nth-child(2) .options-card-action,
+.options-card:nth-child(2):hover .options-card-action,
+.options-card:nth-child(2):hover .options-card-action svg,
+.options-card:first-child .options-card-icon,
+.options-card:first-child .options-card-icon svg,
+.options-card:first-child:hover .options-card-icon,
+.options-card:first-child:hover .options-card-icon svg,
+.options-card:nth-child(2) .options-card-icon svg {
+  all: unset;
+}
+
+/* Voice mode card (mic icon, blue) */
+.options-card[data-mode="voice"] .options-card-icon {
+  background: #eaf4fd !important;
+}
+.options-card[data-mode="voice"] .options-card-icon svg {
+  fill: #7bb6fa !important;
+  color: #7bb6fa !important;
+}
+.options-card[data-mode="voice"] .options-card-action {
+  background: #eaf4fd !important;
+  color: #7bb6fa !important;
+}
+.options-card[data-mode="voice"]:hover .options-card-icon,
+.options-card[data-mode="voice"]:focus .options-card-icon {
+  background: #7bb6fa !important;
+}
+.options-card[data-mode="voice"]:hover .options-card-icon svg,
+.options-card[data-mode="voice"]:focus .options-card-icon svg {
+  fill: #eaf4fd !important;
+  color: #eaf4fd !important;
+}
+.options-card[data-mode="voice"]:hover .options-card-action,
+.options-card[data-mode="voice"]:focus .options-card-action {
+  background: #7bb6fa !important;
+  color: #eaf4fd !important;
+}
+.options-card[data-mode="voice"]:hover .options-card-action svg,
+.options-card[data-mode="voice"]:focus .options-card-action svg {
+  color: #eaf4fd !important;
+  stroke: #eaf4fd !important;
+}
+
+/* Text mode card (chat icon, green) */
+.options-card[data-mode="text"] .options-card-icon {
+  background: var(--pale-green) !important;
+}
+.options-card[data-mode="text"] .options-card-icon svg {
+  fill: var(--accent-green) !important;
+  color: var(--accent-green) !important;
+}
+/* Top line/gradient bar for text mode card */
+.options-card[data-mode="text"]::before {
+  background: var(--accent-green) !important;
+}
+.options-card[data-mode="text"] .options-card-action {
+  background: rgba(110, 220, 125, 0.1) !important;
+  color: #6edc7d !important;
+}
+.options-card[data-mode="text"]:hover .options-card-icon,
+.options-card[data-mode="text"]:focus .options-card-icon {
+  background: #4caf50 !important;
+}
+.options-card[data-mode="text"]:hover .options-card-icon svg,
+.options-card[data-mode="text"]:focus .options-card-icon svg {
+  fill: #eafbe7 !important;
+  color: #eafbe7 !important;
+}
+.options-card[data-mode="text"]:hover .options-card-action,
+.options-card[data-mode="text"]:focus .options-card-action {
+  background: #6edc7d !important;
+  color: #fff !important;
+}
+.options-card[data-mode="text"]:hover .options-card-action svg,
+.options-card[data-mode="text"]:focus .options-card-action svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}
+
+/* Ensure chevron icon is always visible */
+.options-card .options-card-action svg {
+  display: block !important;
+  transition: color 0.2s, fill 0.2s, stroke 0.2s;
+}
+
+.options-card-icon,
+.options-card-action {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6f8fa;
+  box-shadow: 0 2px 8px rgba(123,182,250,0.08);
+  border: none !important;
+  padding: 0;
+  margin: 0;
+}
+
+.options-card-icon {
+  margin-right: 1.5rem;
+  background: #eaf4fd !important;
+}
+.options-card[data-mode="voice"] .options-card-icon {
+  background: #eaf4fd !important;
+}
+.options-card[data-mode="text"] .options-card-icon {
+  background: var(--pale-green) !important;
+}
+.options-card[data-mode="voice"] .options-card-icon svg {
+  fill: #7bb6fa !important;
+  color: #7bb6fa !important;
+  width: 28px;
+  height: 28px;
+}
+.options-card[data-mode="text"] .options-card-icon svg {
+  fill: var(--accent-green) !important;
+  color: var(--accent-green) !important;
+  width: 28px;
+  height: 28px;
+}
+.options-card-icon svg {
+  width: 28px;
+  height: 28px;
+  display: block;
+}
+
+.options-card-action {
+  margin-left: auto;
+  margin-right: 0.25rem;
+  align-self: center;
+  background: #eaf4fd !important;
+  color: #7bb6fa !important;
+  transition: background 0.2s, color 0.2s;
+}
+.options-card[data-mode="text"] .options-card-action {
+  background: rgba(110, 220, 125, 0.1) !important;
+  color: #6edc7d !important;
+}
+.options-card-action svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+.options-card:hover .options-card-icon,
+.options-card:focus .options-card-icon {
+  filter: brightness(0.97);
+}
+.options-card:hover .options-card-action,
+.options-card:focus .options-card-action {
+  background: #7bb6fa !important;
+  color: #eaf4fd !important;
+}
+.options-card[data-mode="text"]:hover .options-card-action,
+.options-card[data-mode="text"]:focus .options-card-action {
+  background: #6edc7d !important;
+  color: #fff !important;
+}
+/* Remove debug styles */
+.options-card-icon {
+  border: none !important;
+  background: unset;
+}
+
+/* === OptionsPage Card Icon & Chevron Overrides === */
+.options-main .options-card {
+  min-height: 160px !important;
+  padding-top: 2.5rem !important;
+  padding-bottom: 2.5rem !important;
+}
+
+.options-main .options-card-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.4rem !important;
+  margin-right: 2.5rem !important;
+}
+
+.options-main .options-card-action {
+  margin-left: auto !important;
+}
+.options-main .options-card .options-card-icon,
+.options-main .options-card .options-card-action {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f6f8fa !important;
+  box-shadow: 0 2px 8px rgba(123,182,250,0.08) !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.options-main .options-card .options-card-icon {
+  margin-right: 1.5rem !important;
+  background: #eaf4fd !important;
+}
+.options-main .options-card[data-mode="voice"] .options-card-icon {
+  background: #eaf4fd !important;
+}
+.options-main .options-card[data-mode="text"] .options-card-icon {
+  background: var(--pale-green) !important;
+}
+.options-main .options-card .options-card-icon .app-icon,
+.options-main .options-card .options-card-icon svg,
+.options-main .options-card .options-card-action .app-icon,
+.options-main .options-card .options-card-action svg {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: block !important;
+  margin: auto !important;
+}
+.options-main .options-card .options-card-action {
+  margin-left: auto !important;
+  margin-right: 0.25rem !important;
+  align-self: center !important;
+  background: #eaf4fd !important;
+  color: #7bb6fa !important;
+  transition: background 0.2s, color 0.2s !important;
+}
+.options-main .options-card[data-mode="text"] .options-card-action {
+  background: rgba(110, 220, 125, 0.1) !important;
+  color: #6edc7d !important;
+}
+.options-main .options-card:hover .options-card-icon,
+.options-main .options-card:focus .options-card-icon {
+  filter: brightness(0.97) !important;
+}
+.options-main .options-card:hover .options-card-action,
+.options-main .options-card:focus .options-card-action {
+  background: #7bb6fa !important;
+  color: #eaf4fd !important;
+}
+.options-main .options-card[data-mode="text"]:hover .options-card-action,
+.options-main .options-card[data-mode="text"]:focus .options-card-action {
+  background: #6edc7d !important;
+  color: #fff !important;
+}
+
+/* === Icon hover/focus color inversion to match chevron, using standardized variables === */
+.options-main .options-card[data-mode="voice"]:hover .options-card-icon,
+.options-main .options-card[data-mode="voice"]:focus .options-card-icon {
+  background: var(--light-blue) !important;
+}
+.options-main .options-card[data-mode="voice"]:hover .options-card-icon .app-icon,
+.options-main .options-card[data-mode="voice"]:hover .options-card-icon svg,
+.options-main .options-card[data-mode="voice"]:focus .options-card-icon .app-icon,
+.options-main .options-card[data-mode="voice"]:focus .options-card-icon svg {
+  color: var(--pale-blue) !important;
+  fill: var(--pale-blue) !important;
+}
+.options-main .options-card[data-mode="text"]:hover .options-card-icon,
+.options-main .options-card[data-mode="text"]:focus .options-card-icon {
+  background: var(--accent-green) !important;
+}
+.options-main .options-card[data-mode="text"]:hover .options-card-icon .app-icon,
+.options-main .options-card[data-mode="text"]:hover .options-card-icon svg,
+.options-main .options-card[data-mode="text"]:focus .options-card-icon .app-icon,
+.options-main .options-card[data-mode="text"]:focus .options-card-icon svg {
+  color: var(--pale-green) !important;
+  fill: var(--pale-green) !important;
 }

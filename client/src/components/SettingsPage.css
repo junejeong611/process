@@ -10,15 +10,134 @@
 .settings-page {
   position: relative;
   padding: 2.5rem 1rem 3rem 1rem;
-  max-width: 700px;
+  max-width: 1000px;
+  width: 100%;
   margin: 0 auto;
 }
 
-.settings-container {
+/* Remove sidebar offset from settings page to keep content centered */
+/* @media (min-width: 901px) {
+  .settings-page {
+    margin-left: 280px;
+  }
+} */
+
+@media (max-width: 900px) {
+  .settings-page {
+    margin-left: 0;
+    margin-top: 64px; /* Prevent overlap with fixed navbar on mobile */
+  }
+}
+
+/* Remove max-width from chat-history containers for settings */
+.settings-page .chat-history-container,
+.settings-page .chat-history-inner {
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow: visible !important;
+  min-height: unset !important;
+  height: auto !important;
+}
+
+/* Make the chat-history-header full width on settings page and match glassmorphism style */
+.settings-page > .chat-history-header {
+  background: #fff !important; /* white background */
+  color: #23406e !important;
+  padding-top: 2rem !important;
+  padding-bottom: 1.25rem !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+  border-radius: 24px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 12px rgba(123, 182, 250, 0.10);
+  border: none !important;
+}
+
+/* Ensure header-center and page-title look the same as Insights/Chat History */
+.settings-page .header-center {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
-  margin-top: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.settings-page .page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  margin: 0 0 0.5rem 0;
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--medium-blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+.settings-page .page-subtitle {
+  font-size: 1.15rem;
+  color: #7a869a;
+  margin-bottom: 0.2rem;
+  font-weight: 400;
+}
+
+/* Force header centering and gradient for settings page */
+.settings-page .chat-history-header .header-center {
+  width: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+.settings-page .chat-history-header .header-center .page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  margin: 0 0 0.5rem 0;
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--medium-blue) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center !important;
+}
+.settings-page .chat-history-header .header-center .page-subtitle {
+  font-size: 1.15rem;
+  color: #7a869a;
+  margin-bottom: 0.2rem;
+  font-weight: 400;
+  text-align: center !important;
+}
+
+.settings-main {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* === OVERRIDES: Restore full width for settings cards and main === */
+.settings-main {
+  max-width: none !important;
+  width: 100% !important;
+}
+.settings-main .app-card {
+  max-width: none !important;
+  width: 100% !important;
 }
 
 .settings-title {
@@ -42,26 +161,17 @@
 }
 
 .settings-card {
-  background: var(--bg-white);
-  border-radius: 18px;
-  box-shadow: 0 2px 16px rgba(30, 42, 80, 0.08);
-  padding: var(--space-5);
-  margin-bottom: var(--space-4);
-  transition: box-shadow 0.2s;
-  border: 1px solid var(--border-light);
-  max-width: var(--container-narrow);
+  /* Use direct app-card classes in JSX instead of composition */
+  text-align: left;
 }
 .settings-card:not(:last-child) {
   margin-bottom: 2.5rem;
-}
-.settings-card:hover {
-  box-shadow: 0 6px 24px rgba(30, 42, 80, 0.13);
 }
 
 .danger-zone {
   border: 1.5px solid var(--error-red);
   background: #fff6f6;
-  box-shadow: 0 2px 16px rgba(255, 77, 79, 0.07);
+  box-shadow: var(--shadow-md);
 }
 
 .settings-card-title {
@@ -88,6 +198,7 @@
   margin-bottom: 0.5rem;
   font-weight: 500;
   color: #2d3748;
+  text-align: left;
 }
 
 .input-wrapper {
@@ -100,12 +211,12 @@
   width: 100%;
   padding: 0.85rem;
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   font-size: 1.05rem;
   padding-right: 3.5rem;
   box-sizing: border-box;
   background: var(--bg-light);
-  transition: border 0.2s;
+  transition: border var(--transition-fast);
 }
 .settings-form-input:focus {
   border: 1.5px solid var(--light-blue);
@@ -128,7 +239,7 @@
   z-index: 2;
   height: 2rem;
   line-height: 2rem;
-  transition: color 0.2s;
+  transition: color var(--transition-fast);
 }
 .toggle-password:hover {
   color: var(--primary-blue);
@@ -137,36 +248,9 @@
   outline: 2px solid var(--light-blue);
 }
 
-/* Enhanced button styles */
-.app-button--primary {
-  background: linear-gradient(90deg, var(--light-blue), var(--primary-blue));
-  color: var(--bg-white);
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 1.7rem;
-  font-weight: 600;
-  font-size: 1.08rem;
-  box-shadow: 0 2px 8px rgba(79,140,255,0.10);
-  transition: background 0.2s, box-shadow 0.2s;
+/* Use standardized buttons - local overrides only if needed */
+.settings-page .app-button {
   margin-top: 0.5rem;
-}
-.app-button--primary:hover {
-  background: linear-gradient(90deg, var(--primary-blue), var(--light-blue));
-  box-shadow: 0 4px 16px rgba(79,140,255,0.13);
-}
-.app-button--danger {
-  background: var(--error-red);
-  color: var(--bg-white);
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 1.7rem;
-  font-weight: 600;
-  font-size: 1.08rem;
-  transition: background 0.2s;
-  margin-top: 0.5rem;
-}
-.app-button--danger:hover {
-  background: var(--error-red);
 }
 
 /* Error/success card tweaks */
@@ -174,7 +258,7 @@
   background: #fff6f6;
   border: 1.5px solid var(--error-red);
   color: var(--text-primary);
-  border-radius: 10px;
+  border-radius: var(--border-radius-sm);
   padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -200,45 +284,8 @@
 }
 
 .login-button {
-  position: relative;
+  /* Use direct app-button classes in JSX instead of composition */
   padding: 1rem 2.5rem;
-  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
-  color: var(--bg-white);
-  border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
-  transition: all 0.3s ease;
-  overflow: hidden;
-  font-family: inherit;
-  text-transform: lowercase;
-  letter-spacing: 0.3px;
-}
-
-.login-button:not(:disabled):hover {
-  background: linear-gradient(135deg, #5a8fd6 0%, #7bb6fa 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(123, 182, 250, 0.4);
-}
-
-.login-button:not(:disabled):active {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(123, 182, 250, 0.3);
-}
-
-.login-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(123, 182, 250, 0.4);
-}
-
-.login-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-  background: linear-gradient(135deg, #7bb6fa 0%, #5a8fd6 100%);
-  color: var(--bg-white);
 }
 
 .login-button .button-text {
@@ -253,4 +300,14 @@
   width: 100%;
   align-self: stretch;
   opacity: 0.18;
+}
+
+.main-content-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+}
+
+body, .main-content-wrapper {
+  background: #eaf2fa !important;
 } 

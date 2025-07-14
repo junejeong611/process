@@ -148,7 +148,7 @@ const ExitThankYouPage = ({ sessionLength, topics }) => {
       aria-modal="true"
       aria-label="Session Ended Thank You"
     >
-      <div className="exit-thankyou-card" tabIndex={0} aria-labelledby="thankyou-title" aria-describedby="thankyou-desc">
+      <div className="app-card app-card--glass exit-thankyou-card" tabIndex={0} aria-labelledby="thankyou-title" aria-describedby="thankyou-desc">
         <div className="exit-thankyou-progress">
           <div className="exit-thankyou-progress-bar" style={{ width: `${progress}%` }} />
         </div>

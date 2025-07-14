@@ -41,15 +41,17 @@ const SupportPage = () => {
     <main className="support-main" role="main">
       <div className="back-navigation">
         <Link to="/options" className="back-link" aria-label="Back to options">
-          <span className="back-icon">&#8592;</span> back
+          <span className="app-back-icon">&#8592;</span> back
         </Link>
       </div>
-      <div className="support-card">
+      <div className="support-header">
         <h1 className="support-title">Crisis Support Resources</h1>
         <p className="support-intro">if you are in crisis, please reach out to one of the resources below. you are not alone.</p>
+      </div>
+      <div className="support-card">
         <ul className="support-list">
           {resources.map((res) => (
-            <li key={res.name} className="support-resource">
+            <li key={res.name} className="support-resource app-card app-card--padded">
               <h2 className="support-resource-name">{res.name}</h2>
               <p className="support-resource-desc">{res.description}</p>
               <p className="support-resource-contact">

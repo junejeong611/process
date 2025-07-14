@@ -93,7 +93,7 @@ body {
 
 /* Main container with enhanced visual hierarchy */
 .voice-bg {
-  width: calc(100vw - 280px);
+  width: 100%;
   margin-left: 0;
   margin: 0;
   padding: 0;
@@ -161,7 +161,7 @@ body {
   background: var(--glass-bg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border-radius: 32px;
+  border-radius: var(--border-radius-2xl);
   border: var(--border-subtle);
   box-shadow: 
     var(--shadow-2xl),
@@ -433,7 +433,7 @@ body {
   text-align: center;
   padding: var(--space-4) var(--space-6);
   background: rgba(239, 68, 68, 0.05);
-  border-radius: 16px;
+  border-radius: var(--border-radius-md);
   border: 1px solid rgba(239, 68, 68, 0.1);
   margin: var(--space-4) 0;
   backdrop-filter: blur(10px);
@@ -634,7 +634,7 @@ body {
 
 .gentle-modal-btn {
   padding: var(--space-3) var(--space-6);
-  border-radius: 12px;
+  border-radius: var(--border-radius-md);
   border: none;
   font-size: var(--text-sm);
   font-weight: 500;
@@ -642,8 +642,11 @@ body {
   cursor: pointer;
   transition: all var(--transition-normal);
   outline: none;
-  min-width: 120px;
-  text-transform: lowercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.25rem;
 }
 
 .gentle-modal-btn.primary-action {
@@ -702,7 +705,7 @@ body {
   background: var(--text-primary);
   color: white;
   padding: var(--space-2) var(--space-4);
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   font-size: var(--text-sm);
   font-weight: 500;
   white-space: nowrap;
@@ -782,7 +785,7 @@ body {
   .voice-center {
     padding: var(--space-8) var(--space-4) var(--space-6);
     min-height: 400px;
-    border-radius: 20px;
+    border-radius: var(--border-radius-xl);
   }
   
   .voice-status {

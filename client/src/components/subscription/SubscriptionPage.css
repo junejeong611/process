@@ -41,12 +41,18 @@
   padding: 2rem;
 }
 
+.main-content-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+}
+
 /* Subscription Container */
 .subscription-container {
   width: 100%;
   max-width: 600px;
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 18px;
+  border-radius: var(--border-radius-lg);
   padding: 2.5rem;
   box-shadow: var(--shadow-medium);
   backdrop-filter: blur(16px) saturate(180%);
@@ -102,6 +108,10 @@
   margin: 0 auto 1.5rem auto;
   text-align: center;
   transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .subscription-status-banner:hover {
@@ -114,6 +124,8 @@
   font-weight: 600;
   color: var(--primary-blue);
   margin: 0 0 0.75rem 0;
+  text-align: center;
+  width: 100%;
 }
 
 .subscription-status-banner p {
@@ -121,6 +133,8 @@
   color: var(--text-gray);
   margin: 0 0 1rem 0;
   line-height: 1.5;
+  text-align: center;
+  width: 100%;
 }
 
 /* Status-specific styling */
@@ -141,65 +155,20 @@
 }
 
 .subscription-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.75rem;
-  background: linear-gradient(135deg, var(--light-blue) 0%, var(--medium-blue) 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  font-family: inherit;
-  box-shadow: var(--shadow-light);
+  /* Use direct app-button classes in JSX instead of composition */
   min-width: 200px;
 }
 
-.subscription-button:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-medium);
-  background: linear-gradient(135deg, var(--medium-blue) 0%, var(--primary-blue) 100%);
-}
-
-.subscription-button:active {
-  transform: translateY(0);
-}
-
-.subscription-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(123, 182, 250, 0.3);
-}
-
 .subscription-button.secondary {
-  background: transparent;
-  color: var(--primary-blue);
-  border: 2px solid var(--primary-blue);
-  box-shadow: none;
-}
-
-.subscription-button.secondary:hover {
-  background: var(--primary-blue);
-  color: #ffffff;
+  /* Use direct app-button classes in JSX instead of composition */
 }
 
 .subscription-button.success {
-  background: linear-gradient(135deg, var(--success-green) 0%, #45a049 100%);
-}
-
-.subscription-button.success:hover {
-  background: linear-gradient(135deg, #45a049 0%, #388e3c 100%);
+  /* Use direct app-button classes in JSX instead of composition */
 }
 
 .subscription-button.warning {
-  background: linear-gradient(135deg, var(--warning-orange) 0%, #f57c00 100%);
-}
-
-.subscription-button.warning:hover {
-  background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%);
+  /* Use direct app-button classes in JSX instead of composition */
 }
 
 /* Trial Banner */
@@ -212,6 +181,11 @@
   text-align: center;
   color: #ad6800;
   font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .trial-banner a {
@@ -265,7 +239,7 @@
   margin-top: 2rem;
   padding: 1rem;
   background: rgba(255, 251, 230, 0.5);
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   border: 1px solid rgba(255, 229, 143, 0.3);
 }
 
@@ -428,4 +402,29 @@
   border: 1.5px solid #b3d4fc;
   box-shadow: none !important;
   margin-top: 2rem;
+} 
+
+.app-banner--warning .app-banner__button {
+  background: var(--primary-blue);
+  color: #fff;
+  border-color: var(--primary-blue);
+}
+.app-banner--warning .app-banner__button:hover {
+  background: var(--medium-blue);
+  border-color: var(--medium-blue);
+} 
+
+/* Premium Page Banner Centering and Solid Background */
+.premium-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf2fa;
+}
+
+.premium-page .app-banner {
+  background: #fff;
+  box-shadow: 0 8px 40px rgba(60, 90, 130, 0.12);
+  border: 1.5px solid #dbe6f3;
 } 

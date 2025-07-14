@@ -49,8 +49,12 @@ Return your analysis as a JSON object with keys: triggerThemes, negativeCoreBeli
 router.get('/:userId', auth, async (req, res) => {
   const { userId } = req.params;
 
+  // Guard: Ensure user is authenticated and has a userId
+  if (!req.user || !req.user.userId) {
+    return res.status(401).json({ success: false, error: 'Authentication required.' });
+  }
   // Only allow access if the authenticated user matches the requested userId
-  if (req.user._id.toString() !== userId) {
+  if (req.user.userId !== userId) {
     return res.status(403).json({ success: false, error: 'Access denied.' });
   }
 
@@ -119,8 +123,12 @@ router.get('/:userId/trigger-frequency', auth, async (req, res) => {
     const { userId } = req.params;
     const { period } = req.query;
 
+    // Guard: Ensure user is authenticated and has a userId
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required.' });
+    }
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 
@@ -146,7 +154,7 @@ router.get('/:userId/trigger-frequency', auth, async (req, res) => {
     }
 
     const pipeline = [
-      { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: startDate } } },
+      { $match: { userId: userId, createdAt: { $gte: startDate } } },
       { $unwind: "$triggers" },
       { $group: { _id: "$triggers", count: { $sum: 1 } } },
       { $project: { trigger: "$_id", count: 1, _id: 0 } },
@@ -167,8 +175,12 @@ router.get('/:userId/emotional-timeline', auth, async (req, res) => {
     const { userId } = req.params;
     const { period } = req.query;
 
+    // Guard: Ensure user is authenticated and has a userId
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required.' });
+    }
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 
@@ -194,7 +206,7 @@ router.get('/:userId/emotional-timeline', auth, async (req, res) => {
     }
 
     const pipeline = [
-      { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: startDate } } },
+      { $match: { userId: userId, createdAt: { $gte: startDate } } },
       { $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
         anger: { $avg: '$emotions.anger' },
@@ -228,8 +240,12 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
   try {
     const { userId } = req.params;
 
+    // Guard: Ensure user is authenticated and has a userId
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required.' });
+    }
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 
@@ -257,12 +273,12 @@ router.get('/:userId/weekly-summary', auth, async (req, res) => {
 
     // Aggregate for this week
     const thisWeekMessages = await Message.find({
-      userId: new mongoose.Types.ObjectId(userId),
+      userId: userId,
       createdAt: { $gte: startOfThisWeek }
     });
     // Aggregate for last week
     const lastWeekMessages = await Message.find({
-      userId: new mongoose.Types.ObjectId(userId),
+      userId: userId,
       createdAt: { $gte: startOfLastWeek, $lt: startOfThisWeek }
     });
 
@@ -354,8 +370,12 @@ router.get('/:userId/emotional-distribution', auth, async (req, res) => {
     const { userId } = req.params;
     const { period } = req.query;
 
+    // Guard: Ensure user is authenticated and has a userId
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required.' });
+    }
     // Only allow access if the authenticated user matches the requested userId
-    if (req.user._id.toString() !== userId) {
+    if (req.user.userId !== userId) {
       return res.status(403).json({ success: false, error: 'Access denied.' });
     }
 
@@ -382,7 +402,7 @@ router.get('/:userId/emotional-distribution', auth, async (req, res) => {
 
     // Aggregate emotion sums
     const pipeline = [
-      { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: startDate } } },
+      { $match: { userId: userId, createdAt: { $gte: startDate } } },
       { $group: {
         _id: null,
         anger: { $sum: '$emotions.anger' },
