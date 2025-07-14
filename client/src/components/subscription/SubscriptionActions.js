@@ -19,14 +19,14 @@ const SubscriptionActions = () => {
 
   if (status.subscriptionStatus === 'active') {
     return (
-      <button className="app-button app-button--success subscription-button" onClick={handlePortal}>
+      <button className="app-button app-button--primary app-button--full-width" onClick={handlePortal}>
         Manage Subscription
       </button>
     );
   }
 
   return (
-    <button className="app-button app-button--primary app-button--full-width subscription-button" onClick={handleCheckout}>
+    <button className="app-button app-button--primary app-button--full-width" onClick={handleCheckout}>
       Start Free Trial / Subscribe
     </button>
   );

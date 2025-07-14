@@ -1,9 +1,13 @@
 import React from 'react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { createCheckoutSession, createPortalSession } from '../../services/subscription';
+import ErrorCard from '../ErrorCard';
 
 const SubscriptionStatusBanner = () => {
   const { status, loading, error } = useSubscription();
+  // Check for authentication
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  if (!token) return null;
 
   const handleManage = async () => {
     const url = await createPortalSession();
@@ -19,17 +23,17 @@ const SubscriptionStatusBanner = () => {
     return (
       <div className="subscription-status-banner loading">
         <div className="subscription-spinner"></div>
-        <p>Loading subscription details...</p>
+        <p>loading subscription details...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="subscription-status-banner error">
-        <h3>Something Went Wrong</h3>
-        <p>We couldn't load your subscription details. Please try again later.</p>
-      </div>
+      <ErrorCard
+        error={error || 'could not load your subscription details. please try again later.'}
+        errorCategory={{ type: 'server', canRetry: true, severity: 'error' }}
+      />
     );
   }
 
@@ -63,9 +67,9 @@ const SubscriptionStatusBanner = () => {
     return (
       <div className="app-banner app-banner--warning subscription-status-banner canceled">
         <div className="app-banner__content">
-          <h3 className="app-banner__title">Subscription Canceled</h3>
+          <h3 className="app-banner__title">subscription canceled</h3>
           <p className="app-banner__text">
-            Your plan will not renew. Your premium access ends in <b>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</b> on {formatDate(endDate)}.
+            your plan will not renew. your premium access ends in <b>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</b> on {formatDate(endDate)}.
           </p>
         </div>
         <div className="app-banner__actions">
@@ -85,11 +89,11 @@ const SubscriptionStatusBanner = () => {
     return (
       <div className="app-banner app-banner--trial subscription-status-banner trial">
         <div className="app-banner__content">
-          <h3 className="app-banner__title">Free Trial Active</h3>
+          <h3 className="app-banner__title">free trial active</h3>
           <p className="app-banner__text">
-            You have <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}</b> of your free trial remaining.
+            you have <b>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}</b> of your free trial remaining.
             <br />
-            Your trial ends on {formatDate(trialEnd)}. After that, your paid subscription will begin.
+            your trial ends on {formatDate(trialEnd)}. after that, your paid subscription will begin.
           </p>
         </div>
         <div className="app-banner__actions">
@@ -106,8 +110,8 @@ const SubscriptionStatusBanner = () => {
     return (
       <div className="app-banner app-banner--success subscription-status-banner active">
         <div className="app-banner__content">
-          <h3 className="app-banner__title">Subscription Active</h3>
-          <p className="app-banner__text">Your plan is active and will automatically renew on <b>{formatDate(currentPeriodEnd)}</b>.</p>
+          <h3 className="app-banner__title">subscription active</h3>
+          <p className="app-banner__text">your plan is active and will automatically renew on <b>{formatDate(currentPeriodEnd)}</b>.</p>
         </div>
         <div className="app-banner__actions">
           <button className="app-banner__button" onClick={handleManage}>
@@ -123,8 +127,8 @@ const SubscriptionStatusBanner = () => {
     return (
       <div className="app-banner app-banner--error subscription-status-banner past-due">
         <div className="app-banner__content">
-          <h3 className="app-banner__title">Payment Needed</h3>
-          <p className="app-banner__text">Your last payment failed. Please update your payment method to restore access.</p>
+          <h3 className="app-banner__title">payment needed</h3>
+          <p className="app-banner__text">your last payment failed. please update your payment method to restore access.</p>
         </div>
         <div className="app-banner__actions">
           <button className="app-banner__button" onClick={handleManage}>
@@ -139,8 +143,8 @@ const SubscriptionStatusBanner = () => {
   return (
     <div className="app-banner app-banner--info subscription-status-banner inactive highlight-banner">
       <div className="app-banner__content">
-        <h3 className="app-banner__title">Get Full Access</h3>
-        <p className="app-banner__text">Unlock all premium features by starting your free 7-day trial today.</p>
+        <h3 className="app-banner__title">get full access</h3>
+        <p className="app-banner__text">unlock all premium features by starting your free 7-day trial today.</p>
       </div>
       <div className="app-banner__actions">
         <button className="app-banner__button" onClick={handleSubscribe}>

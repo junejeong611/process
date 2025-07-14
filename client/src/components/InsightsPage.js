@@ -147,6 +147,26 @@ const InsightsContent = () => {
   
   const userId = useMemo(() => getUserId(), []);
 
+  // Fetch conversations for unique conversation count
+  const { data: conversationsData } = useQuery({
+    queryKey: ['conversations', userId],
+    queryFn: async () => {
+      const token = getToken();
+      const response = await fetch('/api/chat/conversations', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error('Failed to load conversations');
+      return result.conversations || [];
+    },
+    enabled: !!userId,
+  });
+
+  const conversationCount = conversationsData ? conversationsData.length : 0;
+
   const { data: insights, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['insights', userId],
     queryFn: async () => {
@@ -192,7 +212,7 @@ const InsightsContent = () => {
     setCurrentAffirmationIndex(0);
   };
 
-  const hasEnoughData = insights?.messages?.length >= 5;
+  const hasEnoughData = conversationCount >= 5;
 
   const lastUpdatedText = dataUpdatedAt
     ? `Last updated: ${new Date(dataUpdatedAt).toLocaleDateString('en-US', {
@@ -287,31 +307,31 @@ const InsightsContent = () => {
 
   // Place after error/loading checks, before 'not enough data' card
   // Show if user has zero conversations/messages
-  if (!isLoading && !error && insights?.messages?.length === 0) {
+  if (!isLoading && !error && conversationCount === 0) {
     return (
       <div className="insights-page">
-        <div className="header-card">
-          <div className="header-center">
-            <h1 className="page-title">your emotional insights</h1>
-            <p className="page-subtitle">understanding your emotional patterns</p>
-          </div>
-          <div className="header-actions">
-            <Button
-              variant="secondary"
-              className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
-              onClick={() => refetch()}
-              disabled={isFetching}
-              size="small"
-              aria-label="Refresh Insights"
-            >
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-              </svg>
-            </Button>
-          </div>
-        </div>
         <div className="insights-content">
+          <div className="header-card">
+            <div className="header-center">
+              <h1 className="page-title">your emotional insights</h1>
+              <p className="page-subtitle">understanding your emotional patterns</p>
+            </div>
+            <div className="header-actions">
+              <Button
+                variant="secondary"
+                className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
+                onClick={() => refetch()}
+                disabled={isFetching}
+                size="small"
+                aria-label="Refresh Insights"
+              >
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                </svg>
+              </Button>
+            </div>
+          </div>
           <div className="tab-navigation">
             <Button
               variant="primary"
@@ -362,28 +382,28 @@ const InsightsContent = () => {
   if (!hasEnoughData) {
     return (
       <div className="insights-page">
-        <div className="header-card">
-          <div className="header-center">
-            <h1 className="page-title">your emotional insights</h1>
-            <p className="page-subtitle">understanding your emotional patterns</p>
-          </div>
-          <div className="header-actions">
-            <Button
-              variant="secondary"
-              className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
-              onClick={() => refetch()}
-              disabled={isFetching}
-              size="small"
-              aria-label="Refresh Insights"
-            >
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-              </svg>
-            </Button>
-          </div>
-        </div>
         <div className="insights-content">
+          <div className="header-card">
+            <div className="header-center">
+              <h1 className="page-title">your emotional insights</h1>
+              <p className="page-subtitle">understanding your emotional patterns</p>
+            </div>
+            <div className="header-actions">
+              <Button
+                variant="secondary"
+                className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
+                onClick={() => refetch()}
+                disabled={isFetching}
+                size="small"
+                aria-label="Refresh Insights"
+              >
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                </svg>
+              </Button>
+            </div>
+          </div>
           <div className="tab-navigation">
             <Button
               variant="primary"
@@ -417,11 +437,11 @@ const InsightsContent = () => {
                   <div className="progress-bar">
                     <div 
                       className="progress-fill" 
-                      style={{ width: `${Math.min((insights?.messages?.length || 0) / 5 * 100, 100)}%` }}
+                      style={{ width: `${Math.min(conversationCount / 5 * 100, 100)}%` }}
                     />
                   </div>
                   <span className="progress-text">
-                    {insights?.messages?.length || 0} of 5 conversations needed
+                    {conversationCount} of 5 conversations needed
                   </span>
                 </div>
                 <Button
@@ -433,13 +453,6 @@ const InsightsContent = () => {
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                     <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7"/>
                   </svg>
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="practice-affirmations-button"
-                  onClick={startPractice}
-                >
-                  Practice Daily Affirmations
                 </Button>
               </div>
             </div>
@@ -460,28 +473,28 @@ const InsightsContent = () => {
 
   return (
     <div className="insights-page">
-      <div className="header-card">
-        <div className="header-center">
-          <h1 className="page-title">your emotional insights</h1>
-          <p className="page-subtitle">understanding your emotional patterns</p>
-        </div>
-        <div className="header-actions">
-          <Button
-            variant="secondary"
-            className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
-            onClick={() => refetch()}
-            disabled={isFetching}
-            size="small"
-            aria-label="Refresh Insights"
-          >
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
-              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-            </svg>
-          </Button>
-        </div>
-      </div>
       <div className="insights-content">
+        <div className="header-card">
+          <div className="header-center">
+            <h1 className="page-title">your emotional insights</h1>
+            <p className="page-subtitle">understanding your emotional patterns</p>
+          </div>
+          <div className="header-actions">
+            <Button
+              variant="secondary"
+              className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
+              onClick={() => refetch()}
+              disabled={isFetching}
+              size="small"
+              aria-label="Refresh Insights"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M1 4v6h6M23 20v-6h-6"/>
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+              </svg>
+            </Button>
+          </div>
+        </div>
         <div className="tab-navigation">
           <Button
             variant="primary"

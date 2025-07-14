@@ -18,11 +18,6 @@ const conversationSchema = new mongoose.Schema({
     default: 'New Conversation',
     maxlength: [100, 'Title cannot exceed 100 characters']
   },
-  wrappedConversationKey: {
-    type: String,
-    required: true,
-    description: 'The conversation key, encrypted with the user\'s master key.'
-  },
   summary: {
     type: String,
     trim: true,

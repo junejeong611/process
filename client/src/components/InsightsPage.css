@@ -50,13 +50,11 @@
 
 /* Main container */
 .insights-page {
-  background: var(--bg-page);
   min-height: 100vh;
-  font-family: var(--font-family);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  width: 100%;
+  background: var(--bg-page) !important;
+  display: flex;
+  flex-direction: column;
+  margin-left: 280px; /* Offset for sidebar */
 }
 
 /* Header */
@@ -265,13 +263,13 @@
 
 /* Content area */
 .insights-content {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: 70vh !important;
-  width: 100% !important;
-  padding-top: 32px !important;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  background: transparent !important;
 }
 
 .analytics-content {
@@ -849,13 +847,14 @@
 
 /* Loading state */
 .loading-state {
+  height: 100vh !important;
+  min-height: unset !important;
+  overflow: hidden !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-3xl);
-  text-align: center;
-  background: transparent !important;
+  width: 100%;
 }
 
 .loading-spinner {
@@ -1483,11 +1482,13 @@ body .dashboard-layout .navbar {
 }
 
 .main-content {
-  margin-left: 250px;
-  width: calc(100vw - 250px);
-  min-height: 100vh;
-  box-sizing: border-box;
-  display: block;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent !important;
 }
 
 .empty-state {
@@ -1746,7 +1747,7 @@ body .dashboard-layout .navbar {
 
 .insights-content {
   display: block !important;
-  padding-top: 0 !important;
+  padding-top: 2rem !important;
   min-height: 0 !important;
 }
 
@@ -1757,7 +1758,7 @@ body .dashboard-layout .navbar {
 }
 
 .insights-content {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   padding: 0 24px;
@@ -1800,7 +1801,7 @@ body .dashboard-layout .navbar {
   align-items: center !important;
   position: relative !important;
   max-width: 1000px;
-  margin: 2rem auto 0 auto;
+  margin: 0 auto 2rem auto;
   background: rgba(255,255,255,0.7);
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
@@ -1898,13 +1899,6 @@ body .dashboard-layout .navbar {
   padding-bottom: 16px !important;
 }
 
-@media (min-width: 901px) {
-  .insights-page {
-    margin-left: 280px !important;
-    width: calc(100vw - 280px) !important;
-  }
-}
-
 @media (max-width: 900px) {
   .insights-page {
     margin-left: 0 !important;
@@ -1922,4 +1916,45 @@ body, #root, .insights-page {
   width: 100%;
   padding-left: 16px;
   padding-right: 16px;
+}
+
+/* Offset for sidebar only on desktop */
+@media (min-width: 901px) {
+  .insights-page {
+    margin-left: 280px !important;
+  }
+}
+
+.header-card {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto 2rem auto;
+  margin-top: 2rem;
+}
+
+.header-card,
+.tab-navigation,
+.main-content {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto 2rem auto;
+}
+
+.insights-content, .main-content {
+  min-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  background: var(--bg-page) !important;
+}
+
+.loading-state {
+  min-height: 100vh !important;
+}
+
+.insights-page, .insights-content, .main-content, .loading-state {
+  height: 100vh !important;
+  min-height: unset !important;
+  overflow: hidden !important;
 }
