@@ -52,6 +52,7 @@ const { loadKeys } = require('./services/keyService');
     process.env.STRIPE_SECRET_KEY = secrets.STRIPE_SECRET_KEY;
     process.env.STRIPE_PUBLISHABLE_KEY = secrets.STRIPE_PUBLISHABLE_KEY;
     process.env.STRIPE_PRICE_ID = secrets.STRIPE_PRICE_ID;
+    process.env.JWT_SECRET = secrets.JWT_SECRET;
     console.log('✅ Stripe secrets set successfully');
 
     // Debug logs for Stripe secrets
