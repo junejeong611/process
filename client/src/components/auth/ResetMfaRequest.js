@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import './ResetMfaRequest.css';
+import Banner from '../Banner';
 
 // Custom debounce hook with flush
 const useDebounce = (value, delay) => {
@@ -151,10 +152,15 @@ const ResetMfaRequest = () => {
                     </button>
                 </form>
 
+                {/* Confirmation Banner */}
                 {message && (
-                    <div className="message-display" role="alert">
-                        {message}
-                    </div>
+                    <Banner
+                        variant="success"
+                        title="reset link sent!"
+                        message={message}
+                        icon="✅"
+                        style={{ marginBottom: '1.5rem' }}
+                    />
                 )}
 
                 <footer className="reset-mfa-request-footer">

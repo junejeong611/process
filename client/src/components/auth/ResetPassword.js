@@ -4,6 +4,7 @@ import './ResetPassword.css';
 import ErrorCard from '../ErrorCard';
 import { categorizeError } from '../../utils/errorUtils';
 import AuthErrorCard from '../AuthErrorCard';
+import Banner from '../Banner';
 
 // Enhanced password strength calculation
 const passwordStrength = (password) => {
@@ -490,9 +491,12 @@ const ResetPassword = () => {
             // Priority: Success > Error > Offline
             if (success) {
               return (
-                <ErrorCard
-                  error={success}
-                  errorCategory={{ type: 'success', canRetry: false }}
+                <Banner
+                  variant="success"
+                  title="password reset!"
+                  message={success}
+                  icon="✅"
+                  style={{ marginBottom: '1.5rem' }}
                 />
               );
             } else if (error) {
