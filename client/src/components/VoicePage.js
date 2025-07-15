@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+cimport React, { useState, useRef, useEffect, useCallback } from 'react';
 import Navbar from './navigation/Navbar';
 import PulsingHeart from './PulsingHeart';
 import { useVoice, VOICE_STATUSES } from '../contexts/VoiceContext';

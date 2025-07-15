@@ -3413,5 +3413,5 @@ body, html, #root, .main-content, .settings-page, .dashboard-layout, .dashboard-
 html, body {
   height: 100vh !important;
   min-height: 100vh !important;
-  overflow: hidden !important;
+  /* overflow: hidden !important; */
 }
