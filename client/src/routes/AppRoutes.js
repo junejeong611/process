@@ -74,7 +74,7 @@ const AppRoutes = () => (
     {/* Premium routes - require subscription */}
     <Route path="/chat" element={
       <ProtectedRoute>
-        <DashboardLayout>
+        <DashboardLayout showUserMenuBar={false}>
           <PremiumRoute>
             <ChatLayout />
           </PremiumRoute>
@@ -112,7 +112,7 @@ const AppRoutes = () => (
     
     <Route path="/conversation" element={
       <ProtectedRoute>
-        <DashboardLayout>
+        <DashboardLayout showUserMenuBar={false}>
           <PremiumRoute>
             <ChatInterface />
           </PremiumRoute>
@@ -130,7 +130,7 @@ const AppRoutes = () => (
     
     <Route path="/voice" element={
       <ProtectedRoute>
-        <DashboardLayout>
+        <DashboardLayout showUserMenuBar={false}>
           <PremiumRoute>
             <VoicePage />
           </PremiumRoute>

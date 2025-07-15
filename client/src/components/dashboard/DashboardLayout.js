@@ -20,7 +20,14 @@ const getUserName = () => {
   return 'User';
 };
 
-const DashboardLayout = ({ children, sidebarOffset = true }) => {
+/**
+ * DashboardLayout component
+ * @param {object} props
+ * @param {React.ReactNode} props.children - The content to render inside the layout
+ * @param {boolean} [props.sidebarOffset=true] - Whether to offset the page content for the sidebar
+ * @param {boolean} [props.showUserMenuBar=true] - Whether to show the user menu bar on the right
+ */
+const DashboardLayout = ({ children, sidebarOffset = true, showUserMenuBar = true }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [userName] = useState(getUserName());
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -62,7 +69,7 @@ const DashboardLayout = ({ children, sidebarOffset = true }) => {
     <div className="dashboard-layout">
       <Navbar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       <main className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-        <UserMenuBar />
+        {showUserMenuBar && <UserMenuBar />}
         <div className={`page-content${isSidebarOpen && sidebarOffset ? ' sidebar-offset' : ''}`}>
           {children}
         </div>

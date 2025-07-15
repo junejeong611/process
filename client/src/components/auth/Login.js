@@ -921,7 +921,7 @@ const Login = () => {
                     </a>
                 </p>
                 <p className="support-text">
-                    <Link to="/reset-mfa-request" className="app-link">Having trouble? Reset your authenticator</Link>
+                    <Link to="/reset-mfa-request" className="app-link">having trouble? reset your authenticator</Link>
                 </p>
               </footer>
             </>
@@ -989,7 +989,7 @@ const Login = () => {
               </div>
               <p className="backup-codes-info">each code can only be used once</p>
               <button type="button" className="app-button app-button--primary app-button--full-width login-button" onClick={finishSetup}>
-                <span className="button-text">I Saved My Codes</span>
+                <span className="button-text">I saved my backup codes</span>
               </button>
             </>
           ) : (
@@ -1018,7 +1018,7 @@ const Login = () => {
                 } else if (!isOnline) {
                   return (
                     <ErrorCard
-                      error="Connection lost. Please check your WiFi and try again."
+                      error="connection lost. please check your WiFi and try again."
                       errorCategory={{ type: 'network', canRetry: false }}
                       style={{ marginBottom: '1rem' }}
                     />

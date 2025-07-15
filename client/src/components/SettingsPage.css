@@ -309,11 +309,11 @@
 }
 
 body, .main-content-wrapper {
-  background: #eaf2fa !important;
+  background: var(--bg-page) !important;
 } 
 
 /* Force light mode for settings page */
-.settings-page, .settings-container, .register-card, .form-control, .register-footer {
-  background: #f7fafd !important;
+.settings-page, .settings-container, .form-control, .register-footer {
+  background: var(--bg-page) !important;
   color: #1a365d !important;
 } 

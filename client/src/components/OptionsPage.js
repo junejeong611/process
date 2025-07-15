@@ -36,6 +36,11 @@ const OptionsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loadingKey, setLoadingKey] = useState(null);
+  const [showBanner, setShowBanner] = useState(() => {
+    // Only show if redirected after subscription and not dismissed in this session
+    const dismissed = localStorage.getItem('subscriptionBannerDismissed');
+    return !dismissed;
+  });
   // (User menu bar state and logic removed)
 
   // Remove userName, userMenuRef, setShowUserMenu, setIsLoggingOut, and related useEffects
@@ -46,6 +51,10 @@ const OptionsPage = () => {
       toast.success(location.state.message);
       // Clear the state to prevent showing the message again
       window.history.replaceState({}, document.title);
+    }
+    // Show banner only if redirected after subscription
+    if (location.state?.subscribed) {
+      setShowBanner(true);
     }
   }, [location.state]);
 
@@ -95,6 +104,33 @@ const OptionsPage = () => {
     <main className="options-main" role="main">
       <div className="options-center">
         <div className="options-inner">
+          {showBanner && location.state?.subscribed && (
+            <div
+              className="app-banner app-banner--success app-banner--dismissible"
+              role="status"
+              style={{ marginBottom: '1.5rem' }}
+            >
+              <div className="app-banner__icon" aria-hidden="true">💎</div>
+              <div className="app-banner__content">
+                <div className="app-banner__title">You’re now a premium member!</div>
+                <div className="app-banner__text">Manage your subscription here.</div>
+              </div>
+              <div className="app-banner__actions">
+                <Link to="/settings" className="app-banner__button">Manage Subscription</Link>
+                <button
+                  className="app-banner__dismiss"
+                  aria-label="Dismiss banner"
+                  onClick={() => {
+                    setShowBanner(false);
+                    localStorage.setItem('subscriptionBannerDismissed', '1');
+                  }}
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
           <div className="options-heart" aria-hidden="true">
             <img src="/logo.svg" alt="Process Logo" width="48" height="48" />
           </div>

@@ -55,6 +55,8 @@
   display: flex;
   flex-direction: column;
   margin-left: 280px; /* Offset for sidebar */
+  width: 100vw !important;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -1935,7 +1937,7 @@ body, #root, .insights-page {
 .header-card,
 .tab-navigation,
 .main-content {
-  max-width: 1200px;
+  max-width: 100%;
   width: 100%;
   margin: 0 auto 2rem auto;
 }

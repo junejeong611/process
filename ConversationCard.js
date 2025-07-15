@@ -6,8 +6,7 @@ const ConversationCard = ({
   onClick,
   isSelected = false, 
   isSelectMode = false, 
-  onSelect, 
-  onDelete 
+  onSelect 
 }) => {
   // Enhanced date formatting
   const formatDate = (dateString) => {
@@ -41,14 +40,6 @@ const ConversationCard = ({
       onSelect && onSelect();
     } else {
       onClick && onClick();
-    }
-  };
-
-  // Handle delete with confirmation
-  const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    if (window.confirm('are you sure you want to delete this conversation? this action cannot be undone.')) {
-      onDelete && onDelete(conversation.id);
     }
   };
 
@@ -141,18 +132,7 @@ const ConversationCard = ({
       </div>
 
       {/* Action buttons (only show when not in select mode) */}
-      {!isSelectMode && (
-        <div className="conversation-actions">
-          <button
-            className="action-button delete-button"
-            onClick={handleDeleteClick}
-            aria-label="Delete conversation"
-            title="Delete conversation"
-          >
-            <span className="delete-icon">🗑️</span>
-          </button>
-        </div>
-      )}
+      {/* Remove the conversation-actions div that contains the delete button */}
     </div>
   );
 };

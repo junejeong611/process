@@ -37,7 +37,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e3edf7;
+  background: var(--bg-page);
   padding: 0;
   box-sizing: border-box;
   position: relative;
@@ -50,7 +50,7 @@ body {
 }
 
 .login-card {
-  background: #fff;
+  background: var(--bg-white, #fff);
   border-radius: var(--border-radius-large);
   border: 3.5px solid var(--border-light);
   box-shadow: 0 8px 40px var(--shadow-medium), 0 3px 12px rgba(60, 90, 130, 0.08);

@@ -926,7 +926,7 @@ select,
 }
 
 /* Force light mode for voice page */
-.voice-bg, body, html {
-  background: #f7fafd !important;
+.voice-bg {
+  background: var(--bg-page) !important;
   color: #1a365d !important;
 }

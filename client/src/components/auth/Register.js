@@ -293,6 +293,20 @@ const handleEmailBlur = (e) => {
     }
   }, [shakeEmail]);
 
+  // Clear password error as soon as password is valid
+  useEffect(() => {
+    if (fieldErrors.password && !validatePassword(password)) {
+      setFieldErrors(prev => ({ ...prev, password: '' }));
+    }
+  }, [password, fieldErrors.password]);
+
+  // Clear confirmPassword error as soon as confirmPassword is valid
+  useEffect(() => {
+    if (fieldErrors.confirmPassword && !validateConfirmPassword(confirmPassword)) {
+      setFieldErrors(prev => ({ ...prev, confirmPassword: '' }));
+    }
+  }, [confirmPassword, fieldErrors.confirmPassword]);
+
   return (
     <div className="register-container" role="main">
       <div className="register-content">

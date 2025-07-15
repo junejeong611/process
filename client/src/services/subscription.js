@@ -20,8 +20,8 @@ export async function getSubscriptionStatus() {
 
 export async function createCheckoutSession() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  const successUrl = window.location.origin + '/subscribe';
-  const cancelUrl = window.location.origin + '/subscribe';
+  const successUrl = window.location.origin + '/options';
+  const cancelUrl = window.location.origin + '/options';
   
   console.log('Creating checkout session with URLs:', { successUrl, cancelUrl });
   
@@ -38,7 +38,7 @@ export async function createCheckoutSession() {
 
 export async function createPortalSession() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  const returnUrl = window.location.origin + '/subscribe';
+  const returnUrl = window.location.origin + '/options';
   const response = await axios.post('/api/subscription/create-portal-session', {
     returnUrl,
   }, {

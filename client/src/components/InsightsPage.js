@@ -479,7 +479,7 @@ const InsightsContent = () => {
             <h1 className="page-title">your emotional insights</h1>
             <p className="page-subtitle">understanding your emotional patterns</p>
           </div>
-          <div className="header-actions">
+          <div className="header-actions-row" style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
             <Button
               variant="secondary"
               className={`refresh-link icon-only ${isFetching ? 'refreshing' : ''}`}
