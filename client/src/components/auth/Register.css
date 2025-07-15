@@ -815,3 +815,8 @@
   background: transparent !important;
   --bg-page: transparent !important;
 }
+
+body.register-page,
+html.register-page {
+  overflow-y: auto !important;
+}

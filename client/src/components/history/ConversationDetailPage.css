@@ -164,4 +164,9 @@
     font-size: 0.85rem;
     padding: 0.35rem 0.5rem;
   }
+}
+
+body.conversation-detail-page,
+html.conversation-detail-page {
+  overflow-y: auto !important;
 } 

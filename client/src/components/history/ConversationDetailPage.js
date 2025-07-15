@@ -56,6 +56,15 @@ const ConversationDetailPage = () => {
     simulateLoadingStages();
   }, [fetchConversation]);
 
+  useEffect(() => {
+    document.body.classList.add('conversation-detail-page');
+    document.documentElement.classList.add('conversation-detail-page');
+    return () => {
+      document.body.classList.remove('conversation-detail-page');
+      document.documentElement.classList.remove('conversation-detail-page');
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="conversation-detail-container">

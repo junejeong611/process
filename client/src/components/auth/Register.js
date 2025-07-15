@@ -85,6 +85,15 @@ const Register = () => {
     };
   }, []);
 
+  useEffect(() => {
+    document.body.classList.add('register-page');
+    document.documentElement.classList.add('register-page');
+    return () => {
+      document.body.classList.remove('register-page');
+      document.documentElement.classList.remove('register-page');
+    };
+  }, []);
+
   // Improved validation functions (no periods, lowercase)
   const validateName = (val) => {
     if (!val.trim() || val.trim().split(/\s+/).length < 2) return 'full name is required';
