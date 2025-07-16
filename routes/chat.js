@@ -7,7 +7,7 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const auth = require('../middleware/auth');
 const claudeService = require('../services/claudeService');
-const { userLimiter, aiCallLimiter } = require('../middleware/rateLimiter');
+const { userLimiter, aiCallLimiter, chatLimiter } = require('../middleware/rateLimiter');
 const { logEvent } = require('../services/auditLogService');
 const keyService = require('../services/keyService');
 const axios = require('axios');
@@ -155,6 +155,7 @@ async function getEmotionsFromClaude(text) {
 // @access  Private
 router.post('/send', 
   auth, 
+  chatLimiter,
   aiCallLimiter, 
   [
     body('content', 'content cannot be empty').not().isEmpty(),
