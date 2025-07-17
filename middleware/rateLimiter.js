@@ -19,6 +19,24 @@ const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again after 15 minutes.',
 });
 
+// Rate limiter for authentication endpoints (login, register, etc.)
+const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5, // Limit each IP to 5 auth attempts per 10 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many authentication attempts. Please try again after 10 minutes.',
+});
+
+// Rate limiter for forgot password requests
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 3, // Limit each IP to 3 forgot password requests per 10 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many password reset requests. Please try again after 10 minutes.',
+});
+
 // Stricter rate limiter for authenticated users.
 // This helps prevent a single user from overwhelming the system.
 const userLimiter = rateLimit({
@@ -29,7 +47,6 @@ const userLimiter = rateLimit({
   legacyHeaders: false,
   message: 'You have exceeded your request limit. Please try again later.',
 });
-
 
 // Very strict rate limiter for expensive AI-related calls.
 // This is critical for controlling costs and preventing abuse of the AI services.
@@ -44,6 +61,8 @@ const aiCallLimiter = rateLimit({
 
 module.exports = {
   apiLimiter,
+  authLimiter,
+  forgotPasswordLimiter,
   userLimiter,
   aiCallLimiter,
 }; 
