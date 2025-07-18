@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
+const { sendMessageValidation, createConversationValidation, getMessagesValidation } = require('../middleware/validation');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const Message = require('../models/Message');
@@ -26,7 +26,7 @@ router.use(userLimiter);
 // @route   POST /api/chat/conversations
 // @desc    Create a new conversation
 // @access  Private
-router.post('/conversations', auth, async (req, res) => {
+router.post('/conversations', auth, createConversationValidation, async (req, res) => {
   try {
     const { title, type } = req.body;
     const conversation = new Conversation({
@@ -103,7 +103,7 @@ router.get('/conversations', auth, async (req, res) => {
 // @route   GET /api/chat/messages/:conversationId
 // @desc    Get all messages for a specific conversation
 // @access  Private
-router.get('/messages/:conversationId', auth, async (req, res) => {
+router.get('/messages/:conversationId', auth, getMessagesValidation, async (req, res) => {
   try {
     const messages = await Message.find({ 
       userId: req.user.userId,
@@ -156,15 +156,8 @@ async function getEmotionsFromClaude(text) {
 router.post('/send', 
   auth, 
   aiCallLimiter, 
-  [
-    body('content', 'content cannot be empty').not().isEmpty(),
-    body('conversationId', 'Invalid conversation ID').isMongoId(),
-  ],
+  sendMessageValidation,
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     try {
       const { content, conversationId } = req.body;

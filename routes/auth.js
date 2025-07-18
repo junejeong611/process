@@ -3,7 +3,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const crypto = require('crypto');
-const rateLimit = require('express-rate-limit');
 const { sendEmail } = require('../utils/email');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
@@ -12,38 +11,23 @@ const { logEvent } = require('../services/auditLogService');
 const mongoose = require('mongoose');
 const { checkLoginAnomaly, handleFailedLogin } = require('../services/anomalyService');
 const keyService = require('../services/keyService');
+const { authLimiter, forgotPasswordLimiter } = require('../middleware/rateLimiter');
+const { 
+  registerValidation, 
+  loginValidation, 
+  mfaValidation, 
+  forgotPasswordValidation, 
+  resetPasswordValidation 
+} = require('../middleware/validation');
 
 const router = express.Router();
 
-// Rate limiter for login to prevent brute-force attacks
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 login requests per windowMs
-  message: { success: false, message: 'Too many login attempts from this IP, please try again after 15 minutes' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
-// Rate limiter for MFA verification
-const mfaLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 5, // limit each IP to 5 verification attempts per windowMs
-  message: { success: false, message: 'Too many MFA attempts. Please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Rate limiter for forgot password endpoint
-const forgotPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
-  message: { success: false, message: 'Too many password reset requests. Please try again later.' }
-});
 
 // @route   POST /api/auth/register
 // @desc    Register new user
 // @access  Public
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, registerValidation, async (req, res) => {
   try {
     const { email, password, name } = req.body;
 
@@ -71,7 +55,7 @@ router.post('/register', async (req, res) => {
 // @route   POST /api/auth/login
 // @desc    Login user and return JWT
 // @access  Public
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', authLimiter, loginValidation, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -190,7 +174,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 // @route   POST /api/auth/mfa/verify
 // @desc    Verify MFA code for login or setup
 // @access  Private (requires mfaToken)
-router.post('/mfa/verify', mfaLimiter, auth, async (req, res) => {
+router.post('/mfa/verify', authLimiter, auth, mfaValidation, async (req, res) => {
     try {
         const { mfaCode, trustDevice } = req.body;
         const { userId, mfa } = req.user; // Decoded from mfaToken
@@ -391,7 +375,7 @@ router.post('/mfa/reset-confirm', async (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @desc    Send password reset email
 // @access  Public
-router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+router.post('/forgot-password', authLimiter, forgotPasswordValidation, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ success: false, message: 'Email is required.' });
   const user = await User.findOne({ email });

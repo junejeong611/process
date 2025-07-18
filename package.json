@@ -16,7 +16,7 @@
         "@google-cloud/speech": "^7.1.0",
         "@speechmatics/real-time-client": "^6.0.0",
         "aws-sdk": "^2.1692.0",
-        "axios": "^1.6.2",
+        "axios": "^1.10.0",
         "bcrypt": "^5.1.1",
         "body-parser": "^1.20.2",
         "chalk": "^4.1.2",
